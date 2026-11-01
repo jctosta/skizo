@@ -1,0 +1,4 @@
+input.skz:3  Custom  "chat bubble" is not a PascalCase name — did you mean ChatBubble?
+input.skz:4  Custom  "chatBubble" is not a PascalCase name — did you mean ChatBubble?
+input.skz:5  Custom  "2fa-prompt" is not a PascalCase name (expected: a capital letter, then letters and digits)
+input.skz:6  Custom  needs a Label (Custom "...")

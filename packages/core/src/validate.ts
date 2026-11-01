@@ -115,6 +115,7 @@ function props(
       const enumProp = Object.entries(spec.props).find(([, p]) => p.kind === "enum" && p.values.includes(key))?.[0];
       const grantors = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type]!.childProps?.[key]);
       if (grantors.length) err(node, `${key} only works directly inside a ${grantors.join(" or ")}`);
+      else if (spec.anyProps) continue;
       else if (raw !== true) err(node, `unknown prop "${key}"${didYouMean(key, names)}`);
       else err(node, `unknown flag "${key}"${enumProp ? ` — did you mean ${enumProp}=${key}?` : didYouMean(key, names)}`);
     } else if (prop.kind === "flag") {

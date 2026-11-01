@@ -53,6 +53,7 @@ Checkbox "Label"    checked disabled             (same for Switch)
 Radio "Label"       options value
 Table               cols="A,B,C"; rows as | lines (one cell per col), or rows=N (placeholder)
 List                items="a,b,c" or rows=N
+Custom "ChatBubble" any props, flags and children    a component of the app; only when no type fits
 ```
 
 ## Behavior (the only kind)

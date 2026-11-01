@@ -1,5 +1,5 @@
 import { slugify, type Node } from "@skizo/core";
-import { hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
+import { customProps, hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
 import { initials, listItems, lorem, tableRows } from "../placeholder";
@@ -389,5 +389,18 @@ export const EMITTERS: Record<string, Emit> = {
     });
     const radios = wrap(`<RadioGroup${jsxAttrs({ "aria-labelledby": group, defaultValue: node.props.value })}>`, lines(...items), "</RadioGroup>");
     return wrap(`<div className="${CLASSES.Field.root}">`, lines(`<Label${jsxAttrs({ id: group })}>${text(node.label!)}</Label>`, radios), "</div>");
+  },
+  /**
+   * The project's own component from `@/components/<kebab-name>`, with the props (keys in camelCase) and children.
+   * ponytail: a Custom named like a component the file already imports (Button) clashes; alias it if it bites.
+   */
+  Custom: (node, ctx) => {
+    const name = node.label!;
+    // ChatBubble → chat-bubble, KPICard → kpi-card.
+    const file = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").toLowerCase();
+    ctx.use(`@/components/${file}`, name);
+    const camel = (key: string) => key.replace(/-(\w)/g, (_, c: string) => c.toUpperCase());
+    const props = jsxAttrs(Object.fromEntries(customProps(node).map(([key, v]) => [camel(key), v])));
+    return node.children.length ? wrap(`<${name}${props}>`, ctx.render(node.children), `</${name}>`) : `<${name}${props} />`;
   },
 };
