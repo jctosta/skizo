@@ -44,7 +44,28 @@ export const EMITTERS: Record<string, Emit> = {
   Row: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
   Grid: (node, ctx) => div(gridClasses(node), ctx.render(node.children)),
   Separator: () => `<div role="none" class="${CLASSES.Separator.root}"></div>`,
+  Card: (node, ctx) => {
+    const c = CLASSES.Card;
+    const desc = node.props.desc as string | undefined;
+    const { actions, footer } = node.slots ?? {};
+    const header = lines(
+      node.label !== undefined && `<div class="${c.title}">${esc(node.label)}</div>`,
+      desc !== undefined && `<div class="${c.desc}">${esc(desc)}</div>`,
+      actions && div(cx(c.action, c.actions), ctx.render(actions)),
+    );
+    return div(
+      c.root,
+      lines(
+        header && div(cx(c.header, actions && c.headerWithActions), header),
+        node.children.length > 0 && div(c.content, ctx.render(node.children)),
+        footer && div(cx(c.footer, c.footerItems), ctx.render(footer)),
+      ),
+    );
+  },
 };
 
+/** Joins the present lines. */
+const lines = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
+
 /** A `<div>` holding `body`, which may be empty. */
-const div = (classes: string, body: string) => [`<div class="${classes}">`, body, "</div>"].filter(Boolean).join("\n");
+const div = (classes: string, body: string) => lines(`<div class="${classes}">`, body, "</div>");

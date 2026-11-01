@@ -1,0 +1,15 @@
+// A Card with every part, then Cards missing parts: empty sections are left out.
+Screen "Orders"
+  Card "Revenue" desc="Last 30 days"
+    actions
+      Text "Live" muted
+      Text "Beta" size=sm
+    Text "$12,450" bold
+    Text "+12% vs last month" muted
+    footer
+      Text "Updated hourly" size=sm muted
+  Card "Pending"
+    Text "18 orders"
+  Card
+    Text "A Card without a header"
+  Card "Archived" desc="Nothing here yet"

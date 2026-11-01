@@ -56,4 +56,25 @@ export const EMITTERS: Record<string, Emit> = {
     ctx.use("@/components/ui/separator", "Separator");
     return "<Separator />";
   },
+  Card: (node, ctx) => {
+    const c = CLASSES.Card;
+    /** Imports a Card part and returns its name, so each part is imported only when emitted. */
+    const ui = (name: string) => (ctx.use("@/components/ui/card", name), name);
+    const desc = node.props.desc as string | undefined;
+    const { actions, footer } = node.slots ?? {};
+    const header = lines(
+      node.label !== undefined && `<${ui("CardTitle")}>${text(node.label)}</CardTitle>`,
+      desc !== undefined && `<${ui("CardDescription")}>${text(desc)}</CardDescription>`,
+      actions && wrap(`<${ui("CardAction")} className="${c.actions}">`, ctx.render(actions), "</CardAction>"),
+    );
+    return wrap(
+      `<${ui("Card")}>`,
+      lines(
+        header && wrap(`<${ui("CardHeader")}>`, header, "</CardHeader>"),
+        node.children.length > 0 && wrap(`<${ui("CardContent")}>`, ctx.render(node.children), "</CardContent>"),
+        footer && wrap(`<${ui("CardFooter")} className="${c.footerItems}">`, ctx.render(footer), "</CardFooter>"),
+      ),
+      "</Card>",
+    );
+  },
 };

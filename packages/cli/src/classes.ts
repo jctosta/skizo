@@ -44,6 +44,20 @@ export const CLASSES = {
   },
   /** The shadcn look, for the Preview; the export gets it from the project's own Separator. */
   Separator: { root: "h-px w-full shrink-0 bg-border" },
+  Card: {
+    // The shadcn look, for the Preview; the export gets these from the project's own Card components.
+    root: "flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10",
+    header: "grid auto-rows-min items-start gap-1 px-6",
+    headerWithActions: "grid-cols-[1fr_auto]",
+    title: "text-base leading-normal font-medium",
+    desc: "text-sm text-muted-foreground",
+    action: "col-start-2 row-span-2 row-start-1 self-start justify-self-end",
+    content: "flex flex-col gap-3 px-6",
+    footer: "flex items-center px-6",
+    // Added in every Backend: a slot lays its Elements out side by side.
+    actions: "flex items-center gap-2",
+    footerItems: "gap-2",
+  },
 } as const;
 
 /** Joins the truthy class strings. */
