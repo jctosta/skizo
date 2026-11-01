@@ -79,6 +79,22 @@ test("a shared Sidebar is written once, as app-sidebar.tsx, and each Screen that
   });
 });
 
+test("on phones the Sidebar toggle opens the shared Sidebar in a left Sheet, and AppSidebar stays the one source of the links", async () => {
+  const cwd = withFiles({ "orders.skz": SHARED_SIDEBAR });
+  await runCli(["export", "orders.skz", "--target", "shadcn"], cwd);
+  const file = readFileSync(join(cwd, "orders.tsx"), "utf8");
+  const shell = file.split("\n").map((line) => line.trim()).filter((line) => /^<(aside|AppSidebar|Sheet|SheetTrigger|SheetContent|Button|a)\b/.test(line));
+  expect(shell).toEqual([
+    '<aside className="hidden w-64 shrink-0 flex-col border-r bg-muted/50 p-2 md:flex">',
+    '<AppSidebar current="orders" />',
+    "<Sheet>",
+    "<SheetTrigger asChild>",
+    '<Button variant="ghost" size="icon" className="md:hidden">',
+    '<SheetContent side="left" aria-describedby={undefined}>',
+    '<AppSidebar current="orders" />',
+  ]);
+});
+
 test("exporting an unchanged file twice gives byte-identical output", async () => {
   const cwd = withFiles({ "orders.skz": SHARED_SIDEBAR });
   const read = () => ["app-sidebar.tsx", "orders.tsx", "order-details.tsx"].map((name) => readFileSync(join(cwd, name), "utf8"));
@@ -138,6 +154,10 @@ test("--router next writes each link to a Screen as Link from next/link, with hr
       'import Link from "next/link"',
       '<Link href="/orders" aria-current="page">Orders</Link>',
       "<a>Help</a>",
+      // The Sheet of the Sidebar toggle holds the same links.
+      "<SheetTrigger asChild>",
+      '<Link href="/orders" aria-current="page">Orders</Link>',
+      "<a>Help</a>",
       "<Button asChild>",
       '<Link href="/dashboard">Dashboard</Link>',
     ],
@@ -150,6 +170,9 @@ test("--router react-router writes each link to a Screen as Link from react-rout
     stderr: "",
     links: [
       'import { Link } from "react-router"',
+      '<Link to="/orders" aria-current="page">Orders</Link>',
+      "<a>Help</a>",
+      "<SheetTrigger asChild>",
       '<Link to="/orders" aria-current="page">Orders</Link>',
       "<a>Help</a>",
       "<Button asChild>",

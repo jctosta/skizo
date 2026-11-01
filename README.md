@@ -22,11 +22,12 @@ Skizo (Esperanto for *sketch*) is an indentation-based language for UI sketches.
 
 When you ask a coding agent for a UI mockup, it usually writes full React or HTML. That output is long and slow to change, and the agent adds components, state and styles that you did not ask for. Skizo gives the agent a small, fixed vocabulary instead:
 
-- A sketch is short. The Orders example below is 34 lines of Skizo. Its shadcn export is 222 lines of TSX.
+- A sketch is short. The Orders example below is 34 lines of Skizo. Its shadcn export is 264 lines of TSX.
 - A Sidebar written one time, before the first Screen, goes on all Screens.
+- One sketch fits phones, tablets and desktops. You write one layout. On a phone, a Grid shows one column, a Row puts the children that do not fit on a new line, and a Table scrolls horizontally. The Sidebar is hidden, and a menu button opens it from the left. On a tablet, a Grid shows a maximum of two columns. The export writes the same Tailwind classes. Thus your app changes in the same way.
 - There is one way to write each thing. Skizo has 33 Element types, and `skizo check` rejects all other types. For a component that Skizo does not have, write `Custom "Name"`.
 - `skizo check` shows all errors in one run, each with a hint. An agent can fix the file in one pass.
-- The Preview is one HTML file that works offline. Links switch Screens. Buttons open Dialogs and Sheets. Tabs, Menus and Selects work. Charts show as SVG images.
+- The Preview is one HTML file that works offline. Links switch Screens. Buttons open Dialogs and Sheets. Tabs, Menus and Selects work. Charts show as SVG images. A toolbar shows the sketch at desktop, tablet or phone width.
 - The export is code that you keep. It imports the shadcn components and the Custom components of your own project. With `--router`, the links use the `Link` component of Next.js or React Router.
 
 ## Example
@@ -62,9 +63,9 @@ Screen "Orders" id=orders subtitle="Manage and track customer orders"
     Select "Status" options="Open,Paid" value=Open
 ```
 
-`skizo preview` turns it into this page:
+`skizo preview` turns it into this page. The image shows the page at desktop width and at phone width:
 
-<img src="docs/assets/preview-orders.png" alt="The Preview of the Orders Screen: a sidebar, three cards with stats, tabs and a table of orders" width="100%">
+<img src="docs/assets/preview-orders.png" alt="The Preview of the Orders Screen at desktop width and at phone width. On the desktop, a Sidebar is on the left and three cards are in one row. On the phone, a menu button replaces the Sidebar and the cards are in one column." width="100%">
 
 The full file is [`examples/orders.skz`](examples/orders.skz). The [documentation](https://jctosta.github.io/skizo/#examples) shows it and four other sketches next to their live Preview and their shadcn export.
 
@@ -75,13 +76,13 @@ You need Node.js 22.12 or later and Git. Skizo installs from a Git tag. Always p
 With pnpm (recommended):
 
 ```sh
-pnpm add -g github:jctosta/skizo#v0.3.0-alpha.1
+pnpm add -g github:jctosta/skizo#v0.4.0-alpha.1
 ```
 
 With npm:
 
 ```sh
-npm install -g --allow-git=all github:jctosta/skizo#v0.3.0-alpha.1
+npm install -g --allow-git=all github:jctosta/skizo#v0.4.0-alpha.1
 ```
 
 The tag points to a commit on the `release` branch. That commit holds only the built CLI. It has no install scripts and no dependencies. To pin one exact build, use the commit hash of the tag instead of the tag. The [install section](https://jctosta.github.io/skizo/#getting-started) of the documentation shows how.
@@ -96,6 +97,7 @@ skizo check orders.skz                                   # show all errors, each
 skizo check orders.skz --json                            # the same errors as JSON
 skizo preview orders.skz                                 # write orders.html, one offline page
 skizo preview orders.skz --watch                         # serve the page and reload it on each save
+skizo preview orders.skz --viewport phone                # open the page at phone width (desktop, tablet, phone)
 skizo export orders.skz --target shadcn --out src/screens   # write one .tsx file for each Screen
 skizo export orders.skz --target shadcn --router next       # write the links with Link from next/link
 skizo export orders.skz --target shadcn --router react-router   # write the links with Link from react-router
@@ -105,7 +107,7 @@ A shared Sidebar becomes one more file, `app-sidebar.tsx`. `preview` and `export
 
 ## Use Skizo with an agent
 
-`skizo guide` prints the full language in about 1,200 tokens. Add these lines to the instructions for your agent, for example in `AGENTS.md` or `CLAUDE.md`:
+`skizo guide` prints the full language in about 1,300 tokens. Add these lines to the instructions for your agent, for example in `AGENTS.md` or `CLAUDE.md`:
 
 ```
 Before you write UI code, make a sketch in Skizo:

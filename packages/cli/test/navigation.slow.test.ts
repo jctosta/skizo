@@ -1,8 +1,6 @@
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Browser, type FrameLocator } from "playwright";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { runCli, withFiles } from "./helpers/run-cli";
+import { openPreview } from "./helpers/preview-page";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -12,6 +10,7 @@ afterAll(async () => {
   await browser?.close();
 });
 
+// openPreview's 1280 px window shows the Sidebar; below md: (768 px) it folds behind the Sidebar toggle (responsive.slow.test.ts).
 const FLOW = `Screen "Orders"
   Sidebar
     Link "Dashboard" icon=home to=dashboard
@@ -25,40 +24,22 @@ Screen "Dashboard"
   "Welcome back"
 `;
 
-/** Opens the Preview of `flow` with the network blocked; `external` collects any request that left the file. */
-async function openPreview(flow = FLOW): Promise<{ page: Page; external: string[] }> {
-  const cwd = withFiles({ "flow.skz": flow });
-  await runCli(["preview", "flow.skz"], cwd);
-  const context = await browser.newContext({ viewport: { width: 640, height: 480 } });
-  const external: string[] = [];
-  await context.route("**/*", (route) => {
-    const url = route.request().url();
-    if (url.startsWith("file:")) return route.continue();
-    external.push(url);
-    return route.abort();
-  });
-  const page = await context.newPage();
-  await page.goto(pathToFileURL(join(cwd, "flow.html")).href);
-  return { page, external };
-}
-
-const shownTitle = (page: Page) => page.getByRole("heading", { level: 1 }).filter({ visible: true }).allTextContents();
+const shownTitle = (sketch: FrameLocator) => sketch.getByRole("heading", { level: 1 }).filter({ visible: true }).allTextContents();
 
 test("the first Screen shows on load and a Sidebar Link shows its Screen, marked as the current page", async () => {
-  const { page, external } = await openPreview();
-  expect(await shownTitle(page)).toEqual(["Orders"]);
-  await page.getByRole("link", { name: "Dashboard", exact: true }).filter({ visible: true }).click();
+  const { sketch, external } = await openPreview(browser, FLOW);
+  expect(await shownTitle(sketch)).toEqual(["Orders"]);
+  await sketch.getByRole("link", { name: "Dashboard", exact: true }).filter({ visible: true }).click();
   // hashchange fires after the click resolves.
-  await expect.poll(() => shownTitle(page)).toEqual(["Dashboard"]);
+  await expect.poll(() => shownTitle(sketch)).toEqual(["Dashboard"]);
   expect({
-    current: await page.locator('[aria-current="page"]').filter({ visible: true }).allTextContents(),
+    current: await sketch.locator('[aria-current="page"]').filter({ visible: true }).allTextContents(),
     external,
   }).toEqual({ current: ["Dashboard"], external: [] });
-  await page.context().close();
 });
 
 test("a shared Sidebar shows on each Screen, with the current Screen's Link marked, and not on a plain Screen", async () => {
-  const { page } = await openPreview(`Sidebar
+  const { sketch } = await openPreview(browser, `Sidebar
   Link "Dashboard" to=dashboard
   Link "Orders" to=orders
 
@@ -71,27 +52,25 @@ Screen "Dashboard"
 Screen "Sign in" plain
   "Sign in to continue"
 `);
-  const current = () => page.locator('[aria-current="page"]').filter({ visible: true }).allTextContents();
+  const current = () => sketch.locator('[aria-current="page"]').filter({ visible: true }).allTextContents();
   expect(await current()).toEqual(["Orders"]);
-  await page.getByRole("link", { name: "Dashboard" }).filter({ visible: true }).click();
-  await expect.poll(() => shownTitle(page)).toEqual(["Dashboard"]);
+  await sketch.getByRole("link", { name: "Dashboard" }).filter({ visible: true }).click();
+  await expect.poll(() => shownTitle(sketch)).toEqual(["Dashboard"]);
   expect(await current()).toEqual(["Dashboard"]);
-  await page.getByRole("link", { name: "Orders" }).filter({ visible: true }).click();
-  await page.getByRole("link", { name: "Sign out" }).click();
-  await expect.poll(() => shownTitle(page)).toEqual(["Sign in"]);
-  expect(await page.getByRole("navigation").filter({ visible: true }).count()).toBe(0);
-  await page.context().close();
+  await sketch.getByRole("link", { name: "Orders" }).filter({ visible: true }).click();
+  await sketch.getByRole("link", { name: "Sign out" }).click();
+  await expect.poll(() => shownTitle(sketch)).toEqual(["Sign in"]);
+  expect(await sketch.getByRole("navigation").filter({ visible: true }).count()).toBe(0);
 });
 
 test("a Button with to= shows its Screen", async () => {
-  const { page } = await openPreview();
-  await page.getByRole("link", { name: "Open dashboard" }).click();
-  await expect.poll(() => shownTitle(page)).toEqual(["Dashboard"]);
-  await page.context().close();
+  const { sketch } = await openPreview(browser, FLOW);
+  await sketch.getByRole("link", { name: "Open dashboard" }).click();
+  await expect.poll(() => shownTitle(sketch)).toEqual(["Dashboard"]);
 });
 
 test("a Dialog left open on a Screen is closed when you come back to it", async () => {
-  const { page } = await openPreview(`Screen "Orders"
+  const { sketch } = await openPreview(browser, `Screen "Orders"
   Button "New order" opens=new-order
   Dialog "New order" id=new-order
     footer
@@ -100,11 +79,10 @@ test("a Dialog left open on a Screen is closed when you come back to it", async 
 Screen "Dashboard"
   Button "Back to orders" to=orders
 `);
-  await page.getByRole("button", { name: "New order" }).click();
-  await page.getByRole("link", { name: "See dashboard" }).click();
-  await expect.poll(() => shownTitle(page)).toEqual(["Dashboard"]);
-  await page.getByRole("link", { name: "Back to orders" }).click();
-  await expect.poll(() => shownTitle(page)).toEqual(["Orders"]);
-  expect(await page.getByRole("dialog", { name: "New order" }).isVisible()).toBe(false);
-  await page.context().close();
+  await sketch.getByRole("button", { name: "New order" }).click();
+  await sketch.getByRole("link", { name: "See dashboard" }).click();
+  await expect.poll(() => shownTitle(sketch)).toEqual(["Dashboard"]);
+  await sketch.getByRole("link", { name: "Back to orders" }).click();
+  await expect.poll(() => shownTitle(sketch)).toEqual(["Orders"]);
+  expect(await sketch.getByRole("dialog", { name: "New order" }).isVisible()).toBe(false);
 });

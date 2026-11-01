@@ -12,22 +12,33 @@ const flex = {
 /**
  * Tailwind classes shared by every Backend, one entry per Element type, so the Preview and exports look alike.
  * Write full literal class strings (never `gap-${n}`): Tailwind finds them by scanning this file.
+ *
+ * Breakpoints, Tailwind's defaults in both Backends: phone below 768 px (base classes), tablet from 768 px (`md:`),
+ * desktop from 1024 px (`lg:`). Write the phone layout first, then what changes from md: and lg:.
  */
 export const CLASSES = {
   Screen: {
-    root: "min-h-screen p-6",
+    /** Smaller padding on phones. */
+    root: "min-h-screen p-4 md:p-6",
     /** A Screen with a Sidebar: the page shell, a sidebar column beside the main area (which holds header and body). */
     shell: "flex min-h-screen",
-    main: "min-w-0 flex-1 p-6",
+    main: "min-w-0 flex-1 p-4 md:p-6",
     header: "mb-6 grid gap-1",
     headerWithActions: "grid-cols-[1fr_auto] gap-x-4",
     actions: "col-start-2 row-span-2 row-start-1 flex items-center gap-2 self-start justify-self-end",
     title: "text-2xl font-semibold tracking-tight",
+    /** With a Sidebar: the Sidebar toggle, then the title. */
+    titleRow: "flex items-center gap-2",
+    /** The Sidebar toggle: a ghost icon button that opens the Sidebar in a left Sheet on phones; from md: the column shows instead. */
+    sidebarToggle: "md:hidden",
     subtitle: "text-sm text-muted-foreground",
     body: "flex flex-col gap-4",
   },
-  /** Plain markup in every Backend, styled after shadcn's sidebar (bg-sidebar is about bg-muted/50 on white). */
-  Sidebar: { root: "w-64 shrink-0 border-r bg-muted/50 p-2", nav: "flex flex-col gap-1" },
+  /**
+   * Plain markup in every Backend, styled after shadcn's sidebar (bg-sidebar is about bg-muted/50 on white). The
+   * Screen puts the `nav` in the `root` column, hidden on phones, and in the left Sheet that the Sidebar toggle opens.
+   */
+  Sidebar: { root: "hidden w-64 shrink-0 flex-col border-r bg-muted/50 p-2 md:flex", nav: "flex flex-col gap-1" },
   /** shadcn's SidebarMenuButton look; the active Link carries aria-current="page". */
   Link: {
     root: "flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground",
@@ -47,14 +58,33 @@ export const CLASSES = {
     bold: "font-semibold",
   },
   Stack: { root: "flex flex-col", ...flex },
-  Row: { root: "flex", ...flex },
+  /** Wraps at every width: children that do not fit go to the next line instead of past the page edge. */
+  Row: { root: "flex flex-wrap", ...flex },
   Grid: {
     root: "grid",
     gap,
-    cols: { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5", 6: "grid-cols-6" },
+    /** One column on phones, at most 2 on tablets, cols on desktop. cols=2 needs no lg: class. */
+    cols: {
+      2: "grid-cols-1 md:grid-cols-2",
+      3: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
+      4: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
+      5: "grid-cols-1 md:grid-cols-2 lg:grid-cols-5",
+      6: "grid-cols-1 md:grid-cols-2 lg:grid-cols-6",
+    },
     /** Wraps a child with span=N: a one-cell grid, so the child still stretches like any other Grid child. */
     cell: "grid",
-    span: { 1: "col-span-1", 2: "col-span-2", 3: "col-span-3", 4: "col-span-4", 5: "col-span-5", 6: "col-span-6" },
+    /**
+     * span=N at each width, never more than the columns: none on phones (one column), at most 2 on tablets, N on
+     * desktop. check keeps N <= cols, so span alone decides; span=2 needs no lg: class.
+     */
+    span: {
+      1: "col-span-1",
+      2: "md:col-span-2",
+      3: "md:col-span-2 lg:col-span-3",
+      4: "md:col-span-2 lg:col-span-4",
+      5: "md:col-span-2 lg:col-span-5",
+      6: "md:col-span-2 lg:col-span-6",
+    },
   },
   /** The shadcn look, for the Preview; the export gets it from the project's own Separator. */
   Separator: { root: "h-px w-full shrink-0 bg-border" },
@@ -111,6 +141,7 @@ export const CLASSES = {
   },
   /** The Preview's copy of shadcn's table.tsx; the export gets these from the project's own Table components. */
   Table: {
+    /** Scrolls sideways when the Table is wider than the page, as shadcn's container does in the export. */
     container: "relative w-full overflow-x-auto",
     table: "w-full caption-bottom text-sm",
     header: "[&_tr]:border-b",

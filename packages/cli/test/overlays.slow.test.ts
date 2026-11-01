@@ -1,8 +1,6 @@
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Browser, type FrameLocator, type Page } from "playwright";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { runCli, withFiles } from "./helpers/run-cli";
+import { openPreview } from "./helpers/preview-page";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -24,34 +22,23 @@ const SKETCH = `Screen "Orders"
     Text "Narrow the list."
 `;
 
-/** Opens the Preview of `sketch` with the network blocked; `external` collects any request that left the file. */
-async function openPreview(sketch = SKETCH): Promise<{ page: Page; external: string[] }> {
-  const cwd = withFiles({ "orders.skz": sketch });
-  await runCli(["preview", "orders.skz"], cwd);
-  const context = await browser.newContext({ viewport: { width: 640, height: 480 } });
-  const external: string[] = [];
-  await context.route("**/*", (route) => {
-    const url = route.request().url();
-    if (url.startsWith("file:")) return route.continue();
-    external.push(url);
-    return route.abort();
-  });
-  const page = await context.newPage();
-  await page.goto(pathToFileURL(join(cwd, "orders.html")).href);
-  return { page, external };
-}
-
 /** Opens the Overlay named `name` from its Button and reports whether it was hidden before and shown after. */
-async function open(page: Page, name: string) {
-  const overlay = page.getByRole("dialog", { name });
+async function open(sketch: FrameLocator, name: string) {
+  const overlay = sketch.getByRole("dialog", { name });
   const hiddenBefore = await overlay.isHidden();
-  await page.getByRole("button", { name }).click();
+  await sketch.getByRole("button", { name }).click();
   return { overlay, hiddenBefore, visibleAfter: await overlay.isVisible() };
 }
 
+/** Clicks near the top-left corner of the sketch, where an open Overlay shows its backdrop. */
+async function clickBackdrop(page: Page) {
+  const frame = (await page.locator("iframe").boundingBox())!;
+  await page.mouse.click(frame.x + 5, frame.y + 5);
+}
+
 test("opens= shows the Dialog and its close button hides it, without network requests", async () => {
-  const { page, external } = await openPreview();
-  const { overlay, hiddenBefore, visibleAfter } = await open(page, "New order");
+  const { sketch, external } = await openPreview(browser, SKETCH);
+  const { overlay, hiddenBefore, visibleAfter } = await open(sketch, "New order");
   await overlay.getByRole("button", { name: "Close" }).click();
   expect({ hiddenBefore, visibleAfter, hiddenAfterClose: await overlay.isHidden(), external }).toEqual({
     hiddenBefore: true,
@@ -59,46 +46,43 @@ test("opens= shows the Dialog and its close button hides it, without network req
     hiddenAfterClose: true,
     external: [],
   });
-  await page.context().close();
 });
 
 test("a backdrop click closes the Dialog", async () => {
-  const { page } = await openPreview();
-  const { overlay, visibleAfter } = await open(page, "New order");
-  await page.mouse.click(5, 5);
+  const { page, sketch } = await openPreview(browser, SKETCH);
+  const { overlay, visibleAfter } = await open(sketch, "New order");
+  await clickBackdrop(page);
   expect({ visibleAfter, hiddenAfterClose: await overlay.isHidden() }).toEqual({ visibleAfter: true, hiddenAfterClose: true });
-  await page.context().close();
 });
 
 test("a footer Button without Behavior closes the Dialog", async () => {
-  const { page } = await openPreview();
-  const { overlay, visibleAfter } = await open(page, "New order");
+  const { sketch } = await openPreview(browser, SKETCH);
+  const { overlay, visibleAfter } = await open(sketch, "New order");
   await overlay.getByRole("button", { name: "Cancel" }).click();
   expect({ visibleAfter, hiddenAfterClose: await overlay.isHidden() }).toEqual({ visibleAfter: true, hiddenAfterClose: true });
-  await page.context().close();
 });
 
 test("opens= shows the Sheet at its side and a backdrop click closes it", async () => {
-  const { page } = await openPreview();
-  const { overlay, visibleAfter } = await open(page, "Filters");
+  const { page, sketch } = await openPreview(browser, SKETCH);
+  const { overlay, visibleAfter } = await open(sketch, "Filters");
   const box = await overlay.boundingBox();
-  await page.mouse.click(5, 5);
+  await clickBackdrop(page);
   // side=right is the default: the Sheet's right edge is the viewport's.
   expect({ visibleAfter, right: box && box.x + box.width, hiddenAfterClose: await overlay.isHidden() }).toEqual({
     visibleAfter: true,
-    right: 640,
+    right: 1280,
     hiddenAfterClose: true,
   });
-  await page.context().close();
 });
 
 test("Escape closes an open Select first, then the Dialog under it", async () => {
-  const { page } = await openPreview(
+  const { page, sketch } = await openPreview(
+    browser,
     `Screen "Orders"\n  Button "New order" opens=new-order\n  Dialog "New order" id=new-order\n    Select "Status" options="Open,Paid"\n`,
   );
-  const { overlay, visibleAfter } = await open(page, "New order");
-  await page.getByRole("combobox", { name: "Status" }).click();
-  const option = page.getByRole("option", { name: "Paid" });
+  const { overlay, visibleAfter } = await open(sketch, "New order");
+  await sketch.getByRole("combobox", { name: "Status" }).click();
+  const option = sketch.getByRole("option", { name: "Paid" });
   const optionShown = await option.isVisible();
   await page.keyboard.press("Escape");
   const afterFirst = { option: await option.isVisible(), dialog: await overlay.isVisible() };
@@ -109,11 +93,9 @@ test("Escape closes an open Select first, then the Dialog under it", async () =>
     afterFirst: { option: false, dialog: true },
     dialogAfterSecond: false,
   });
-  await page.context().close();
 });
 
 test("an Overlay flagged open shows on load", async () => {
-  const { page } = await openPreview(`Screen "Orders"\n  Dialog "Welcome back" open\n    "Here is what changed."\n`);
-  expect(await page.getByRole("dialog", { name: "Welcome back" }).isVisible()).toBe(true);
-  await page.context().close();
+  const { sketch } = await openPreview(browser, `Screen "Orders"\n  Dialog "Welcome back" open\n    "Here is what changed."\n`);
+  expect(await sketch.getByRole("dialog", { name: "Welcome back" }).isVisible()).toBe(true);
 });

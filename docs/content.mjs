@@ -99,7 +99,7 @@ node packages/cli/dist/cli.mjs --help`)}`,
     html: `
 <p>Coding agents such as Claude Code, Codex and Cursor write Skizo. You look at the Preview and tell the agent
 what to change.</p>
-<p>The command <code>skizo guide</code> prints the Guide. The Guide holds the full language in about 1,200
+<p>The command <code>skizo guide</code> prints the Guide. The Guide holds the full language in about 1,300
 tokens. An agent needs no other document.</p>
 <p>Add these lines to the instructions for your agent, for example in <code>AGENTS.md</code> or
 <code>CLAUDE.md</code>:</p>
@@ -217,6 +217,24 @@ Screen "Settings" id=settings
 the browser works. If the file has no <code>to=</code>, the Preview shows all Screens, one below the other.</p>`,
   },
   {
+    id: "responsive",
+    title: "Phones and tablets",
+    html: `
+<p>Each sketch fits phones, tablets and desktops. Write one layout, and Skizo changes it for each width. On a
+phone (narrower than 768 px), a Grid shows one column. On a tablet (768 px to 1023 px), a Grid shows a maximum
+of two columns. A Row puts the children that do not fit on a new line. A Table scrolls horizontally. A Screen
+has less padding on a phone. On a phone, the Sidebar is hidden, and a button with the <code>menu</code> icon opens
+it from the left. The Preview and the export use the same Tailwind classes: <code>md:</code> for tablets and
+<code>lg:</code> for desktops.</p>
+<p>This image shows the Orders example at desktop width and at phone width:</p>
+<img src="assets/preview-orders.png" width="1778" height="802" alt="The Preview of the Orders Screen at desktop width and at phone width. On the desktop, a Sidebar is on the left and three cards are in one row. On the phone, a menu button replaces the Sidebar and the cards are in one column.">
+<p>The toolbar at the top of the Preview sets the width of the sketch: Desktop (1280 px), Tablet (768 px) or
+Phone (390 px). If the window is narrower than the width, the Preview makes the sketch smaller to fit the
+window. To open the Preview at a width, use <code>--viewport</code>:</p>
+${h.sh("skizo preview orders.skz --viewport phone")}
+<p>With <code>--watch</code>, the page keeps the width and the Screen after each reload.</p>`,
+  },
+  {
     id: "cli",
     title: "CLI reference",
     html: `
@@ -227,10 +245,11 @@ the browser works. If the file has no <code>to=</code>, the Preview shows all Sc
   <tr><td><code>skizo check &lt;file.skz&gt; [--json]</code></td><td>Shows all errors in the file, one on each
   line, in the format <code>file:line  Type  message</code>. With <code>--json</code>, the command prints
   <code>{"errors": [{"file", "line", "type", "message"}]}</code>.</td></tr>
-  <tr><td><code>skizo preview &lt;file.skz&gt; [--watch]</code></td><td>Writes <code>&lt;file&gt;.html</code>
+  <tr><td><code>skizo preview &lt;file.skz&gt; [--watch] [--viewport desktop|tablet|phone]</code></td><td>Writes <code>&lt;file&gt;.html</code>
   next to the source file. The page holds all Screens and works offline. With <code>--watch</code>, the command
   also serves the page on 127.0.0.1 and reloads it after each save. If a save fails <code>check</code>, the
-  command shows the errors and keeps the last good page.</td></tr>
+  command shows the errors and keeps the last good page. <code>--viewport</code> sets the width at which the
+  page opens. The default is <code>desktop</code>.</td></tr>
   <tr><td><code>skizo export &lt;file.skz&gt; --target shadcn [--out dir] [--router next|react-router]</code></td><td>Writes one
   <code>.tsx</code> file for each Screen, and <code>app-sidebar.tsx</code> for a shared Sidebar. The files go next
   to the source file, or into the <code>--out</code> folder. With <code>--router</code>, the links use the
@@ -285,7 +304,7 @@ Screen becomes one file with the name of its id. For example, <code>orders.tsx</
 
 /**
  * The Element reference. `example` is Skizo source: wrapped in a Screen unless it starts with one or with a shared
- * Sidebar (then the Screen header is shown). `about[Type].position` replaces the Position fact from the schema. `height` fixes the demo height in px, for Overlays that render out of flow.
+ * Sidebar (then the Screen header is shown). `about[Type].position` replaces the Position fact from the schema. `height` fixes the demo height in sketch px (before the demo scales to fit), for Overlays that render out of flow.
  * `about[Type]` holds the Label's meaning and per-prop descriptions.
  */
 export const GROUPS = [
@@ -341,8 +360,9 @@ Screen "Archive" id=archive
           "A Screen with the `plain` flag shows no Sidebar.",
           "No Screen can have the id `app-sidebar`. The export uses this name for the file of the shared Sidebar.",
           "A Link can only be in a Sidebar. For a link in the page, write `Button variant=link to=...`.",
+          "On a phone (narrower than 768 px), the Sidebar is hidden. A button with the `menu` icon comes before the Screen title. The button opens the Sidebar as a Sheet from the left. A Link in the Sheet shows its Screen and closes the Sheet.",
         ],
-        shadcn: "An `<aside><nav>` with plain `<a>` links, or the `Link` of your router with `--router`. The active link gets `aria-current=\"page\"`. A shared Sidebar becomes `app-sidebar.tsx`, which exports `AppSidebar({ current })`. Each Screen that shows it renders `<AppSidebar current=\"screen-id\" />`.",
+        shadcn: "A `<nav>` with plain `<a>` links, or the `Link` of your router with `--router`. The active link gets `aria-current=\"page\"`. The Screen puts the `<nav>` in an `<aside>` column with `hidden md:flex`. It also puts the `<nav>` in a `Sheet side=\"left\"`, which a `md:hidden` `SheetTrigger` Button opens. A shared Sidebar becomes `app-sidebar.tsx`, which exports `AppSidebar({ current })`, the `<nav>`. Each Screen that shows it renders `<AppSidebar current=\"screen-id\" />` in the column and in the Sheet.",
       },
     ],
   },

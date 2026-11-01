@@ -67,7 +67,7 @@ const helpers = { skz: (t) => codeBlock(t, highlight), sh: (t) => codeBlock(t, s
 let css;
 const frames = [];
 /** Renders Skizo source with the real CLI and returns the index of its frame. */
-function frame(source, name, { demo = false, wrapped = false } = {}) {
+function frame(source, name, { demo = false, wrapped = false, height } = {}) {
   const file = join(tmp, `${name}.skz`);
   writeFileSync(file, source);
   try {
@@ -79,8 +79,12 @@ function frame(source, name, { demo = false, wrapped = false } = {}) {
   const style = html.match(/<style>([\s\S]*?)<\/style>/)[1];
   if (css !== undefined && style !== css) throw new Error(`Preview CSS differs in "${name}"`);
   css = style;
+  // An example is the whole Preview, with its viewport toolbar. A demo is the sketch alone: the Preview's <template>
+  // in place of the toolbar and frame, at the width the toolbar starts at (desktop), scaled down to fit its box.
+  const page = demo ? html.replace(/<body>[\s\S]*<\/body>/, () => `<body>\n${html.match(/<template id="sketch">\n([\s\S]*?)<\/template>/)[1]}</body>`) : html;
+  const width = demo ? Number(html.match(/data-width="(\d+)" aria-pressed="true"/)[1]) : undefined;
   // srcdoc frames resolve links against this page; the base keeps the Preview's #screen links inside the frame.
-  frames.push({ html: html.replace(style, "").replace("<head>", '<head>\n<base href="about:srcdoc">'), demo, wrapped });
+  frames.push({ html: page.replace(style, "").replace("<head>", '<head>\n<base href="about:srcdoc">'), demo, wrapped, width, height });
   return frames.length - 1;
 }
 
@@ -143,8 +147,7 @@ function elementEntry(entry) {
   const id = slug(entry.types[0]);
   const full = /^(Screen|Sidebar)\b/.test(entry.example);
   const source = full ? entry.example : `Screen "${entry.types[0]}"\n${entry.example.replace(/^/gm, "  ")}`;
-  const index = frame(source, `element-${id}`, { demo: true, wrapped: !full });
-  const height = entry.height ? ` style="height:${entry.height}px"` : "";
+  const index = frame(source, `element-${id}`, { demo: true, wrapped: !full, height: entry.height });
   const perType = entry.types
     .map((type) => {
       const spec = ELEMENTS[type];
@@ -157,7 +160,7 @@ function elementEntry(entry) {
   <h3><a href="#${id}">${entry.types.join(" / ")}</a></h3>
   <p>${md(entry.summary)}</p>
   <div class="demo">
-    <iframe title="Preview of ${esc(entry.types.join(" and "))}" data-frame="${index}"${height}></iframe>
+    <iframe title="Preview of ${esc(entry.types.join(" and "))}" data-frame="${index}"></iframe>
     ${codeBlock(entry.example, highlight)}
   </div>
   ${perType}
@@ -265,6 +268,7 @@ const page = `<!doctype html>
   h4 { font-size: 15px; margin: 24px 0 4px; }
   .lede { font-size: 18px; color: #404040; max-width: 720px; margin: 0 0 24px; }
   .note { color: #525252; font-size: 14px; }
+  .prose img { max-width: 100%; height: auto; }
   ul { padding-left: 20px; } li { margin: 4px 0; }
   pre.code { margin: 12px 0; padding: 14px 16px; border-radius: 10px; background: #0a0a0a; color: #e5e5e5; font: 12.5px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; overflow: auto; tab-size: 2; }
   pre.code code { background: none; padding: 0; font: inherit; }
@@ -281,7 +285,7 @@ const page = `<!doctype html>
   table.props td:first-child, table.ref td:first-child { white-space: nowrap; }
   .element { max-width: 900px; padding-bottom: 8px; }
   .demo { border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; margin: 16px 0; }
-  .demo iframe { display: block; width: 100%; height: 96px; border: 0; background: #fff; }
+  .demo iframe { display: block; width: 100%; height: 96px; border: 0; background: #fff; transform-origin: 0 0; }
   .demo pre.code { margin: 0; border-radius: 0; }
   .facts { display: flex; flex-wrap: wrap; gap: 4px 28px; margin: 16px 0 4px; font-size: 14px; }
   .facts div { display: flex; gap: 8px; } .facts dt { color: #737373; } .facts dd { margin: 0; }
@@ -323,6 +327,7 @@ const page = `<!doctype html>
       <li><b>One way to write each thing.</b> Skizo has ${Object.keys(ELEMENTS).length} Element types. <code>skizo check</code> rejects all other types.</li>
       <li><b>All errors in one run.</b> <code>skizo check</code> shows each error with a hint.</li>
       <li><b>Code that you keep.</b> The export uses the shadcn components of your project.</li>
+      <li><b>Phones and tablets.</b> One sketch fits each screen size. The Preview shows each width.</li>
     </ul>
   </div>
 </section>
@@ -344,6 +349,8 @@ ${sections.map((s) => `<section class="prose" id="${s.id}"><h2><a href="#${s.id}
     <li>Tabs, Menus and Selects open when you click them.</li>
   </ul>
   <p class="prose">The other tabs above the source show the output of <code>skizo export --target shadcn</code>.</p>
+  <p class="prose">Each Preview opens at desktop width and is smaller to fit this page. To see the sketch at
+  tablet or phone width, click Tablet or Phone in the toolbar of the Preview.</p>
   ${examplesHtml}
 </section>
 </main>
@@ -358,13 +365,22 @@ ${sections.map((s) => `<section class="prose" id="${s.id}"><h2><a href="#${s.id}
     const f = FRAMES[frame.dataset.frame];
     const style = CSS + (f.demo ? DEMO_CSS : "") + (f.wrapped ? WRAPPED_CSS : "");
     frame.srcdoc = f.html.replace("<style></style>", () => "<style>" + style + "</style>");
-    if (f.demo && !frame.style.height)
-      frame.addEventListener("load", () => {
-        const body = frame.contentDocument.body;
-        const fit = () => (frame.style.height = body.scrollHeight + "px");
-        new ResizeObserver(fit).observe(body);
-        fit();
-      });
+    if (!f.demo) continue;
+    // A demo lays out at f.width, like an example's Preview, and scales down to its box. It is as tall as its content,
+    // or f.height (in sketch px) for open Overlays; the negative margin gives back the space that the scale frees.
+    frame.style.width = f.width + "px";
+    const fit = () => {
+      const scale = Math.min(1, frame.parentElement.clientWidth / f.width);
+      const height = f.height ?? frame.contentDocument.body.scrollHeight;
+      frame.style.scale = String(scale);
+      frame.style.height = height + "px";
+      frame.style.marginBottom = height * (scale - 1) + "px";
+    };
+    frame.addEventListener("load", () => {
+      new ResizeObserver(fit).observe(frame.contentDocument.body);
+      fit();
+    });
+    addEventListener("resize", fit);
   }
   document.addEventListener("click", (event) => {
     const tab = event.target.closest(".tabs button");

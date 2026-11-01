@@ -1,9 +1,7 @@
 // The Chart Preview is an SVG computed at build time: a real browser shows it draws, offline, in the theme's chart colors.
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { chromium, type Browser } from "playwright";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { runCli, withFiles } from "./helpers/run-cli";
+import { openPreview } from "./helpers/preview-page";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -22,22 +20,10 @@ test("a Chart previews offline as an SVG in the chart colors, named by its Label
     '  Chart "Visits" cols="Day,Visits" rows=5',
     "",
   ].join("\n");
-  const cwd = withFiles({ "dashboard.skz": source });
-  await runCli(["preview", "dashboard.skz"], cwd);
-
-  const context = await browser.newContext({ viewport: { width: 640, height: 800 } });
-  const external: string[] = [];
-  await context.route("**/*", (route) => {
-    if (route.request().url().startsWith("file:")) return route.continue();
-    external.push(route.request().url());
-    return route.abort();
-  });
-  const page = await context.newPage();
-  await page.goto(pathToFileURL(join(cwd, "dashboard.html")).href);
-
-  const bars = page.getByRole("img", { name: "Revenue" }).locator("rect");
-  const line = page.getByRole("img", { name: "Visits" }).locator("polyline");
-  const revenue = page.getByRole("img", { name: "Revenue" });
+  const { sketch, external } = await openPreview(browser, source, { window: 640 });
+  const bars = sketch.getByRole("img", { name: "Revenue" }).locator("rect");
+  const line = sketch.getByRole("img", { name: "Visits" }).locator("polyline");
+  const revenue = sketch.getByRole("img", { name: "Revenue" });
   expect({
     bars: await bars.count(),
     fills: await bars.evaluateAll((els) => [...new Set(els.map((el) => getComputedStyle(el).fill))]),
@@ -57,5 +43,4 @@ test("a Chart previews offline as an SVG in the chart colors, named by its Label
     legend: ["Revenue", "Costs"],
     external: [],
   });
-  await context.close();
 });

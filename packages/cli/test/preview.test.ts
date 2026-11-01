@@ -34,7 +34,8 @@ test("the Preview inlines the precompiled CSS and references nothing outside the
   await runCli(["preview", "orders.skz"], cwd);
   const html = readFileSync(join(cwd, "orders.html"), "utf8");
   expect(html).toContain(`<style>${PREVIEW_CSS}</style>`);
-  expect(html).not.toMatch(/\b(src|href)=|url\(|@import/);
+  // about:srcdoc is the frame's own document (the base that keeps #screen links inside the frame), not a request.
+  expect(html).not.toMatch(/\b(src|href)=(?!"about:srcdoc")|url\(|@import/);
 });
 
 test("the Preview inlines SVG for the Lucide icons the file uses, and only those", async () => {
@@ -52,8 +53,8 @@ test("a Preview of Screens that no to= links shows them all, since nothing could
   const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  "First"\n\nScreen "Invoices"\n  "Second"\n` });
   await runCli(["preview", "orders.skz"], cwd);
   expect(readFileSync(join(cwd, "orders.html"), "utf8").match(/<section[^>]*>/g)).toEqual([
-    '<section data-screen="orders" class="min-h-screen p-6">',
-    '<section data-screen="invoices" class="min-h-screen p-6">',
+    '<section data-screen="orders" class="min-h-screen p-4 md:p-6">',
+    '<section data-screen="invoices" class="min-h-screen p-4 md:p-6">',
   ]);
 });
 
@@ -84,4 +85,26 @@ test("the Preview draws Charts in shadcn's classic chart palette, not the theme'
     "--chart-4:oklch(82.8% .189 84.429)",
     "--chart-5:oklch(76.9% .188 70.08)",
   ]);
+});
+
+/** The labels of the toolbar buttons marked active (aria-pressed). */
+const activeWidths = (html: string) => [...html.matchAll(/<button\b[^>]*aria-pressed="true"[^>]*>([^<]*)</g)].map((m) => m[1]);
+
+test("the Preview toolbar marks the --viewport width as active, Desktop by default", async () => {
+  const cwd = withFiles({ "orders.skz": VALID });
+  await runCli(["preview", "orders.skz"], cwd);
+  const byDefault = activeWidths(readFileSync(join(cwd, "orders.html"), "utf8"));
+  await runCli(["preview", "orders.skz", "--viewport", "phone"], cwd);
+  const phone = activeWidths(readFileSync(join(cwd, "orders.html"), "utf8"));
+  expect({ byDefault, phone }).toEqual({ byDefault: ["Desktop"], phone: ["Phone"] });
+});
+
+test("an unknown --viewport gets a nearest-match hint and writes nothing", async () => {
+  const cwd = withFiles({ "orders.skz": VALID });
+  const { code, stderr } = await runCli(["preview", "orders.skz", "--viewport", "phon"], cwd);
+  expect({ code, stderr, written: existsSync(join(cwd, "orders.html")) }).toEqual({
+    code: 2,
+    stderr: 'skizo preview: unknown viewport "phon" — did you mean phone? (expected: desktop, tablet, phone)\n',
+    written: false,
+  });
 });
