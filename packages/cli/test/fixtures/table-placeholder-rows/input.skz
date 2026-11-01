@@ -1,0 +1,5 @@
+// rows=N: placeholder cells guessed from column names, seeded by node path.
+Screen "Customers"
+  Table cols="Name,Email,Signup date,Status,Amount,Plan" rows=3
+  // Same columns at another node path: different rows.
+  Table cols="Name,Email,Signup date,Status,Amount,Plan" rows=2

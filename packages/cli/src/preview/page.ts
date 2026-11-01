@@ -14,20 +14,21 @@ export function renderPreview(document: Document): string {
     `<style>${readAsset("assets/preview.css")}</style>`,
     "</head>",
     "<body>",
-    render(document.screens),
+    render(document.screens, ""),
     "</body>",
     "</html>",
     "",
   ].join("\n");
 }
 
-const ctx: Ctx = { render };
-
-function render(nodes: Node[]): string {
+/** Renders `nodes`, the children of the node at `parent` (top level: "", where Screens take their id as path). */
+function render(nodes: Node[], parent: string): string {
   return nodes
-    .map((node) => {
+    .map((node, i) => {
       const emit = EMITTERS[node.type];
       if (!emit) throw new Error(`Preview has no emitter for Element type ${node.type}`);
+      const path = parent ? `${parent}/${i}` : (node.props.id as string);
+      const ctx: Ctx = { path, render: (children) => render(children, path) };
       return emit(node, ctx);
     })
     .join("\n");

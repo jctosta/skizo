@@ -1,11 +1,14 @@
 import type { Node } from "@skizo/core";
 import { CLASSES, cx } from "../classes";
+import { tableRows } from "../placeholder";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
   /** Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
   use(from: string, ...names: string[]): void;
+  /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
+  path: string;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -57,7 +60,7 @@ export const EMITTERS: Record<string, Emit> = {
       "<Table>",
       lines(
         wrap("<TableHeader>", row("TableHead", node.props.cols as string[]), "</TableHeader>"),
-        wrap("<TableBody>", lines(...(node.rows ?? []).map((cells) => row("TableCell", cells))), "</TableBody>"),
+        wrap("<TableBody>", lines(...tableRows(node, ctx.path).map((cells) => row("TableCell", cells))), "</TableBody>"),
       ),
       "</Table>",
     );

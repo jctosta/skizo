@@ -15,15 +15,14 @@ const componentName = (id: string) =>
 
 function screenFile(screen: Node): string {
   const imports = new Map<string, Set<string>>();
-  const ctx: Ctx = {
-    render: (nodes) => nodes.map((node) => emit(node, ctx)).join("\n"),
-    use(from, ...names) {
-      const set = imports.get(from) ?? new Set();
-      for (const name of names) set.add(name);
-      imports.set(from, set);
-    },
+  const use: Ctx["use"] = (from, ...names) => {
+    const set = imports.get(from) ?? new Set();
+    for (const name of names) set.add(name);
+    imports.set(from, set);
   };
-  const jsx = emit(screen, ctx);
+  /** The Ctx of the node at `path`; its children get `<path>/<index>`, as in the Preview. */
+  const at = (path: string): Ctx => ({ path, use, render: (nodes) => nodes.map((node, i) => emit(node, at(`${path}/${i}`))).join("\n") });
+  const jsx = emit(screen, at(screen.props.id as string));
   const head = [...imports.keys()].sort().map((from) => `import { ${[...imports.get(from)!].sort().join(", ")} } from "${from}"\n`);
   const body = wrap(`export function ${componentName(screen.props.id as string)}() {`, wrap("return (", jsx, ")"), "}");
   return `${head.join("")}${head.length ? "\n" : ""}${body}\n`;
