@@ -1,0 +1,2 @@
+input.skz:3  Custom  "Button" is an Element type (use Button instead of Custom)
+input.skz:4  Custom  "Table" is an Element type (use Table instead of Custom)

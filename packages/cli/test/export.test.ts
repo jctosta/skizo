@@ -158,6 +158,21 @@ test("--router react-router writes each link to a Screen as Link from react-rout
   });
 });
 
+test("a Custom named like another import of its file, or like its component, is imported under an alias", async () => {
+  const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  Custom "Label" tone=green\n  Input "Customer"\n  Custom "OrdersScreen"\n` });
+  await runCli(["export", "orders.skz", "--target", "shadcn"], cwd);
+  const file = readFileSync(join(cwd, "orders.tsx"), "utf8");
+  expect(file.split("\n").filter((line) => /Label\b|OrdersScreen/.test(line)).map((line) => line.trim())).toEqual([
+    'import { Label as CustomLabel } from "@/components/label"',
+    'import { OrdersScreen as CustomOrdersScreen } from "@/components/orders-screen"',
+    'import { Label } from "@/components/ui/label"',
+    "export function OrdersScreen() {",
+    '<CustomLabel tone="green" />',
+    '<Label htmlFor="customer">Customer</Label>',
+    "<CustomOrdersScreen />",
+  ]);
+});
+
 test('--router next starts the files that keep state or draw a Chart with "use client", as the App Router needs', async () => {
   const source = `Screen "Orders"\n  Button "New" opens=new\n  Dialog "New" id=new\n\nScreen "Sales"\n  Chart "Sales" cols="Month,Sales" rows=3\n\nScreen "Help"\n  "Ask us"\n`;
   const cwd = withFiles({ "app.skz": source });

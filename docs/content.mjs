@@ -687,10 +687,11 @@ Sheet "Filters" id=filters desc="Show fewer orders." open
 Custom "TypingIndicator"`,
         about: { Custom: { label: "The name of the component, in PascalCase. For example, ChatBubble." } },
         notes: [
+          "The name cannot be the name of an Element type. For a button, write Button.",
           "A Custom takes all props and flags. `skizo check` does not check them.",
           "The Preview shows a box with a dashed border. The box shows the name, the props and the children.",
         ],
-        shadcn: "`import { ChatBubble } from \"@/components/chat-bubble\"` and `<ChatBubble author=\"Ana Souza\" sentAt=\"9:41\" mine>`. A prop key with a hyphen becomes camelCase. A Custom without children becomes a self-closing tag.",
+        shadcn: "`import { ChatBubble } from \"@/components/chat-bubble\"` and `<ChatBubble author=\"Ana Souza\" sentAt=\"9:41\" mine>`. A prop key with a hyphen becomes camelCase. A Custom without children becomes a self-closing tag. If the file imports a different component with the same name, the export renames your component: `Label as CustomLabel`.",
       },
     ],
   },

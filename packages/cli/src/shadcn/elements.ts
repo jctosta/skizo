@@ -24,6 +24,8 @@ export type Ctx = {
   declare(code: string): void;
   /** The Sidebar shared by every Screen without its own (Document.sidebar), exported once as AppSidebar. */
   sidebar?: Node;
+  /** Names the file would otherwise declare twice. A Custom with one of them imports under an alias: CustomLabel. */
+  clashes: ReadonlySet<string>;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -505,15 +507,16 @@ export const EMITTERS: Record<string, Emit> = {
   },
   /**
    * The project's own component from `@/components/<kebab-name>`, with the props (keys in camelCase) and children.
-   * ponytail: a Custom named like a component the file already imports (Button) clashes; alias it if it bites.
+   * Named like another import of the file (Label) or its component, it imports as Custom<Name>.
    */
   Custom: (node, ctx) => {
     const name = node.label!;
+    const tag = ctx.clashes.has(name) ? `Custom${name}` : name;
     // ChatBubble → chat-bubble, KPICard → kpi-card.
     const file = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").toLowerCase();
-    ctx.use(`@/components/${file}`, name);
+    ctx.use(`@/components/${file}`, tag === name ? name : `${name} as ${tag}`);
     const camel = (key: string) => key.replace(/-(\w)/g, (_, c: string) => c.toUpperCase());
     const props = jsxAttrs(Object.fromEntries(customProps(node).map(([key, v]) => [camel(key), v])));
-    return node.children.length ? wrap(`<${name}${props}>`, ctx.render(node.children), `</${name}>`) : `<${name}${props} />`;
+    return node.children.length ? wrap(`<${tag}${props}>`, ctx.render(node.children), `</${tag}>`) : `<${tag}${props} />`;
   },
 };
