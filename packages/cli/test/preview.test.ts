@@ -57,6 +57,13 @@ test("a Preview of Screens that no to= links shows them all, since nothing could
   ]);
 });
 
+test("a disabled Button with to= previews as a disabled button with no link", async () => {
+  const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  Button "Next page" disabled to=orders\n` });
+  await runCli(["preview", "orders.skz"], cwd);
+  const tag = readFileSync(join(cwd, "orders.html"), "utf8").match(/<(a|button)\b[^>]*>(?=Next page)/)?.[0];
+  expect(tag).toMatch(/^<button type="button" class="[^"]*" disabled>$/);
+});
+
 test("previewing the same file twice gives byte-identical output", async () => {
   const cwd = withFiles({ "orders.skz": VALID });
   await runCli(["preview", "orders.skz"], cwd);

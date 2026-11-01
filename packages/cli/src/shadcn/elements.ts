@@ -324,7 +324,8 @@ export const EMITTERS: Record<string, Emit> = {
     const loading = node.props.loading === true;
     const shadcnSize = (iconOnly ? ICON_BUTTON_SIZE : BUTTON_SIZE)[size];
     const disabled = node.props.disabled === true || loading;
-    const to = node.props.to as string | undefined;
+    // Disabled wins over to=: a link cannot be disabled, so it renders as a disabled Button.
+    const to = disabled ? undefined : (node.props.to as string | undefined);
     const opens = node.props.opens === undefined ? "" : ` onClick={() => ${openState(node.props.opens as string)[1]}(true)}`;
     const open = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled, asChild: to !== undefined })}${opens}>`;
     ctx.use("@/components/ui/button", "Button");

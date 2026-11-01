@@ -238,16 +238,17 @@ export const EMITTERS: Record<string, Emit> = {
     const loading = node.props.loading === true;
     const glyph = loading ? iconSvg("loader-circle", cx("size-4", c.spinner)) : icon !== undefined ? iconSvg(icon) : "";
     const label = iconOnly ? `<span class="${c.hiddenLabel}">${esc(node.label!)}</span>` : esc(node.label!);
-    const disabled = node.props.disabled === true || loading ? " disabled" : "";
+    const disabled = node.props.disabled === true || loading;
     const classes = cx(c.base, c.variant[variant], (iconOnly ? c.iconSize : c.size)[size]);
-    const to = node.props.to as string | undefined;
+    // Disabled wins over to=: a link cannot be disabled, so it renders as a disabled button.
+    const to = disabled ? undefined : (node.props.to as string | undefined);
     if (to !== undefined) {
       // A link styled as a Button, like the export's <Button asChild><a>.
       ctx.script("to");
       return `<a href="${esc(screenHref(to))}" class="${classes}">${glyph}${label}</a>`;
     }
     const opens = attrs({ "data-opens": node.props.opens, "aria-haspopup": node.props.opens && "dialog" });
-    return `<button type="button" class="${classes}"${disabled}${opens}>${glyph}${label}</button>`;
+    return `<button type="button" class="${classes}"${attrs({ disabled })}${opens}>${glyph}${label}</button>`;
   },
   Input: (node) => {
     const { type, placeholder, value, disabled, error } = node.props;

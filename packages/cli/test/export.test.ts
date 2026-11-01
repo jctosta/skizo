@@ -42,6 +42,12 @@ test("an Overlay without desc tells Radix it has no description, so the exported
   expect(contents).toEqual(["<DialogContent aria-describedby={undefined}>", "<SheetContent>"]);
 });
 
+test("a disabled Button with to= exports as a disabled Button with no link", async () => {
+  const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  Button "Next page" disabled to=orders\n` });
+  await runCli(["export", "orders.skz", "--target", "shadcn"], cwd);
+  expect(readFileSync(join(cwd, "orders.tsx"), "utf8")).toContain("<Button disabled>Next page</Button>");
+});
+
 test("export refuses a file that fails check and prints the same errors", async () => {
   const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  Headng "Totals"\n` });
   const checked = await runCli(["check", "orders.skz"], cwd);
