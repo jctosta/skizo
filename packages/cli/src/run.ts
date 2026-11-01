@@ -4,7 +4,7 @@ import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 import { check, didYouMean, type CheckError, type Document } from "@skizo/core";
 import { readAsset } from "./assets";
 import { iconNames } from "./icons";
-import { renderPreview } from "./preview/page";
+import { renderPreview, VIEWPORTS, type Viewport } from "./preview/page";
 import { watchPreview } from "./preview/watch";
 import { exportShadcn, RESERVED_SCREEN_IDS, ROUTER_NAMES, type Router } from "./shadcn/export";
 
@@ -41,13 +41,19 @@ const COMMANDS: Record<string, Command> = {
     },
   },
   preview: {
-    options: { watch: { type: "boolean" } },
+    options: { watch: { type: "boolean" }, viewport: { type: "string" } },
     run(file, flags, io) {
+      const viewport = (flags.viewport as string | undefined) ?? "desktop";
+      if (!Object.hasOwn(VIEWPORTS, viewport)) {
+        const names = Object.keys(VIEWPORTS);
+        io.stderr(`skizo preview: unknown viewport "${viewport}"${didYouMean(viewport, names)} (expected: ${names.join(", ")})\n`);
+        return 2;
+      }
       const out = `${file.replace(/\.skz$/, "")}.html`;
       const build = () => {
         const document = loadChecked(file, io);
         if (typeof document === "number") return document;
-        const html = renderPreview(document);
+        const html = renderPreview(document, viewport as Viewport);
         writeFileSync(resolve(io.cwd, out), html);
         io.stdout(`wrote ${out}\n`);
         return html;
@@ -101,6 +107,7 @@ const USAGE = `Usage: skizo <command>   (alias: skz)
   skizo guide                                          print the Guide to the Skizo language
   skizo check   <file.skz> [--json]                    report every error in a file
   skizo preview <file.skz> [--watch]                   write <file>.html; --watch serves it with live reload
+                [--viewport desktop|tablet|phone]      open it at this width (default desktop)
   skizo export  <file.skz> --target shadcn [--out dir] write one React file per Screen
                 [--router next|react-router]           write links with the Link of the router
 

@@ -96,6 +96,7 @@ skizo check orders.skz                                   # show all errors, each
 skizo check orders.skz --json                            # the same errors as JSON
 skizo preview orders.skz                                 # write orders.html, one offline page
 skizo preview orders.skz --watch                         # serve the page and reload it on each save
+skizo preview orders.skz --viewport phone                # open the page at phone width (desktop, tablet, phone)
 skizo export orders.skz --target shadcn --out src/screens   # write one .tsx file for each Screen
 skizo export orders.skz --target shadcn --router next       # write the links with Link from next/link
 skizo export orders.skz --target shadcn --router react-router   # write the links with Link from react-router

@@ -22,9 +22,9 @@ vi.mock("node:fs", async (importOriginal) => {
   return { ...fs, watch, default: { ...fs, watch } };
 });
 
-/** Starts `preview orders.skz --watch` in `cwd` and waits for the URL it prints. Stopped when the test ends. */
-async function watchPreview(cwd: string) {
-  const cli = startCli(["preview", "orders.skz", "--watch"], cwd);
+/** Starts `preview orders.skz --watch ...args` in `cwd` and waits for the URL it prints. Stopped when the test ends. */
+async function watchPreview(cwd: string, ...args: string[]) {
+  const cli = startCli(["preview", "orders.skz", "--watch", ...args], cwd);
   const url = await vi.waitUntil(() => cli.out.stdout.match(/^Preview: (http:\S+)$/m)?.[1]);
   return { cli, url };
 }
@@ -47,6 +47,11 @@ test("only the served page listens for reloads; the written file stays offline",
     served: expect.stringContaining("EventSource"),
     written: expect.not.stringContaining("EventSource"),
   });
+});
+
+test("preview --watch --viewport serves the page at that width", async () => {
+  const { url } = await watchPreview(withFiles({ "orders.skz": VALID }), "--viewport", "tablet");
+  expect(await page(url)).toMatch(/<button\b[^>]*value="tablet"[^>]*aria-pressed="true"/);
 });
 
 test("saving the source rebuilds the Preview it serves and writes", async () => {

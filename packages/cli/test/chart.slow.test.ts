@@ -35,9 +35,10 @@ test("a Chart previews offline as an SVG in the chart colors, named by its Label
   const page = await context.newPage();
   await page.goto(pathToFileURL(join(cwd, "dashboard.html")).href);
 
-  const bars = page.getByRole("img", { name: "Revenue" }).locator("rect");
-  const line = page.getByRole("img", { name: "Visits" }).locator("polyline");
-  const revenue = page.getByRole("img", { name: "Revenue" });
+  const sketch = page.frameLocator("iframe");
+  const bars = sketch.getByRole("img", { name: "Revenue" }).locator("rect");
+  const line = sketch.getByRole("img", { name: "Visits" }).locator("polyline");
+  const revenue = sketch.getByRole("img", { name: "Revenue" });
   expect({
     bars: await bars.count(),
     fills: await bars.evaluateAll((els) => [...new Set(els.map((el) => getComputedStyle(el).fill))]),

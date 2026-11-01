@@ -79,8 +79,11 @@ function frame(source, name, { demo = false, wrapped = false } = {}) {
   const style = html.match(/<style>([\s\S]*?)<\/style>/)[1];
   if (css !== undefined && style !== css) throw new Error(`Preview CSS differs in "${name}"`);
   css = style;
+  // An example is the whole Preview, with its viewport toolbar. A demo is the sketch alone, as wide as its box:
+  // the Preview's <template> in place of the toolbar and frame.
+  const page = demo ? html.replace(/<body>[\s\S]*<\/body>/, () => `<body>\n${html.match(/<template id="sketch">\n([\s\S]*?)<\/template>/)[1]}</body>`) : html;
   // srcdoc frames resolve links against this page; the base keeps the Preview's #screen links inside the frame.
-  frames.push({ html: html.replace(style, "").replace("<head>", '<head>\n<base href="about:srcdoc">'), demo, wrapped });
+  frames.push({ html: page.replace(style, "").replace("<head>", '<head>\n<base href="about:srcdoc">'), demo, wrapped });
   return frames.length - 1;
 }
 

@@ -27,7 +27,7 @@ test("a Preview opened with the network blocked shows its content styled", async
   const page = await context.newPage();
   await page.goto(pathToFileURL(join(cwd, "orders.html")).href);
 
-  const title = page.getByRole("heading", { name: "Orders", level: 1 });
+  const title = page.frameLocator("iframe").getByRole("heading", { name: "Orders", level: 1 });
   expect({
     visible: await title.isVisible(),
     fontWeight: await title.evaluate((el) => getComputedStyle(el).fontWeight),
@@ -42,14 +42,16 @@ test("clicking a Tab shows its panel and hides the others", async () => {
   });
   await runCli(["preview", "orders.skz"], cwd);
 
-  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  // 1280 px shows the desktop sketch unscaled: Playwright's click checks miss in a scaled frame.
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
   await page.goto(pathToFileURL(join(cwd, "orders.html")).href);
-  await page.getByRole("tab", { name: "Open" }).click();
+  const sketch = page.frameLocator("iframe");
+  await sketch.getByRole("tab", { name: "Open" }).click();
 
   expect({
-    selected: await page.getByRole("tab", { selected: true }).textContent(),
-    openPanel: await page.getByText("Open orders").isVisible(),
-    allPanel: await page.getByText("Every order").isVisible(),
+    selected: await sketch.getByRole("tab", { selected: true }).textContent(),
+    openPanel: await sketch.getByText("Open orders").isVisible(),
+    allPanel: await sketch.getByText("Every order").isVisible(),
   }).toEqual({ selected: "Open", openPanel: true, allPanel: false });
   await page.close();
 });
