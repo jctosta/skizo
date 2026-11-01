@@ -173,3 +173,28 @@ test("--router without --target is a usage error", async () => {
   const { code, stderr } = await runCli(["export", "orders.skz", "--router", "next"], cwd);
   expect({ code, stderr }).toEqual({ code: 2, stderr: "skizo export: --target is required (expected: shadcn)\n" });
 });
+
+/** Exports one pie Chart: its data and config declarations and its legend line. */
+async function pieExport(rows: string) {
+  const cwd = withFiles({ "plans.skz": `Screen "Plans"\n  Chart "Plans" type=pie cols="Plan,Users"\n${rows}` });
+  await runCli(["export", "plans.skz", "--target", "shadcn"], cwd);
+  const file = readFileSync(join(cwd, "plans.tsx"), "utf8");
+  return [/const plansData = [\s\S]*?\n\]/, /const plansConfig = [\s\S]*?satisfies ChartConfig/, /<ChartLegend .*\/>/].map(
+    (re) => file.match(re)?.[0],
+  );
+}
+
+test("a pie Chart exports a legend, with one config entry per slice that names and colors it", async () => {
+  expect(await pieExport("    | Free | 620\n    | Pro plan | 240\n")).toEqual([
+    'const plansData = [\n  { plan: "free", users: 620, fill: "var(--color-free)" },\n  { plan: "pro-plan", users: 240, fill: "var(--color-pro-plan)" },\n]',
+    'const plansConfig = {\n  users: { label: "Users" },\n  free: { label: "Free", color: "var(--chart-1)" },\n  "pro-plan": { label: "Pro plan", color: "var(--chart-2)" },\n} satisfies ChartConfig',
+    '<ChartLegend content={<ChartLegendContent nameKey="plan" />} />',
+  ]);
+});
+
+test("a pie slice named like the series still gets a config entry of its own", async () => {
+  const [data] = await pieExport("    | Users | 620\n    | Guests | 240\n");
+  expect(data).toBe(
+    'const plansData = [\n  { plan: "slice-1", users: 620, fill: "var(--color-slice-1)" },\n  { plan: "slice-2", users: 240, fill: "var(--color-slice-2)" },\n]',
+  );
+});

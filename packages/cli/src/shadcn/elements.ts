@@ -325,7 +325,8 @@ export const EMITTERS: Record<string, Emit> = {
   List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
   /**
    * The project's shadcn chart around a recharts chart. The data and the ChartConfig go above the component, named
-   * after the Label; data keys are the column slugs. A pie colors each slice in its data row (fill).
+   * after the Label; data keys are the column slugs. A pie, as in shadcn's examples, names each slice by a config
+   * key (the slug of its name) that labels and colors it, so its legend and tooltip read the config.
    */
   Chart: (node, ctx) => {
     const type = node.props.type as "line" | "bar" | "area" | "pie";
@@ -333,14 +334,22 @@ export const EMITTERS: Record<string, Emit> = {
     const [x, ...series] = slugs(cols, "col");
     const pascal = pascalCase(ctx.id(slugify(node.label!) || "chart"), "Chart");
     const name = `${pascal[0]!.toLowerCase()}${pascal.slice(1)}`;
-    const rows = chartRows(node, ctx.path).map(([first, ...values], r) => {
-      const fields = [`${key(x!)}: ${JSON.stringify(first)}`, ...values.map((v, i) => `${key(series[i]!)}: ${Number(v)}`)];
-      return `{ ${[...fields, type === "pie" && `fill: "${chartColor(r)}"`].filter(Boolean).join(", ")} },`;
+    const data = chartRows(node, ctx.path);
+    // A slice key that equals the series key would repeat a config key.
+    const sliceKeys = slugs(data.map(([slice]) => slice!), "slice");
+    const slices = type !== "pie" ? [] : sliceKeys.includes(series[0]!) ? data.map((_, r) => `slice-${r + 1}`) : sliceKeys;
+    const rows = data.map(([first, ...values], r) => {
+      const fields = [`${key(x!)}: ${JSON.stringify(slices[r] ?? first)}`, ...values.map((v, i) => `${key(series[i]!)}: ${Number(v)}`)];
+      return `{ ${[...fields, slices[r] && `fill: "var(--color-${slices[r]})"`].filter(Boolean).join(", ")} },`;
     });
-    const config = series.map((s, i) => `${key(s)}: { label: ${JSON.stringify(cols[i + 1])}${type === "pie" ? "" : `, color: "${chartColor(i)}"`} },`);
+    const config = [
+      ...series.map((s, i) => `${key(s)}: { label: ${JSON.stringify(cols[i + 1])}${type === "pie" ? "" : `, color: "${chartColor(i)}"`} },`),
+      ...slices.map((s, r) => `${key(s)}: { label: ${JSON.stringify(data[r]![0])}, color: "${chartColor(r)}" },`),
+    ];
     ctx.declare(wrap(`const ${name}Data = [`, lines(...rows), "]"));
     ctx.declare(wrap(`const ${name}Config = {`, lines(...config), "} satisfies ChartConfig"));
-    const legend = series.length > 1 && type !== "pie";
+    // As in the Preview: a pie's legend names its slices; any other Chart has one for two or more series.
+    const legend = series.length > 1 || type === "pie";
     ctx.use("@/components/ui/chart", "ChartContainer", "ChartTooltip", "ChartTooltipContent", "type ChartConfig");
     if (legend) ctx.use("@/components/ui/chart", "ChartLegend", "ChartLegendContent");
     const title = ` title=${attr(node.label!)}`;
@@ -350,7 +359,11 @@ export const EMITTERS: Record<string, Emit> = {
         `<ChartContainer config={${name}Config} className="${CLASSES.Chart.pieContainer}">`,
         wrap(
           `<PieChart${title}>`,
-          lines("<ChartTooltip content={<ChartTooltipContent hideLabel />} />", `<Pie data={${name}Data} dataKey="${series[0]}" nameKey="${x}" />`),
+          lines(
+            "<ChartTooltip content={<ChartTooltipContent hideLabel />} />",
+            `<Pie data={${name}Data} dataKey="${series[0]}" nameKey="${x}" />`,
+            `<ChartLegend content={<ChartLegendContent nameKey="${x}" />} />`,
+          ),
           "</PieChart>",
         ),
         "</ChartContainer>",
