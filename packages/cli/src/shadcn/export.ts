@@ -5,7 +5,7 @@ import { EMITTERS, wrap, type Ctx, type Router } from "./elements";
 
 /**
  * The shadcn Export target: file name → TSX, one file per Screen, named after its id, plus `app-sidebar.tsx` for
- * the shared Sidebar. ponytail: a Screen with id `app-sidebar` overwrites that file; reserve the id if it bites.
+ * the shared Sidebar (check reserves that id when a shared Sidebar exists).
  */
 export function exportShadcn(document: Document, { router }: { router?: Router } = {}): Record<string, string> {
   const paths = nodePaths(document);

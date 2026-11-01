@@ -90,6 +90,10 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
     current = s;
     walk(s);
   }
+  // Each Screen exports as <id>.tsx and the shared Sidebar as app-sidebar.tsx: one file name each.
+  if (document.sidebar)
+    for (const screen of document.screens)
+      if (screen.props.id === "app-sidebar") err(screen, 'id "app-sidebar" is reserved for the shared Sidebar (set another id=)');
 
   // A ref to a Screen (to=) resolves file-wide; any other (opens=: a Dialog or Sheet) only on its own Screen.
   const screenIds = document.screens.map((screen) => screen.props.id).filter((id) => typeof id === "string");

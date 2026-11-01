@@ -1,0 +1,1 @@
+input.skz:8  Screen  id "app-sidebar" is reserved for the shared Sidebar (set another id=)

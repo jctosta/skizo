@@ -1,0 +1,9 @@
+// The export writes the shared Sidebar as app-sidebar.tsx, so no Screen may take its id, written or derived.
+Sidebar
+  Link "Home" to=home
+
+Screen "Home" id=home
+  "Welcome"
+
+Screen "App sidebar"
+  "This Label slugs to app-sidebar."
