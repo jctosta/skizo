@@ -75,13 +75,13 @@ You need Node.js 22.12 or later and Git. Skizo installs from a Git tag. Always p
 With pnpm (recommended):
 
 ```sh
-pnpm add -g github:jctosta/skizo#v0.2.0-alpha.1
+pnpm add -g github:jctosta/skizo#v0.3.0-alpha.1
 ```
 
 With npm:
 
 ```sh
-npm install -g --allow-git=all github:jctosta/skizo#v0.2.0-alpha.1
+npm install -g --allow-git=all github:jctosta/skizo#v0.3.0-alpha.1
 ```
 
 The tag points to a commit on the `release` branch. That commit holds only the built CLI. It has no install scripts and no dependencies. To pin one exact build, use the commit hash of the tag instead of the tag. The [install section](https://jctosta.github.io/skizo/#getting-started) of the documentation shows how.
