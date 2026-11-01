@@ -1,1 +1,1 @@
-input.skz:2  Tab  only goes inside Tabs
+input.skz:2  Tab  only goes directly inside Tabs

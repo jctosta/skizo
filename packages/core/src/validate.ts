@@ -15,7 +15,12 @@ export type CheckOptions = {
  */
 export function validate(document: Document, options: CheckOptions = {}): CheckError[] {
   const errors: CheckError[] = [];
-  const ids = new Map<string, number>();
+  /** Each id's first Element and the Screen it sits on. */
+  const ids = new Map<string, { node: Node; screen: Node }>();
+  /** Ref props (opens=) to resolve once every id is known. */
+  const refs: { node: Node; screen: Node; key: string }[] = [];
+  /** The Screen being walked. */
+  let current: Node;
   const err = (node: Node, message: string) => errors.push({ line: node.line, type: node.type, message });
 
   if (!document.screens.length) errors.push({ line: 1, type: "Screen", message: 'no Screen in the file (start with Screen "Title")' });
@@ -30,7 +35,8 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
       if (!allowed) err(node, `cannot go inside ${parent!.type} (${parent!.type} takes no children)`);
       else if (allowed !== "any" && !allowed.includes(node.type))
         err(node, `cannot go inside ${parent!.type} (allowed: ${allowed.join(", ")})`);
-      if (spec.parents && !spec.parents.includes(parent?.type ?? "")) err(node, `only goes inside ${spec.parents.join(" or ")}`);
+      if (spec.parents && (inSlot || !spec.parents.includes(parent?.type ?? "")))
+        err(node, `only goes directly inside ${spec.parents.join(" or ")}`);
       if (spec.label === "required" && node.label === undefined) err(node, `needs a Label (${node.type} "...")`);
       if (spec.label === "none" && node.label !== undefined) err(node, "takes no Label");
       for (const name of Object.keys(node.slots ?? {}) as (keyof NonNullable<Node["slots"]>)[])
@@ -39,6 +45,8 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
           err(node, `takes no "${name}" slot (allowed in: ${owners.join(", ")})`);
         }
       props(node, spec, options, err);
+      for (const [key, prop] of Object.entries(spec.props))
+        if (prop.kind === "ref" && typeof node.props[key] === "string") refs.push({ node, screen: current, key });
       spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }));
       // `span` (on any Element type whose schema lists it) counts columns of the Grid it sits directly in.
       const span = node.props.span;
@@ -57,8 +65,8 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
     const id = node.props.id;
     if (typeof id === "string") {
       const first = ids.get(id);
-      if (first === undefined) ids.set(id, node.line);
-      else err(node, `duplicate id "${id}" (also on line ${first})`);
+      if (first === undefined) ids.set(id, { node, screen: current });
+      else err(node, `duplicate id "${id}" (also on line ${first.node.line})`);
     }
 
     for (const child of node.children) walk(child, node);
@@ -72,9 +80,28 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
       if (!first && firstByDefault && node.children[0]) node.children[0].props[flag] = true;
     }
   };
-  for (const screen of document.screens) walk(screen);
+  for (const s of document.screens) {
+    current = s;
+    walk(s);
+  }
+
+  // opens= names a Dialog or Sheet on its own Screen.
+  const expected = "(expected: a Dialog or Sheet on this Screen)";
+  for (const { node, screen, key } of refs) {
+    const id = node.props[key] as string;
+    const target = ids.get(id);
+    if (!target) {
+      const near = [...ids].filter(([, t]) => t.screen === screen && OPENABLE.includes(t.node.type)).map(([name]) => name);
+      err(node, `${key}=${id} is an unknown id${didYouMean(id, near)} ${expected}`);
+    } else if (!OPENABLE.includes(target.node.type)) err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line} ${expected}`);
+    else if (target.screen !== screen)
+      err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line}, on another Screen ${expected}`);
+  }
   return errors;
 }
+
+/** What opens= can show. */
+const OPENABLE = ["Dialog", "Sheet"];
 
 function props(node: Node, spec: ElementSpec, options: CheckOptions, err: (node: Node, message: string) => void) {
   const names = ["id", ...Object.keys(spec.props)];

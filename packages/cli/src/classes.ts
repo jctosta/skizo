@@ -131,6 +131,31 @@ export const CLASSES = {
     destructive: "text-destructive hover:bg-destructive/10",
     disabled: "pointer-events-none opacity-50",
   },
+  // Dialog and Sheet copy the vendored radix-vega components (no animations) for the Preview, shown and hidden by
+  // preview/script.ts. The export gets these from the project's own components, plus the `body` wrapper.
+  Dialog: {
+    backdrop: "fixed inset-0 isolate z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs",
+    content: "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none sm:max-w-md",
+    header: "flex flex-col gap-2",
+    title: "leading-none font-medium",
+    desc: "text-sm text-muted-foreground",
+    body: "grid gap-4",
+    footer: "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+    /** The corner X, a ghost icon Button. */
+    close: "absolute top-4 right-4",
+  },
+  Sheet: {
+    backdrop: "fixed inset-0 z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs",
+    content: "fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg",
+    right: "inset-y-0 right-0 h-full w-3/4 border-l sm:max-w-sm",
+    left: "inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm",
+    header: "flex flex-col gap-1.5 p-4",
+    title: "font-medium text-foreground",
+    desc: "text-sm text-muted-foreground",
+    body: "grid flex-1 auto-rows-min gap-4 px-4",
+    footer: "mt-auto flex flex-col gap-2 p-4",
+    close: "absolute top-4 right-4",
+  },
   /** shadcn Button look-alike for the Preview (exports use <Button variant size>). Reuse it for any button-like trigger. */
   Button: {
     base: "inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
