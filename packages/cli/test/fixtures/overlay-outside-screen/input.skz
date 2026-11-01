@@ -1,0 +1,6 @@
+Screen "Orders"
+  Card "Pending"
+    Dialog "Remind customers"
+  actions
+    Sheet "Filters"
+  Dialog "New order"

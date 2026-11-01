@@ -1,0 +1,9 @@
+Screen "Orders"
+  actions
+    Button "New order" opens=new-ordr
+    Button "Edit" opens=edit-order
+    Button "Details" opens=summary
+  Card "Summary" id=summary
+  Dialog "New order" id=new-order
+Screen "Order" id=order
+  Sheet "Edit order" id=edit-order

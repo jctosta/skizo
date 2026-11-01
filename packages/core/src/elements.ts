@@ -11,7 +11,9 @@ export type PropSpec =
   /** `default` is filled in when the prop is missing. */
   | { kind: "number"; min?: number; max?: number; default?: number }
   /** Comma-separated; `\,` is a literal comma. */
-  | { kind: "list" };
+  | { kind: "list" }
+  /** An Element's id. `overlay`: a Dialog or Sheet on the same Screen (opens=). */
+  | { kind: "ref"; to: "overlay" };
 
 export type ElementSpec = {
   label: "required" | "optional" | "none";
@@ -19,7 +21,7 @@ export type ElementSpec = {
   props: Record<string, PropSpec>;
   /** Element types allowed as children; "any" for all; omitted for none. */
   children?: readonly string[] | "any";
-  /** Element types this one may sit directly under; omitted for anywhere. */
+  /** Element types this one may sit directly under (not in their slots); omitted for anywhere. */
   parents?: readonly string[];
   slots?: readonly ("actions" | "footer")[];
   /** Rules the generic checks can't express. Runs after props are coerced; `line` defaults to the Element's. */
@@ -33,6 +35,8 @@ const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
 const iconOnly: ElementSpec["check"] = (node, err) => {
   if (node.props["icon-only"] === true && node.props.icon === undefined) err("icon-only needs icon=... too");
 };
+/** Dialog and Sheet. */
+const overlay = { desc: { kind: "string" }, open: { kind: "flag" } } as const;
 /** Stack and Row. */
 const flex = {
   gap: sizes,
@@ -104,6 +108,15 @@ export const ELEMENTS: Record<string, ElementSpec> = {
       if (node.props.items !== undefined && node.props.rows !== undefined) err("has both items= and rows= (keep one)");
     },
   },
+  /** The Label is the title. Shown by a Button's opens=, or on load with `open`. */
+  Dialog: { label: "required", props: overlay, children: "any", parents: ["Screen"], slots: ["footer"] },
+  Sheet: {
+    label: "required",
+    props: { ...overlay, side: { kind: "enum", values: ["right", "left"] } },
+    children: "any",
+    parents: ["Screen"],
+    slots: ["footer"],
+  },
   Tabs: { label: "none", props: {}, children: ["Tab"], exclusive: { flag: "active", firstByDefault: true } },
   Tab: { label: "required", props: { active: { kind: "flag" } }, children: "any", parents: ["Tabs"] },
   Button: {
@@ -115,6 +128,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
       "icon-only": { kind: "flag" },
       disabled: { kind: "flag" },
       loading: { kind: "flag" },
+      opens: { kind: "ref", to: "overlay" },
     },
     check: iconOnly,
   },
