@@ -5,6 +5,7 @@ import { validate } from "./validate";
 export type { CheckError, Document, Node } from "./ast";
 export { ELEMENTS, type ElementSpec, type PropSpec } from "./elements";
 export { didYouMean, nearest } from "./nearest";
+export { slugify } from "./validate";
 
 /**
  * Parses and validates a Skizo source, returning every error sorted by line.

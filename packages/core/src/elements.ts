@@ -17,6 +17,8 @@ export type ElementSpec = {
   /** Element types this one may sit directly under; omitted for anywhere. */
   parents?: readonly string[];
   slots?: readonly ("actions" | "footer")[];
+  /** A flag at most one child may set; with `firstByDefault`, the first child gets it when none does. */
+  exclusive?: { flag: string; firstByDefault?: true };
 };
 
 const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
@@ -30,4 +32,6 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Screen: { label: "required", props: { id: { kind: "string" }, subtitle: { kind: "string" } }, children: "any" },
   Heading: { label: "required", props: { level: { kind: "enum", values: ["2", "1", "3", "4"] } } },
   Text: { label: "required", props: { size: sizes, muted: { kind: "flag" }, bold: { kind: "flag" } } },
+  Tabs: { label: "none", props: {}, children: ["Tab"], exclusive: { flag: "active", firstByDefault: true } },
+  Tab: { label: "required", props: { active: { kind: "flag" } }, children: "any", parents: ["Tabs"] },
 };

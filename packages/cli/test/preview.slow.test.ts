@@ -35,3 +35,21 @@ test("a Preview opened with the network blocked shows its content styled", async
   }).toEqual({ visible: true, fontWeight: "600", external: [] });
   await context.close();
 });
+
+test("clicking a Tab shows its panel and hides the others", async () => {
+  const cwd = withFiles({
+    "orders.skz": `Screen "Orders"\n  Tabs\n    Tab "All"\n      "Every order"\n    Tab "Open"\n      "Open orders"\n`,
+  });
+  await runCli(["preview", "orders.skz"], cwd);
+
+  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  await page.goto(pathToFileURL(join(cwd, "orders.html")).href);
+  await page.getByRole("tab", { name: "Open" }).click();
+
+  expect({
+    selected: await page.getByRole("tab", { selected: true }).textContent(),
+    openPanel: await page.getByText("Open orders").isVisible(),
+    allPanel: await page.getByText("Every order").isVisible(),
+  }).toEqual({ selected: "Open", openPanel: true, allPanel: false });
+  await page.close();
+});
