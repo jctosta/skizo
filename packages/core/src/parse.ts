@@ -45,8 +45,10 @@ export function parse(source: string): { document: Document; errors: CheckError[
     const parent = stack[level]!;
 
     if (content.startsWith("|")) {
-      if (parent.node?.type === "Table") (parent.node.rows ??= []).push(cells(content));
-      else err("row line outside a Table");
+      if (parent.node?.type === "Table") {
+        (parent.node.rows ??= []).push(cells(content));
+        (parent.node.rowLines ??= []).push(line);
+      } else err("row line outside a Table");
       stack.push({ into: null });
     } else if ((SLOTS as readonly string[]).includes(content)) {
       const name = content as (typeof SLOTS)[number];

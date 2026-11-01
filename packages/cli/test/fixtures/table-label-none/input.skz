@@ -1,0 +1,2 @@
+Screen "Orders"
+  Table "Recent orders" cols="Order,Amount"

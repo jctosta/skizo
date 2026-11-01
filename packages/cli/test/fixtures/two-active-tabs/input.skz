@@ -1,0 +1,6 @@
+Screen "Orders"
+  Tabs
+    Tab "All" active
+    Tab "Open"
+    Tab "Paid" active
+    Tab "Refunded" active

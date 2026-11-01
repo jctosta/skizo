@@ -1,9 +1,11 @@
 import type { Document, Node } from "@skizo/core";
+import { nodePaths } from "../placeholder";
 import { EMITTERS, wrap, type Ctx } from "./elements";
 
 /** The shadcn Export target: file name → TSX, one file per Screen, named after its id. */
 export function exportShadcn(document: Document): Record<string, string> {
-  return Object.fromEntries(document.screens.map((screen) => [`${screen.props.id}.tsx`, screenFile(screen)]));
+  const paths = nodePaths(document);
+  return Object.fromEntries(document.screens.map((screen) => [`${screen.props.id}.tsx`, screenFile(screen, paths)]));
 }
 
 /** `order-details` → `OrderDetailsScreen`. */
@@ -13,17 +15,15 @@ const componentName = (id: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join("")}Screen`;
 
-function screenFile(screen: Node): string {
+function screenFile(screen: Node, paths: Map<Node, string>): string {
   const imports = new Map<string, Set<string>>();
-  const ctx: Ctx = {
-    render: (nodes) => nodes.map((node) => emit(node, ctx)).join("\n"),
-    use(from, ...names) {
-      const set = imports.get(from) ?? new Set();
-      for (const name of names) set.add(name);
-      imports.set(from, set);
-    },
+  const use: Ctx["use"] = (from, ...names) => {
+    const set = imports.get(from) ?? new Set();
+    for (const name of names) set.add(name);
+    imports.set(from, set);
   };
-  const jsx = emit(screen, ctx);
+  const ctx = (node: Node): Ctx => ({ path: paths.get(node)!, use, render: (nodes) => nodes.map((n) => emit(n, ctx(n))).join("\n") });
+  const jsx = emit(screen, ctx(screen));
   const head = [...imports.keys()].sort().map((from) => `import { ${[...imports.get(from)!].sort().join(", ")} } from "${from}"\n`);
   const body = wrap(`export function ${componentName(screen.props.id as string)}() {`, wrap("return (", jsx, ")"), "}");
   return `${head.join("")}${head.length ? "\n" : ""}${body}\n`;

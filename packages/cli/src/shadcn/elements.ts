@@ -1,11 +1,14 @@
-import type { Node } from "@skizo/core";
+import { slugify, type Node } from "@skizo/core";
 import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
+import { listItems, tableRows } from "../placeholder";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
   /** Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
   use(from: string, ...names: string[]): void;
+  /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
+  path: string;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -78,6 +81,40 @@ export const EMITTERS: Record<string, Emit> = {
         footer && wrap(`<${ui("CardFooter")} className="${c.footerItems}">`, ctx.render(footer), "</CardFooter>"),
       ),
       "</Card>",
+    );
+  },
+  Table: (node, ctx) => {
+    ctx.use("@/components/ui/table", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow");
+    const row = (tag: "TableHead" | "TableCell", cells: string[]) =>
+      wrap("<TableRow>", lines(...cells.map((s) => `<${tag}>${text(s)}</${tag}>`)), "</TableRow>");
+    return wrap(
+      "<Table>",
+      lines(
+        wrap("<TableHeader>", row("TableHead", node.props.cols as string[]), "</TableHeader>"),
+        wrap("<TableBody>", lines(...tableRows(node, ctx.path).map((cells) => row("TableCell", cells))), "</TableBody>"),
+      ),
+      "</Table>",
+    );
+  },
+  List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
+  /** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
+  Tabs: (node, ctx) => {
+    ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");
+    const tabs = node.children;
+    // Slugged Labels read as hand-written; fall back to tab-1, tab-2, ... when they are empty or collide.
+    const slugs = tabs.map((tab) => slugify(tab.label!));
+    const values = slugs.every(Boolean) && new Set(slugs).size === slugs.length ? slugs : slugs.map((_, i) => `tab-${i + 1}`);
+    const active = values[tabs.findIndex((tab) => tab.props.active === true)];
+    const triggers = tabs.map((tab, i) => `<TabsTrigger value="${values[i]}">${text(tab.label!)}</TabsTrigger>`);
+    return wrap(
+      `<Tabs${active === undefined ? "" : ` defaultValue="${active}"`}>`,
+      lines(
+        wrap("<TabsList>", lines(...triggers), "</TabsList>"),
+        ...tabs.map((tab, i) =>
+          wrap(`<TabsContent value="${values[i]}" className="${CLASSES.Tabs.panel}">`, ctx.render(tab.children), "</TabsContent>"),
+        ),
+      ),
+      "</Tabs>",
     );
   },
 };

@@ -1,10 +1,5 @@
 import type { Node } from "@skizo/core";
 
-/**
- * Tailwind classes shared by every Backend, one entry per Element type, so the Preview and exports look alike.
- * Write full literal class strings (never `gap-${n}`): Tailwind finds them by scanning this file.
- */
-
 /** `gap=sm|md|lg`, the same tokens in every Backend. */
 const gap = { sm: "gap-2", md: "gap-4", lg: "gap-6" } as const;
 /** Stack and Row. `start` adds no class: it is CSS's stretch, so Cards and Tables in a Stack keep their full width. */
@@ -14,6 +9,10 @@ const flex = {
   justify: { start: "", between: "justify-between", end: "justify-end" },
 } as const;
 
+/**
+ * Tailwind classes shared by every Backend, one entry per Element type, so the Preview and exports look alike.
+ * Write full literal class strings (never `gap-${n}`): Tailwind finds them by scanning this file.
+ */
 export const CLASSES = {
   Screen: {
     root: "min-h-screen p-6",
@@ -60,6 +59,25 @@ export const CLASSES = {
     actions: "flex items-center gap-2",
     footerItems: "gap-2",
     span: { 1: "col-span-1", 2: "col-span-2", 3: "col-span-3", 4: "col-span-4", 5: "col-span-5", 6: "col-span-6" },
+  },
+  /** The Preview's copy of shadcn's table.tsx; the export gets these from the project's own Table components. */
+  Table: {
+    container: "relative w-full overflow-x-auto",
+    table: "w-full caption-bottom text-sm",
+    header: "[&_tr]:border-b",
+    body: "[&_tr:last-child]:border-0",
+    row: "border-b transition-colors hover:bg-muted/50",
+    head: "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground",
+    cell: "p-2 align-middle whitespace-nowrap",
+  },
+  List: { root: "ml-6 list-disc text-sm [&>li]:mt-1" },
+  /** shadcn's TabsList and TabsTrigger looks; the Preview marks the active Tab with aria-selected. */
+  Tabs: {
+    root: "flex flex-col gap-2",
+    list: "inline-flex h-9 w-fit items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground",
+    trigger:
+      "inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm",
+    panel: "flex flex-col gap-4",
   },
 } as const;
 

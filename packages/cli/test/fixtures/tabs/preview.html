@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orders</title>
+<style>/* preview.css */</style>
+</head>
+<body>
+<section data-screen="orders" class="min-h-screen p-6">
+<header class="mb-6 grid gap-1">
+<h1 class="text-2xl font-semibold tracking-tight">Orders</h1>
+</header>
+<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-2">
+<div role="tablist" class="inline-flex h-9 w-fit items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground">
+<button type="button" role="tab" aria-selected="false" class="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm">All</button>
+<button type="button" role="tab" aria-selected="true" class="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm">Needs review</button>
+<button type="button" role="tab" aria-selected="false" class="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm">Refunds &amp; &lt;returns&gt;</button>
+</div>
+<div role="tabpanel" class="flex flex-col gap-4" hidden>
+<h2 class="text-xl font-semibold tracking-tight">Every order</h2>
+<p class="text-sm text-muted-foreground">Sorted by date</p>
+</div>
+<div role="tabpanel" class="flex flex-col gap-4">
+<div class="flex flex-col gap-2">
+<div role="tablist" class="inline-flex h-9 w-fit items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground">
+<button type="button" role="tab" aria-selected="true" class="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm">Today</button>
+<button type="button" role="tab" aria-selected="false" class="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm">This week</button>
+</div>
+<div role="tabpanel" class="flex flex-col gap-4">
+<p class="text-sm">Nothing to review today.</p>
+</div>
+<div role="tabpanel" class="flex flex-col gap-4" hidden>
+</div>
+</div>
+</div>
+<div role="tabpanel" class="flex flex-col gap-4" hidden>
+<p class="text-sm">Refunded orders show here.</p>
+</div>
+</div>
+</div>
+</section>
+<section data-screen="drafts" class="min-h-screen p-6">
+<header class="mb-6 grid gap-1">
+<h1 class="text-2xl font-semibold tracking-tight">Drafts</h1>
+</header>
+<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-2">
+<div role="tablist" class="inline-flex h-9 w-fit items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground">
+<button type="button" role="tab" aria-selected="true" class="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm">Draft</button>
+<button type="button" role="tab" aria-selected="false" class="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm">Draft</button>
+</div>
+<div role="tabpanel" class="flex flex-col gap-4">
+<p class="text-sm">First draft</p>
+</div>
+<div role="tabpanel" class="flex flex-col gap-4" hidden>
+<p class="text-sm">Second draft</p>
+</div>
+</div>
+</div>
+</section>
+<script>
+// Tabs: a click on a Tab selects it and shows the panel at the same position.
+document.addEventListener("click", (event) => {
+  const tab = event.target instanceof Element && event.target.closest('[role="tab"]');
+  if (!tab) return;
+  const panels = tab.parentElement.parentElement.querySelectorAll(':scope > [role="tabpanel"]');
+  [...tab.parentElement.children].forEach((t, i) => {
+    t.setAttribute("aria-selected", String(t === tab));
+    panels[i].hidden = t !== tab;
+  });
+});
+</script>
+</body>
+</html>

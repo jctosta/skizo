@@ -1,0 +1,7 @@
+// A Table with inline rows: trailing pipe optional, cells trimmed, markup escaped.
+Screen "Orders"
+  Table cols="Order,Customer\, company,Amount"
+    | #1042 | Ana Souza | $120.00 |
+    | #1041 | <b>Bruno</b> & {Co} | $64.50
+    // An empty cell still counts.
+    | #1040 | | $0.00
