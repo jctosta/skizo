@@ -25,9 +25,9 @@ export const text = (s: string) => (/[{}<>&]/.test(s) ? `{${JSON.stringify(s)}}`
 export const attr = (s: string) => (/["&]/.test(s) ? `{${JSON.stringify(s)}}` : `"${s}"`);
 
 
-/** `open`, then `body` indented two spaces, then `close`; one line when `body` is empty. */
-export const wrap = (open: string, body: string, close: string) =>
-  body ? `${open}\n${body.replace(/^/gm, "  ")}\n${close}` : `${open}${close}`;
+/** `start`, then `body` indented two spaces, then `end`; one line when `body` is empty. */
+export const wrap = (start: string, body: string, end: string) =>
+  body ? `${start}\n${body.replace(/^/gm, "  ")}\n${end}` : `${start}${end}`;
 
 /** JSX attributes from name → value: strings through `attr`, numbers in braces, true bare; undefined and false skipped. */
 export const jsxAttrs = (pairs: Record<string, unknown>) =>
@@ -160,9 +160,9 @@ export const EMITTERS: Record<string, Emit> = {
   Link: (node, ctx) => {
     const { to, active } = node.props as { to?: string; active?: true };
     const href = to === undefined ? undefined : screenHref(to);
-    const open = `<a${jsxAttrs({ href, "aria-current": active && "page" })} className="${CLASSES.Link.root}">`;
-    if (node.props.icon === undefined) return `${open}${text(node.label!)}</a>`;
-    return wrap(open, lines(icon(ctx, node.props.icon as string, CLASSES.Link.icon), text(node.label!)), "</a>");
+    const tag = `<a${jsxAttrs({ href, "aria-current": active && "page" })} className="${CLASSES.Link.root}">`;
+    if (node.props.icon === undefined) return `${tag}${text(node.label!)}</a>`;
+    return wrap(tag, lines(icon(ctx, node.props.icon as string, CLASSES.Link.icon), text(node.label!)), "</a>");
   },
   Heading: (node) => {
     const level = node.props.level as keyof typeof CLASSES.Heading;
@@ -325,7 +325,7 @@ export const EMITTERS: Record<string, Emit> = {
     // Disabled wins over to=: a link cannot be disabled, so it renders as a disabled Button.
     const to = disabled ? undefined : (node.props.to as string | undefined);
     const opens = node.props.opens === undefined ? "" : ` onClick={() => ${openState(node.props.opens as string)[1]}(true)}`;
-    const open = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled, asChild: to !== undefined })}${opens}>`;
+    const tag = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled, asChild: to !== undefined })}${opens}>`;
     ctx.use("@/components/ui/button", "Button");
     const glyph = loading ? icon(ctx, "loader-circle", c.spinner) : node.props.icon !== undefined && icon(ctx, node.props.icon as string);
     const label = iconOnly ? `<span className="${c.hiddenLabel}">${text(node.label!)}</span>` : text(node.label!);
@@ -333,9 +333,9 @@ export const EMITTERS: Record<string, Emit> = {
     // to=: the Button renders a plain anchor (asChild), like a Link.
     if (to !== undefined) {
       const anchor = `<a href=${attr(screenHref(to))}>`;
-      return wrap(open, glyph ? wrap(anchor, content, "</a>") : `${anchor}${content}</a>`, "</Button>");
+      return wrap(tag, glyph ? wrap(anchor, content, "</a>") : `${anchor}${content}</a>`, "</Button>");
     }
-    return glyph ? wrap(open, content, "</Button>") : `${open}${content}</Button>`;
+    return glyph ? wrap(tag, content, "</Button>") : `${tag}${content}</Button>`;
   },
   Input: (node, ctx) => {
     const { type, placeholder, value, disabled, error } = node.props;
