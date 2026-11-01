@@ -45,8 +45,7 @@ const COMMANDS: Record<string, Command> = {
     run(file, flags, io) {
       const viewport = (flags.viewport as string | undefined) ?? "desktop";
       if (!Object.hasOwn(VIEWPORTS, viewport)) {
-        const names = Object.keys(VIEWPORTS);
-        io.stderr(`skizo preview: unknown viewport "${viewport}"${didYouMean(viewport, names)} (expected: ${names.join(", ")})\n`);
+        io.stderr(`skizo preview: ${badFlag("viewport", viewport, Object.keys(VIEWPORTS))}\n`);
         return 2;
       }
       const out = `${file.replace(/\.skz$/, "")}.html`;
@@ -74,13 +73,12 @@ const COMMANDS: Record<string, Command> = {
       }
       const exportTarget = TARGETS.get(target ?? "");
       if (!exportTarget) {
-        const problem = target === undefined ? "--target is required" : `unknown target "${target}"${didYouMean(target, TARGETS.keys())}`;
-        io.stderr(`skizo export: ${problem} (expected: ${[...TARGETS.keys()].join(", ")})\n`);
+        io.stderr(`skizo export: ${badFlag("target", target, [...TARGETS.keys()])}\n`);
         return 2;
       }
       // ponytail: shadcn is the only target, so a known target takes --router; a second one must refuse it here.
       if (router !== undefined && !ROUTER_NAMES.includes(router as Router)) {
-        io.stderr(`skizo export: unknown router "${router}"${didYouMean(router, ROUTER_NAMES)} (expected: ${ROUTER_NAMES.join(", ")})\n`);
+        io.stderr(`skizo export: ${badFlag("router", router, ROUTER_NAMES)}\n`);
         return 2;
       }
       const document = loadChecked(file, io);
@@ -101,6 +99,10 @@ const COMMANDS: Record<string, Command> = {
     },
   },
 };
+
+/** Why a flag's value is not one of `names` (none given: it is required), with a hint and the names. */
+const badFlag = (flag: string, value: string | undefined, names: readonly string[]) =>
+  `${value === undefined ? `--${flag} is required` : `unknown ${flag} "${value}"${didYouMean(value, names)}`} (expected: ${names.join(", ")})`;
 
 const USAGE = `Usage: skizo <command>   (alias: skz)
 
