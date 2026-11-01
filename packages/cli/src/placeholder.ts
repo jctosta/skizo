@@ -43,6 +43,35 @@ export function tableRows(node: Node, path: string): string[][] {
   });
 }
 
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+/**
+ * A Chart's rows: its `|` rows, or `rows=N` placeholder rows. The x value is guessed from the x column's name
+ * (Month, Date, Day, Year, else "Item n"); each series is a seeded random walk of whole numbers, so lines look like data.
+ */
+export function chartRows(node: Node, path: string): string[][] {
+  if (node.rows) return node.rows;
+  const random = seeded(path);
+  const [x, ...series] = node.props.cols as string[];
+  const name = x!.toLowerCase();
+  const count = (node.props.rows as number | undefined) ?? 0;
+  const guess = (i: number) => {
+    if (name.includes("month")) return MONTHS[i % 12]!;
+    if (name.includes("date")) {
+      const date = new Date(Date.UTC(2026, 0, 1 + i));
+      return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}`;
+    }
+    if (name.includes("day")) return DAYS[i % 7]!;
+    if (name.includes("year")) return String(2026 - count + 1 + i);
+    return `Item ${i + 1}`;
+  };
+  const values = series.map(() => 200 + random() * 800);
+  return Array.from({ length: count }, (_, i) => {
+    for (const [j, v] of values.entries()) values[j] = Math.max(10, v * (0.8 + random() * 0.4));
+    return [guess(i), ...values.map((v) => String(Math.round(v)))];
+  });
+}
+
 /** A List's items: `items`, or `rows=N` placeholders "Item 1" to "Item N". */
 export const listItems = (node: Node) =>
   (node.props.items as string[] | undefined) ?? Array.from({ length: (node.props.rows as number | undefined) ?? 0 }, (_, i) => `Item ${i + 1}`);

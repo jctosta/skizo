@@ -14,7 +14,7 @@ Type "Label" flag key=value key="value with spaces"
 - **Flags** are bare lowercase words and mean `true` (`open`, `disabled`). Anything else is a prop: write `variant=secondary`, never bare `secondary`.
 - List props are comma-separated: `options="Open,Paid"`.
 - A line that is only a string is a text paragraph: `"Some text"`.
-- `| a | b | c` lines are table rows. `//` starts a comment line.
+- `| a | b | c` lines are Table or Chart rows. `//` starts a comment line.
 - Lowercase slot words group children: `actions` (Screen/Card header actions), `footer` (Card/Dialog/Sheet footer).
 - Any element can take `id=name`. Ids are the targets of `opens=` and `to=`.
 - Give content one way only: a label or `lorem=N`; `|` rows or `rows=N`; `items=` or `rows=N`.
@@ -53,6 +53,8 @@ Checkbox "Label"    checked disabled             (same for Switch)
 Radio "Label"       options value
 Table               cols="A,B,C"; rows as | lines (one cell per col), or rows=N (placeholder)
 List                items="a,b,c" or rows=N
+Chart "Name"        type=line|bar|area|pie cols="Month,Sales,Costs" (x, then series of numbers);
+                    rows as Table; type=pie takes 2 cols
 Custom "ChatBubble" any props, flags and children    a component of the app; only when no type fits
 ```
 

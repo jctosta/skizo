@@ -1,0 +1,2 @@
+input.skz:4  Chart  "$1,200" in column Revenue is not a number (write digits, e.g. 1200 or 12.5)
+input.skz:5  Chart  "n/a" in column Costs is not a number (write digits, e.g. 1200 or 12.5)

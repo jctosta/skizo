@@ -44,11 +44,14 @@ function componentFile(signature: string, node: Node, paths: Map<Node, string>, 
   };
   const hooks: string[] = [];
   const hook: Ctx["hook"] = (line) => hooks.push(line);
+  const declarations: string[] = [];
+  const declare: Ctx["declare"] = (code) => declarations.push(code);
   const ctx = (n: Node): Ctx => ({
     path: paths.get(n)!,
     use,
     id,
     hook,
+    declare,
     router,
     sidebar,
     render: (nodes) => nodes.map((child) => emitterFor(EMITTERS, child.type, "shadcn export")(child, ctx(child))).join("\n"),
@@ -56,5 +59,5 @@ function componentFile(signature: string, node: Node, paths: Map<Node, string>, 
   const jsx = ctx(node).render([node]);
   const head = [...imports.keys()].sort().map((from) => `import ${importClause([...imports.get(from)!].sort())} from "${from}"\n`);
   const body = wrap(`export function ${signature} {`, lines(...hooks, wrap("return (", jsx, ")")), "}");
-  return `${head.join("")}${head.length ? "\n" : ""}${body}\n`;
+  return `${head.join("")}${head.length ? "\n" : ""}${declarations.map((code) => `${code}\n\n`).join("")}${body}\n`;
 }

@@ -1,0 +1,5 @@
+Screen "Dashboard"
+  Chart "Revenue" cols="Month,Revenue,Costs"
+    | Jan | 120 | 80
+    | Feb | $1,200 | 90
+    | Mar | 140 | n/a

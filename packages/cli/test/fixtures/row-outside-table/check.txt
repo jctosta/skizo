@@ -1,1 +1,1 @@
-input.skz:2  Table  row line outside a Table
+input.skz:2  Table  row line outside a Table or Chart

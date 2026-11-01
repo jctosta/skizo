@@ -1,0 +1,4 @@
+Screen "Dashboard"
+  Chart "Revenue" cols="Month,Revenue"
+    | Jan | 120
+    | Feb

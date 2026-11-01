@@ -1,8 +1,8 @@
 import { slugify, type Node } from "@skizo/core";
-import { customProps, hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
+import { chartColor, customProps, hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
-import { initials, listItems, lorem, tableRows } from "../placeholder";
+import { chartRows, initials, listItems, lorem, tableRows } from "../placeholder";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
@@ -16,10 +16,12 @@ export type Ctx = {
   router?: Router;
   /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
   path: string;
-  /** `base`, or `base-2`, `base-3`... when the Screen's file already uses it: DOM ids for form controls. */
+  /** `base`, or `base-2`, `base-3`... when the Screen's file already uses it: DOM ids for form controls, Chart names. */
   id(base: string): string;
   /** Adds a line to the top of the Screen's component, before `return`: state hooks. */
   hook(line: string): void;
+  /** Adds a declaration above the Screen's component: a Chart's data and config. */
+  declare(code: string): void;
   /** The Sidebar shared by every Screen without its own (Document.sidebar), exported once as AppSidebar. */
   sidebar?: Node;
 };
@@ -50,6 +52,18 @@ export const jsxAttrs = (pairs: Record<string, unknown>) =>
       return ` ${name}=${attr(String(v))}`;
     })
     .join("");
+
+/** Slugs of `labels`, which read as hand-written; `<fallback>-1`, `<fallback>-2`... for all when one is empty or two collide. */
+const slugs = (labels: string[], fallback: string) => {
+  const s = labels.map(slugify);
+  return s.every(Boolean) && new Set(s).size === s.length ? s : s.map((_, i) => `${fallback}-${i + 1}`);
+};
+
+/** An object literal key: bare when it is an identifier, else quoted. */
+const key = (s: string) => (/^[A-Za-z_$][\w$]*$/.test(s) ? s : JSON.stringify(s));
+
+/** The recharts chart and series components of each cartesian Chart type. */
+const CHARTS = { line: ["LineChart", "Line"], bar: ["BarChart", "Bar"], area: ["AreaChart", "Area"] } as const;
 
 /** A form control under its Label, with error text below. `id` ties the Label to the control. */
 const field = (node: Node, ctx: Ctx, id: string, control: string, error?: unknown) => {
@@ -309,15 +323,71 @@ export const EMITTERS: Record<string, Emit> = {
     );
   },
   List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
+  /**
+   * The project's shadcn chart around a recharts chart. The data and the ChartConfig go above the component, named
+   * after the Label; data keys are the column slugs. A pie colors each slice in its data row (fill).
+   */
+  Chart: (node, ctx) => {
+    const type = node.props.type as "line" | "bar" | "area" | "pie";
+    const cols = node.props.cols as string[];
+    const [x, ...series] = slugs(cols, "col");
+    const pascal = pascalCase(ctx.id(slugify(node.label!) || "chart"), "Chart");
+    const name = `${pascal[0]!.toLowerCase()}${pascal.slice(1)}`;
+    const rows = chartRows(node, ctx.path).map(([first, ...values], r) => {
+      const fields = [`${key(x!)}: ${JSON.stringify(first)}`, ...values.map((v, i) => `${key(series[i]!)}: ${Number(v)}`)];
+      return `{ ${[...fields, type === "pie" && `fill: "${chartColor(r)}"`].filter(Boolean).join(", ")} },`;
+    });
+    const config = series.map((s, i) => `${key(s)}: { label: ${JSON.stringify(cols[i + 1])}${type === "pie" ? "" : `, color: "${chartColor(i)}"`} },`);
+    ctx.declare(wrap(`const ${name}Data = [`, lines(...rows), "]"));
+    ctx.declare(wrap(`const ${name}Config = {`, lines(...config), "} satisfies ChartConfig"));
+    const legend = series.length > 1 && type !== "pie";
+    ctx.use("@/components/ui/chart", "ChartContainer", "ChartTooltip", "ChartTooltipContent", "type ChartConfig");
+    if (legend) ctx.use("@/components/ui/chart", "ChartLegend", "ChartLegendContent");
+    const title = ` title=${attr(node.label!)}`;
+    if (type === "pie") {
+      ctx.use("recharts", "Pie", "PieChart");
+      return wrap(
+        `<ChartContainer config={${name}Config} className="${CLASSES.Chart.pieContainer}">`,
+        wrap(
+          `<PieChart${title}>`,
+          lines("<ChartTooltip content={<ChartTooltipContent hideLabel />} />", `<Pie data={${name}Data} dataKey="${series[0]}" nameKey="${x}" />`),
+          "</PieChart>",
+        ),
+        "</ChartContainer>",
+      );
+    }
+    const [chart, part] = CHARTS[type];
+    ctx.use("recharts", "CartesianGrid", chart, part, "XAxis");
+    const look = {
+      line: (s: string) => `stroke="var(--color-${s})" strokeWidth={2} dot={false}`,
+      bar: (s: string) => `fill="var(--color-${s})" radius={4}`,
+      area: (s: string) => `fill="var(--color-${s})" fillOpacity={0.4} stroke="var(--color-${s})"`,
+    }[type];
+    // Line and area points sit on the plot's edges: the margin keeps the first and last x labels whole.
+    const margin = type === "bar" ? "" : " margin={{ left: 12, right: 12 }}";
+    return wrap(
+      `<ChartContainer config={${name}Config} className="${CLASSES.Chart.container}">`,
+      wrap(
+        `<${chart} data={${name}Data}${margin}${title}>`,
+        lines(
+          "<CartesianGrid vertical={false} />",
+          `<XAxis dataKey="${x}" tickLine={false} axisLine={false} tickMargin={8} />`,
+          "<ChartTooltip content={<ChartTooltipContent />} />",
+          legend && "<ChartLegend content={<ChartLegendContent />} />",
+          ...series.map((s) => `<${part} dataKey="${s}" ${look(s)} />`),
+        ),
+        `</${chart}>`,
+      ),
+      "</ChartContainer>",
+    );
+  },
   Dialog: (node, ctx) => dialog(node, ctx, "Dialog", ""),
   Sheet: (node, ctx) => dialog(node, ctx, "Sheet", node.props.side === "right" ? "" : ` side="${node.props.side}"`),
   /** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
   Tabs: (node, ctx) => {
     ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");
     const tabs = node.children;
-    // Slugged Labels read as hand-written; fall back to tab-1, tab-2, ... when they are empty or collide.
-    const slugs = tabs.map((tab) => slugify(tab.label!));
-    const values = slugs.every(Boolean) && new Set(slugs).size === slugs.length ? slugs : slugs.map((_, i) => `tab-${i + 1}`);
+    const values = slugs(tabs.map((tab) => tab.label!), "tab");
     const active = values[tabs.findIndex((tab) => tab.props.active === true)];
     const triggers = tabs.map((tab, i) => `<TabsTrigger value="${values[i]}">${text(tab.label!)}</TabsTrigger>`);
     return wrap(

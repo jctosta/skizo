@@ -1,0 +1,1 @@
+input.skz:2  Chart  needs at least two columns in cols (the x column, then one per series)
