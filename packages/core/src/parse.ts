@@ -12,6 +12,7 @@ const FLAG = /^[a-z][a-z0-9-]*$/;
 /**
  * Line-based parser for the Spec v0.2 line grammar. Builds the AST and reports syntax errors.
  * Prop values stay raw strings (`\,` kept for list splitting); the validator coerces them.
+ * `\,` is a literal comma everywhere: in Labels here, in string and list props in the validator.
  */
 export function parse(source: string): { document: Document; errors: CheckError[]; garbled: Set<number> } {
   const errors: CheckError[] = [];
@@ -92,7 +93,7 @@ function tokenize(rest: string, node: Node, err: (message: string) => void) {
     } else if (rest[i] === '"') {
       const s = string();
       if (s === undefined) return;
-      if (node.label === undefined) node.label = s;
+      if (node.label === undefined) node.label = s.replaceAll("\\,", ",");
       else err(`second bare string "${s}" (an Element has one Label)`);
     } else {
       const m = read(WORD);

@@ -1,7 +1,7 @@
 // Two Screens using every Heading level and Text option.
-Screen "Orders" subtitle="Manage and track customer orders"
+Screen "Orders" subtitle="Manage\, track and refund orders"
   Heading "Recent orders"
-  "Nothing shipped yet."
+  "Nothing shipped\, paid or refunded yet."
     // Comments are ignored at any indent.
   Text "Updated hourly" size=sm muted
   Text "Say \"hi\" to C:\\orders" bold

@@ -86,7 +86,7 @@ function coerce(key: string, value: string, prop: PropSpec, err: (message: strin
     case "list":
       return value.split(/(?<!\\),/).map((item) => item.replaceAll("\\,", ",").trim());
     default:
-      return value;
+      return value.replaceAll("\\,", ",");
   }
 }
 
