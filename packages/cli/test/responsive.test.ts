@@ -62,3 +62,14 @@ test("a Screen has smaller padding on phones, with or without a Sidebar, in both
     { preview: ["min-w-0 flex-1 p-4 md:p-6"], export: ["min-w-0 flex-1 p-4 md:p-6"] },
   ]);
 });
+
+test("on phones the Sidebar column hides and a menu Button shows instead, in both Backends", async () => {
+  const { preview, export: exported } = await classLists(`Screen "App"\n  Sidebar\n    Link "Home"\n  "A"\n`);
+  // The display classes of the Elements that switch at md:: the column, then the menu Button.
+  const switching = (classes: (string | undefined)[]) =>
+    classes
+      .filter((c) => /\bmd:(flex|hidden)\b/.test(c ?? ""))
+      .map((c) => c!.split(" ").filter((k) => ["hidden", "md:flex", "md:hidden"].includes(k)).join(" "));
+  const expected = ["hidden md:flex", "md:hidden"];
+  expect({ preview: switching(preview), export: switching(exported) }).toEqual({ preview: expected, export: expected });
+});

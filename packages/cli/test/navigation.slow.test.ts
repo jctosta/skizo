@@ -29,7 +29,8 @@ Screen "Dashboard"
 async function openPreview(flow = FLOW): Promise<{ page: Page; external: string[] }> {
   const cwd = withFiles({ "flow.skz": flow });
   await runCli(["preview", "flow.skz"], cwd);
-  const context = await browser.newContext({ viewport: { width: 640, height: 480 } });
+  // From md: (768 px) up: narrower, the Sidebar hides behind the menu Button (responsive.slow.test.ts).
+  const context = await browser.newContext({ viewport: { width: 1024, height: 480 } });
   const external: string[] = [];
   await context.route("**/*", (route) => {
     const url = route.request().url();
