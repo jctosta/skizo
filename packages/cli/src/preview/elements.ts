@@ -178,6 +178,8 @@ export const EMITTERS: Record<string, Emit> = {
     ].join("\n");
   },
   List: (node) => [`<ul class="${CLASSES.List.root}">`, ...listItems(node).map((item) => `<li>${esc(item)}</li>`), "</ul>"].join("\n"),
+  Dialog: (node, ctx) => overlay(node, ctx, CLASSES.Dialog, CLASSES.Dialog.content),
+  Sheet: (node, ctx) => overlay(node, ctx, CLASSES.Sheet, cx(CLASSES.Sheet.content, CLASSES.Sheet[node.props.side as "right" | "left"])),
   /** Renders its Tabs too: triggers and panels pair up by position. */
   Tabs: (node, ctx) => {
     const c = CLASSES.Tabs;
@@ -198,6 +200,30 @@ export const EMITTERS: Record<string, Emit> = {
       `</div>`,
     ].join("\n");
   },
+  /** Its trigger is a Button (always size md) and it renders its Items; script.ts's popup handler opens it. */
+  Menu: (node, ctx) => {
+    const b = CLASSES.Button;
+    const c = CLASSES.Menu;
+    ctx.script("popup");
+    const { variant, icon } = node.props as { variant: keyof typeof b.variant; icon?: string };
+    const iconOnly = node.props["icon-only"] === true;
+    const open = node.props.open === true;
+    const label = iconOnly ? `<span class="${b.hiddenLabel}">${esc(node.label!)}</span>` : esc(node.label!);
+    const classes = cx(b.base, b.variant[variant], iconOnly ? b.iconSize.md : b.size.md);
+    const items = node.children.map((item) => {
+      const disabled = item.props.disabled === true;
+      const look = cx(c.item, item.props.destructive === true ? c.destructive : c.default, disabled && c.disabled);
+      return `<div role="menuitem"${attrs({ "aria-disabled": disabled && "true" })} class="${look}">${esc(item.label!)}</div>`;
+    });
+    return [
+      `<div data-popup>`,
+      `<button type="button" aria-haspopup="menu"${attrs({ "aria-expanded": String(open) })} data-popup-trigger class="${classes}">${icon === undefined ? "" : iconSvg(icon)}${label}</button>`,
+      `<div role="menu"${attrs({ "aria-label": node.label })} data-popup-content class="${c.content}"${open ? "" : " hidden"}>`,
+      ...items,
+      `</div>`,
+      `</div>`,
+    ].join("\n");
+  },
   Button: (node, ctx) => {
     const c = CLASSES.Button;
     const { variant, size, icon } = node.props as { variant: keyof typeof c.variant; size: "sm" | "md" | "lg"; icon?: string };
@@ -208,10 +234,13 @@ export const EMITTERS: Record<string, Emit> = {
     const disabled = node.props.disabled === true || loading ? " disabled" : "";
     const classes = cx(c.base, c.variant[variant], (iconOnly ? c.iconSize : c.size)[size]);
     const to = node.props.to as string | undefined;
-    if (to === undefined) return `<button type="button" class="${classes}"${disabled}>${glyph}${label}</button>`;
-    // A link styled as a Button, like the export's <Button asChild><a>.
-    ctx.script("to");
-    return `<a href="${esc(screenHref(to))}" class="${classes}">${glyph}${label}</a>`;
+    if (to !== undefined) {
+      // A link styled as a Button, like the export's <Button asChild><a>.
+      ctx.script("to");
+      return `<a href="${esc(screenHref(to))}" class="${classes}">${glyph}${label}</a>`;
+    }
+    const opens = attrs({ "data-opens": node.props.opens, "aria-haspopup": node.props.opens && "dialog" });
+    return `<button type="button" class="${classes}"${disabled}${opens}>${glyph}${label}</button>`;
   },
   Input: (node) => {
     const { type, placeholder, value, disabled, error } = node.props;
@@ -277,8 +306,37 @@ export const EMITTERS: Record<string, Emit> = {
   },
 };
 
+/**
+ * Dialog and Sheet: a backdrop and a panel, hidden until a Button's opens= shows them, or shown on load with `open`.
+ * The close button, the backdrop and footer Buttons without Behavior carry data-overlay-close (SCRIPTS.overlay).
+ */
+function overlay(node: Node, ctx: Ctx, c: typeof CLASSES.Dialog | typeof CLASSES.Sheet, panel: string) {
+  ctx.script("overlay");
+  const b = CLASSES.Button;
+  const desc = node.props.desc as string | undefined;
+  const title = `overlay-${node.line}`;
+  const footer = node.slots?.footer?.map((n) => {
+    const closes = n.type === "Button" && n.props.opens === undefined && n.props.to === undefined;
+    return closes ? `<div data-overlay-close class="contents">${ctx.render([n])}</div>` : ctx.render([n]);
+  });
+  return lines(
+    `<div${attrs({ "data-overlay": node.props.id ?? "", hidden: node.props.open !== true })}>`,
+    `<div data-overlay-close class="${c.backdrop}"></div>`,
+    `<div role="dialog" aria-modal="true" aria-labelledby="${title}" class="${panel}">`,
+    div(
+      c.header,
+      lines(`<h2 id="${title}" class="${c.title}">${esc(node.label!)}</h2>`, desc !== undefined && `<p class="${c.desc}">${esc(desc)}</p>`),
+    ),
+    node.children.length > 0 && div(c.body, ctx.render(node.children)),
+    footer && div(c.footer, lines(...footer)),
+    `<button type="button" data-overlay-close class="${cx(b.base, b.variant.ghost, b.iconSize.sm, c.close)}">${iconSvg("x")}<span class="${b.hiddenLabel}">Close</span></button>`,
+    "</div>",
+    "</div>",
+  );
+}
+
 /** Joins the present lines. */
-const lines = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
+const lines =(...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
 
 /** A `<div>` holding `body`, which may be empty. */
 const div = (classes: string, body: string) => lines(`<div class="${classes}">`, body, "</div>");

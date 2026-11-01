@@ -1,0 +1,2 @@
+input.skz:3  Dialog  only goes directly inside Screen
+input.skz:5  Sheet  only goes directly inside Screen

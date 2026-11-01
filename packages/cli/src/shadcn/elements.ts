@@ -12,6 +12,8 @@ export type Ctx = {
   path: string;
   /** `base`, or `base-2`, `base-3`... when the Screen's file already uses it: DOM ids for form controls. */
   id(base: string): string;
+  /** Adds a line to the top of the Screen's component, before `return`: state hooks. */
+  hook(line: string): void;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -68,6 +70,58 @@ export const icon = (ctx: Ctx, name: string, className?: string) => {
 
 /** Where `to=` goes: the Screen's route. A plain path, so swapping in a router's link component is left to the user. */
 const screenHref = (id: string) => `/${id}`;
+
+/**
+ * The useState pair behind opens=, named after the Overlay's id: `new-order` → ["newOrderOpen", "setNewOrderOpen"].
+ * ponytail: ids that differ only in punctuation (new-order, new_order) collide; dedupe per Screen if it bites.
+ */
+export const openState = (id: string) => {
+  const words = id.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  const name = /^[A-Za-z]/.test(words[0] ?? "") ? words.map((w) => w[0]!.toUpperCase() + w.slice(1)).join("") : `Overlay${words.join("")}`;
+  return [`${name[0]!.toLowerCase()}${name.slice(1)}Open`, `set${name}Open`] as const;
+};
+
+/** Dialog and Sheet: Content > Header(Title, Description) + body + Footer, with useState when an id lets opens= show it. */
+function overlay(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string) {
+  /** Imports a part and returns its name. */
+  const ui = (part: string) => (ctx.use(`@/components/ui/${kind.toLowerCase()}`, `${kind}${part}`), `${kind}${part}`);
+  const id = node.props.id as string | undefined;
+  const desc = node.props.desc as string | undefined;
+  let state = jsxAttrs({ defaultOpen: node.props.open === true });
+  if (id !== undefined) {
+    const [value, set] = openState(id);
+    ctx.use("react", "useState");
+    ctx.hook(`const [${value}, ${set}] = useState(${node.props.open === true})`);
+    state = ` open={${value}} onOpenChange={${set}}`;
+  }
+  // A footer Button without Behavior closes the Overlay, as in the Preview.
+  const footer = node.slots?.footer?.map((n) =>
+    n.type === "Button" && n.props.opens === undefined && n.props.to === undefined
+      ? wrap(`<${ui("Close")} asChild>`, ctx.render([n]), `</${kind}Close>`)
+      : ctx.render([n]),
+  );
+  ctx.use(`@/components/ui/${kind.toLowerCase()}`, kind);
+  return wrap(
+    `<${kind}${state}>`,
+    wrap(
+      `<${ui("Content")}${content}>`,
+      lines(
+        wrap(
+          `<${ui("Header")}>`,
+          lines(
+            `<${ui("Title")}>${text(node.label!)}</${kind}Title>`,
+            desc !== undefined && `<${ui("Description")}>${text(desc)}</${kind}Description>`,
+          ),
+          `</${kind}Header>`,
+        ),
+        node.children.length > 0 && wrap(`<div className="${CLASSES[kind].body}">`, ctx.render(node.children), "</div>"),
+        footer && wrap(`<${ui("Footer")}>`, lines(...footer), `</${kind}Footer>`),
+      ),
+      `</${kind}Content>`,
+    ),
+    `</${kind}>`,
+  );
+}
 
 /** Skizo `size` → shadcn Button `size`, for text Buttons and for icon-only ones. md is shadcn's default. */
 const BUTTON_SIZE = { sm: "sm", md: undefined, lg: "lg" } as const;
@@ -217,6 +271,8 @@ export const EMITTERS: Record<string, Emit> = {
     );
   },
   List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
+  Dialog: (node, ctx) => overlay(node, ctx, "Dialog", ""),
+  Sheet: (node, ctx) => overlay(node, ctx, "Sheet", node.props.side === "right" ? "" : ` side="${node.props.side}"`),
   /** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
   Tabs: (node, ctx) => {
     ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");
@@ -237,6 +293,23 @@ export const EMITTERS: Record<string, Emit> = {
       "</Tabs>",
     );
   },
+  /** Its trigger is the Button emitter's output (size md, no Behavior) under asChild; it renders its Items. */
+  Menu: (node, ctx) => {
+    ctx.use("@/components/ui/dropdown-menu", "DropdownMenu", "DropdownMenuContent", "DropdownMenuItem", "DropdownMenuTrigger");
+    const trigger = EMITTERS.Button!({ ...node, props: { ...node.props, size: "md" } }, ctx);
+    const items = node.children.map((item) => {
+      const a = jsxAttrs({ variant: item.props.destructive === true && "destructive", disabled: item.props.disabled });
+      return `<DropdownMenuItem${a}>${text(item.label!)}</DropdownMenuItem>`;
+    });
+    return wrap(
+      `<DropdownMenu${jsxAttrs({ defaultOpen: node.props.open })}>`,
+      lines(
+        wrap("<DropdownMenuTrigger asChild>", trigger, "</DropdownMenuTrigger>"),
+        wrap("<DropdownMenuContent>", lines(...items), "</DropdownMenuContent>"),
+      ),
+      "</DropdownMenu>",
+    );
+  },
   Button: (node, ctx) => {
     const c = CLASSES.Button;
     const { variant, size } = node.props as { variant: string; size: "sm" | "md" | "lg" };
@@ -245,7 +318,8 @@ export const EMITTERS: Record<string, Emit> = {
     const shadcnSize = (iconOnly ? ICON_BUTTON_SIZE : BUTTON_SIZE)[size];
     const disabled = node.props.disabled === true || loading;
     const to = node.props.to as string | undefined;
-    const open = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled, asChild: to !== undefined })}>`;
+    const opens = node.props.opens === undefined ? "" : ` onClick={() => ${openState(node.props.opens as string)[1]}(true)}`;
+    const open = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled, asChild: to !== undefined })}${opens}>`;
     ctx.use("@/components/ui/button", "Button");
     const glyph = loading ? icon(ctx, "loader-circle", c.spinner) : node.props.icon !== undefined && icon(ctx, node.props.icon as string);
     const label = iconOnly ? `<span className="${c.hiddenLabel}">${text(node.label!)}</span>` : text(node.label!);

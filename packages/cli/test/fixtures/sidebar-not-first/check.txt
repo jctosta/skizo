@@ -1,2 +1,2 @@
 input.skz:3  Sidebar  must be the first child of its Screen
-input.skz:9  Sidebar  must be the first child of its Screen
+input.skz:9  Sidebar  only goes directly inside Screen

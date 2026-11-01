@@ -1,0 +1,3 @@
+input.skz:3  Button  opens=new-ordr is an unknown id — did you mean new-order? (expected: a Dialog or Sheet on this Screen)
+input.skz:4  Button  opens=edit-order is the Sheet on line 9, on another Screen (expected: a Dialog or Sheet on this Screen)
+input.skz:5  Button  opens=summary is the Card on line 6 (expected: a Dialog or Sheet on this Screen)

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orders</title>
+<style>/* preview.css */</style>
+</head>
+<body>
+<section data-screen="orders" class="min-h-screen p-6">
+<header class="mb-6 grid gap-1">
+<h1 class="text-2xl font-semibold tracking-tight">Orders</h1>
+</header>
+<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
+<div class="grid auto-rows-min items-start gap-1 px-6 grid-cols-[1fr_auto]">
+<div class="text-base leading-normal font-medium">Pending</div>
+<div class="col-start-2 row-span-2 row-start-1 self-start justify-self-end flex items-center gap-2">
+<div data-popup>
+<button type="button" aria-haspopup="menu" aria-expanded="false" data-popup-trigger class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-9"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span class="sr-only">Pending actions</span></button>
+<div role="menu" aria-label="Pending actions" data-popup-content class="absolute z-50 mt-1 w-max min-w-32 rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10" hidden>
+<div role="menuitem" class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none hover:bg-accent hover:text-accent-foreground">Send reminders</div>
+<div role="menuitem" class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none text-destructive hover:bg-destructive/10">Cancel all</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex gap-4">
+<div data-popup>
+<button type="button" aria-haspopup="menu" aria-expanded="true" data-popup-trigger class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 border-border bg-background shadow-xs hover:bg-muted hover:text-foreground h-9 gap-1.5 px-2.5"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg>Export</button>
+<div role="menu" aria-label="Export" data-popup-content class="absolute z-50 mt-1 w-max min-w-32 rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+<div role="menuitem" class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none hover:bg-accent hover:text-accent-foreground">CSV</div>
+<div role="menuitem" aria-disabled="true" class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none hover:bg-accent hover:text-accent-foreground pointer-events-none opacity-50">PDF</div>
+</div>
+</div>
+<div data-popup>
+<button type="button" aria-haspopup="menu" aria-expanded="false" data-popup-trigger class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/80 h-9 gap-1.5 px-2.5">More</button>
+<div role="menu" aria-label="More" data-popup-content class="absolute z-50 mt-1 w-max min-w-32 rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10" hidden>
+<div role="menuitem" class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none hover:bg-accent hover:text-accent-foreground">Archive</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<script>
+// Popups (Select, Menu): a [data-popup] holds a [data-popup-trigger] and a [data-popup-content].
+// A click on a trigger toggles its popup; any other click closes every open popup.
+// Picking a [role="option"] in a popup also shows it on the trigger.
+// An open popup that would cross the window's right edge shifts left to fit, like shadcn's.
+const fitPopup = (content) => {
+  content.style.translate = "";
+  const overflow = content.getBoundingClientRect().right + 8 - document.documentElement.clientWidth;
+  if (overflow > 0) content.style.translate = -overflow + "px";
+};
+document.querySelectorAll("[data-popup-content]:not([hidden])").forEach(fitPopup);
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const popup = target && target.closest("[data-popup]");
+  const toggled = popup && target.closest("[data-popup-trigger]") ? popup : null;
+  const option = popup && target.closest('[role="option"]');
+  if (option) {
+    const shown = popup.querySelector("[data-popup-trigger] > span");
+    shown.textContent = option.textContent;
+    shown.removeAttribute("class");
+    for (const o of popup.querySelectorAll('[role="option"]')) o.setAttribute("aria-selected", String(o === option));
+  }
+  for (const p of document.querySelectorAll("[data-popup]")) {
+    const content = p.querySelector("[data-popup-content]");
+    const open = p === toggled && content.hidden;
+    content.hidden = !open;
+    if (open) fitPopup(content);
+    p.querySelector("[data-popup-trigger]").setAttribute("aria-expanded", String(open));
+  }
+});
+</script>
+</body>
+</html>

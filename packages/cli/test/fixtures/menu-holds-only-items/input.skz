@@ -1,0 +1,4 @@
+Screen "Orders"
+  Menu "Row actions"
+    Item "Edit"
+    Button "Delete"

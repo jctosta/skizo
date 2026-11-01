@@ -14,9 +14,16 @@ document.addEventListener("click", (event) => {
     panels[i].hidden = t !== tab;
   });
 });`,
-  popup: `// Popups (Select): a [data-popup] holds a [data-popup-trigger] and a [data-popup-content].
+  popup: `// Popups (Select, Menu): a [data-popup] holds a [data-popup-trigger] and a [data-popup-content].
 // A click on a trigger toggles its popup; any other click closes every open popup.
 // Picking a [role="option"] in a popup also shows it on the trigger.
+// An open popup that would cross the window's right edge shifts left to fit, like shadcn's.
+const fitPopup = (content) => {
+  content.style.translate = "";
+  const overflow = content.getBoundingClientRect().right + 8 - document.documentElement.clientWidth;
+  if (overflow > 0) content.style.translate = -overflow + "px";
+};
+document.querySelectorAll("[data-popup-content]:not([hidden])").forEach(fitPopup);
 document.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : null;
   const popup = target && target.closest("[data-popup]");
@@ -32,8 +39,21 @@ document.addEventListener("click", (event) => {
     const content = p.querySelector("[data-popup-content]");
     const open = p === toggled && content.hidden;
     content.hidden = !open;
+    if (open) fitPopup(content);
     p.querySelector("[data-popup-trigger]").setAttribute("aria-expanded", String(open));
   }
+});`,
+  overlay: `// Overlays (Dialog, Sheet): a [data-opens] Button shows the [data-overlay] with that id;
+// a click on a [data-overlay-close] (close button, backdrop, footer Button without Behavior) hides its overlay.
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const opener = target && target.closest("[data-opens]");
+  if (opener) {
+    for (const o of document.querySelectorAll("[data-overlay]")) if (o.dataset.overlay === opener.dataset.opens) o.hidden = false;
+    return;
+  }
+  const closer = target && target.closest("[data-overlay-close]");
+  if (closer) closer.closest("[data-overlay]").hidden = true;
 });`,
   to: `// Screens (to=): one shows at a time. A to= is a link to #<screen id>; the hash picks the Screen,
 // so the back button works and a preview --watch reload stays on it. No hash: the first Screen.
