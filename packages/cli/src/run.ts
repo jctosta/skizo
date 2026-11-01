@@ -6,6 +6,7 @@ import { readAsset } from "./assets";
 import { iconNames } from "./icons";
 import { renderPreview } from "./preview/page";
 import { watchPreview } from "./preview/watch";
+import { ROUTERS, type Router } from "./shadcn/elements";
 import { exportShadcn } from "./shadcn/export";
 
 export type Io = { stdout(s: string): void; stderr(s: string): void; cwd: string; signal?: AbortSignal };
@@ -58,7 +59,7 @@ const COMMANDS: Record<string, Command> = {
     },
   },
   export: {
-    options: { target: { type: "string" }, out: { type: "string" } },
+    options: { target: { type: "string" }, out: { type: "string" }, router: { type: "string" } },
     run(file, flags, io) {
       const target = flags.target as string | undefined;
       const exportTarget = TARGETS.get(target ?? "");
@@ -67,9 +68,16 @@ const COMMANDS: Record<string, Command> = {
         io.stderr(`skizo export: ${problem} (expected: ${[...TARGETS.keys()].join(", ")})\n`);
         return 2;
       }
+      // --router only works with --target shadcn, the only target so far: the check above covers that.
+      const router = flags.router as string | undefined;
+      if (router !== undefined && !Object.hasOwn(ROUTERS, router)) {
+        const expected = Object.keys(ROUTERS);
+        io.stderr(`skizo export: unknown router "${router}"${didYouMean(router, expected)} (expected: ${expected.join(", ")})\n`);
+        return 2;
+      }
       const document = loadChecked(file, io);
       if (typeof document === "number") return document;
-      const files = exportTarget(document);
+      const files = exportTarget(document, { router: router as Router | undefined });
       const unsafe = Object.keys(files).find((name) => basename(name) !== name);
       if (unsafe) {
         io.stderr(`skizo export: "${unsafe}" is not a plain file name (check the Screen id)\n`);
@@ -92,6 +100,7 @@ const USAGE = `Usage: skizo <command>   (alias: skz)
   skizo check   <file.skz> [--json]                    report every error in a file
   skizo preview <file.skz> [--watch]                   write <file>.html; --watch serves it with live reload
   skizo export  <file.skz> --target shadcn [--out dir] write one React file per Screen
+                [--router next|react-router]           write links with the Link of the router
 
 Agents: run \`skizo guide\` before writing Skizo.
 `;

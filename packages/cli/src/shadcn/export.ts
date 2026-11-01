@@ -1,18 +1,26 @@
 import type { Document, Node } from "@skizo/core";
 import { emitterFor, lines, pascalCase } from "../backend";
 import { nodePaths } from "../placeholder";
-import { EMITTERS, wrap, type Ctx } from "./elements";
+import { EMITTERS, wrap, type Ctx, type Router } from "./elements";
 
 /** The shadcn Export target: file name → TSX, one file per Screen, named after its id. */
-export function exportShadcn(document: Document): Record<string, string> {
+export function exportShadcn(document: Document, { router }: { router?: Router } = {}): Record<string, string> {
   const paths = nodePaths(document);
-  return Object.fromEntries(document.screens.map((screen) => [`${screen.props.id}.tsx`, screenFile(screen, paths)]));
+  return Object.fromEntries(document.screens.map((screen) => [`${screen.props.id}.tsx`, screenFile(screen, paths, router)]));
 }
 
 /** `order-details` → `OrderDetailsScreen`; `2026-report` → `Screen2026ReportScreen` (no identifier starts with a digit). */
 const componentName = (id: string) => `${pascalCase(id, "Screen")}Screen`;
 
-function screenFile(screen: Node, paths: Map<Node, string>): string {
+const DEFAULT = "default as ";
+/** What an import statement names: `{ A, B }`; a `default as X` name comes first and bare: `X, { A }`. */
+const importClause = (names: string[]) => {
+  const defaultName = names.find((name) => name.startsWith(DEFAULT));
+  const named = names.filter((name) => name !== defaultName);
+  return [defaultName?.slice(DEFAULT.length), named.length > 0 && `{ ${named.join(", ")} }`].filter(Boolean).join(", ");
+};
+
+function screenFile(screen: Node, paths: Map<Node, string>, router: Router | undefined): string {
   const imports = new Map<string, Set<string>>();
   const use: Ctx["use"] = (from, ...names) => {
     const set = imports.get(from) ?? new Set();
@@ -33,10 +41,11 @@ function screenFile(screen: Node, paths: Map<Node, string>): string {
     use,
     id,
     hook,
+    router,
     render: (nodes) => nodes.map((n) => emitterFor(EMITTERS, n.type, "shadcn export")(n, ctx(n))).join("\n"),
   });
   const jsx = ctx(screen).render([screen]);
-  const head = [...imports.keys()].sort().map((from) => `import { ${[...imports.get(from)!].sort().join(", ")} } from "${from}"\n`);
+  const head = [...imports.keys()].sort().map((from) => `import ${importClause([...imports.get(from)!].sort())} from "${from}"\n`);
   const body = wrap(`export function ${componentName(screen.props.id as string)}() {`, lines(...hooks, wrap("return (", jsx, ")")), "}");
   return `${head.join("")}${head.length ? "\n" : ""}${body}\n`;
 }
