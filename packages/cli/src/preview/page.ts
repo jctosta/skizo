@@ -1,5 +1,6 @@
 import type { Document, Node } from "@skizo/core";
 import { readAsset } from "../assets";
+import { emitterFor } from "../backend";
 import { nodePaths } from "../placeholder";
 import { EMITTERS, esc, type Ctx } from "./elements";
 import { SCRIPTS, type Script } from "./script";
@@ -34,11 +35,5 @@ export function renderPreview(document: Document): string {
 }
 
 function render(nodes: Node[], ctx: (node: Node) => Ctx): string {
-  return nodes
-    .map((node) => {
-      const emit = EMITTERS[node.type];
-      if (!emit) throw new Error(`Preview has no emitter for Element type ${node.type}`);
-      return emit(node, ctx(node));
-    })
-    .join("\n");
+  return nodes.map((node) => emitterFor(EMITTERS, node.type, "Preview")(node, ctx(node))).join("\n");
 }

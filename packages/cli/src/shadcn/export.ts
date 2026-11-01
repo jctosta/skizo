@@ -1,6 +1,7 @@
 import type { Document, Node } from "@skizo/core";
+import { emitterFor, lines, pascalCase } from "../backend";
 import { nodePaths } from "../placeholder";
-import { EMITTERS, lines, pascalCase, wrap, type Ctx } from "./elements";
+import { EMITTERS, wrap, type Ctx } from "./elements";
 
 /** The shadcn Export target: file name → TSX, one file per Screen, named after its id. */
 export function exportShadcn(document: Document): Record<string, string> {
@@ -32,16 +33,10 @@ function screenFile(screen: Node, paths: Map<Node, string>): string {
     use,
     id,
     hook,
-    render: (nodes) => nodes.map((n) => emit(n, ctx(n))).join("\n"),
+    render: (nodes) => nodes.map((n) => emitterFor(EMITTERS, n.type, "shadcn export")(n, ctx(n))).join("\n"),
   });
-  const jsx = emit(screen, ctx(screen));
+  const jsx = ctx(screen).render([screen]);
   const head = [...imports.keys()].sort().map((from) => `import { ${[...imports.get(from)!].sort().join(", ")} } from "${from}"\n`);
   const body = wrap(`export function ${componentName(screen.props.id as string)}() {`, lines(...hooks, wrap("return (", jsx, ")")), "}");
   return `${head.join("")}${head.length ? "\n" : ""}${body}\n`;
-}
-
-function emit(node: Node, ctx: Ctx): string {
-  const emitter = EMITTERS[node.type];
-  if (!emitter) throw new Error(`shadcn export has no emitter for Element type ${node.type}`);
-  return emitter(node, ctx);
 }

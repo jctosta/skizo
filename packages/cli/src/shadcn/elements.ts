@@ -1,4 +1,5 @@
 import { slugify, type Node } from "@skizo/core";
+import { hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
 import { initials, listItems, lorem, tableRows } from "../placeholder";
@@ -23,20 +24,6 @@ export const text = (s: string) => (/[{}<>&]/.test(s) ? `{${JSON.stringify(s)}}`
 /** A string as a JSX attribute value: quoted, or a string expression when it holds `"` or `&`. */
 export const attr = (s: string) => (/["&]/.test(s) ? `{${JSON.stringify(s)}}` : `"${s}"`);
 
-/**
- * A JS identifier in PascalCase from an id: `order-details` → `OrderDetails`. One that would start with a digit
- * (or be empty) gets `prefix` first: `2026-report` → `Screen2026Report` with prefix `Screen`.
- */
-export const pascalCase = (id: string, prefix = "") => {
-  const name = id
-    .split(/[^A-Za-z0-9]+/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("");
-  return /^[A-Za-z]/.test(name) ? name : `${prefix}${name}`;
-};
-
-/** Joins the present lines. */
-export const lines = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
 
 /** `open`, then `body` indented two spaces, then `close`; one line when `body` is empty. */
 export const wrap = (open: string, body: string, close: string) =>
@@ -88,8 +75,7 @@ const screenHref = (id: string) => `/${id}`;
  * ponytail: ids that differ only in punctuation (new-order, new_order) collide; dedupe per Screen if it bites.
  */
 export const openState = (id: string) => {
-  const words = id.split(/[^A-Za-z0-9]+/).filter(Boolean);
-  const name = /^[A-Za-z]/.test(words[0] ?? "") ? words.map((w) => w[0]!.toUpperCase() + w.slice(1)).join("") : `Overlay${words.join("")}`;
+  const name = pascalCase(id, "Overlay");
   return [`${name[0]!.toLowerCase()}${name.slice(1)}Open`, `set${name}Open`] as const;
 };
 
@@ -108,7 +94,7 @@ function dialog(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string)
   }
   // A footer Button without Behavior closes the Dialog or Sheet, as in the Preview.
   const footer = node.slots?.footer?.map((n) =>
-    n.type === "Button" && n.props.opens === undefined && n.props.to === undefined
+    n.type === "Button" && !hasBehavior(n)
       ? wrap(`<${ui("Close")} asChild>`, ctx.render([n]), `</${kind}Close>`)
       : ctx.render([n]),
   );
@@ -150,7 +136,7 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
-    const sidebar = node.children[0]?.type === "Sidebar" ? node.children[0] : undefined;
+    const { sidebar, body } = screenParts(node);
     const header = lines(
       `<h1 className="${c.title}">${text(node.label!)}</h1>`,
       subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
@@ -160,7 +146,7 @@ export const EMITTERS: Record<string, Emit> = {
       `<main className="${sidebar ? c.main : c.root}">`,
       lines(
         wrap(`<header className="${cx(c.header, actions && c.headerWithActions)}">`, header, "</header>"),
-        wrap(`<div className="${c.body}">`, ctx.render(sidebar ? node.children.slice(1) : node.children), "</div>"),
+        wrap(`<div className="${c.body}">`, ctx.render(body), "</div>"),
       ),
       "</main>",
     );
@@ -192,7 +178,7 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Stat;
     const trend = node.props.trend as "none" | "up" | "down";
     const title = node.props.title as string | undefined;
-    const hint = [{ none: "", up: "↑", down: "↓" }[trend], node.props.hint].filter(Boolean).join(" ");
+    const hint = statHint(node);
     return wrap(
       `<div className="${c.root}">`,
       lines(

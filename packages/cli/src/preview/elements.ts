@@ -1,4 +1,5 @@
 import type { Node } from "@skizo/core";
+import { hasBehavior, lines, screenParts, statHint } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { initials, listItems, lorem, tableRows } from "../placeholder";
 import { iconSvg } from "../icons";
@@ -55,14 +56,14 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
-    const sidebar = node.children[0]?.type === "Sidebar" ? node.children[0] : undefined;
+    const { sidebar, body } = screenParts(node);
     const main = lines(
       `<header class="${cx(c.header, actions && c.headerWithActions)}">`,
       `<h1 class="${c.title}">${esc(node.label!)}</h1>`,
       subtitle !== undefined && `<p class="${c.subtitle}">${esc(subtitle)}</p>`,
       actions && div(c.actions, ctx.render(actions)),
       `</header>`,
-      div(c.body, ctx.render(sidebar ? node.children.slice(1) : node.children)),
+      div(c.body, ctx.render(body)),
     );
     return lines(
       `<section data-screen="${esc(node.props.id as string)}" class="${sidebar ? c.shell : c.root}">`,
@@ -94,16 +95,14 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Stat;
     const trend = node.props.trend as "none" | "up" | "down";
     const title = node.props.title as string | undefined;
-    const hint = [{ none: "", up: "↑", down: "↓" }[trend], node.props.hint].filter(Boolean).join(" ");
-    return [
+    const hint = statHint(node);
+    return lines(
       `<div class="${c.root}">`,
       title !== undefined && `<p class="${c.title}">${esc(title)}</p>`,
       `<div class="${c.value}">${esc(node.label!)}</div>`,
       hint && `<p class="${c[trend]}">${esc(hint)}</p>`,
       `</div>`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    );
   },
   Badge: (node) => {
     const c = CLASSES.Badge;
@@ -207,16 +206,13 @@ export const EMITTERS: Record<string, Emit> = {
       `</div>`,
     ].join("\n");
   },
-  /** Its trigger is a Button (always size md) and it renders its Items; SCRIPTS.dropdown opens it. */
+  /** Its trigger is the Button markup (size md, no Behavior) and it renders its Items; SCRIPTS.dropdown opens it. */
   Menu: (node, ctx) => {
-    const b = CLASSES.Button;
     const c = CLASSES.Menu;
     ctx.script("dropdown");
-    const { variant, icon } = node.props as { variant: keyof typeof b.variant; icon?: string };
-    const iconOnly = node.props["icon-only"] === true;
     const open = node.props.open === true;
-    const label = iconOnly ? `<span class="${b.hiddenLabel}">${esc(node.label!)}</span>` : esc(node.label!);
-    const classes = cx(b.base, b.variant[variant], iconOnly ? b.iconSize.md : b.size.md);
+    const dropdown = attrs({ "aria-haspopup": "menu", "aria-expanded": String(open), "data-dropdown-trigger": true });
+    const trigger = button({ ...node, props: { ...node.props, size: "md" } }, ctx, dropdown);
     const items = node.children.map((item) => {
       const disabled = item.props.disabled === true;
       const look = cx(c.item, item.props.destructive === true ? c.destructive : c.default, disabled && c.disabled);
@@ -224,32 +220,14 @@ export const EMITTERS: Record<string, Emit> = {
     });
     return [
       `<div data-dropdown>`,
-      `<button type="button" aria-haspopup="menu"${attrs({ "aria-expanded": String(open) })} data-dropdown-trigger class="${classes}">${icon === undefined ? "" : iconSvg(icon)}${label}</button>`,
+      trigger,
       `<div role="menu"${attrs({ "aria-label": node.label })} data-dropdown-content class="${c.content}"${open ? "" : " hidden"}>`,
       ...items,
       `</div>`,
       `</div>`,
     ].join("\n");
   },
-  Button: (node, ctx) => {
-    const c = CLASSES.Button;
-    const { variant, size, icon } = node.props as { variant: keyof typeof c.variant; size: "sm" | "md" | "lg"; icon?: string };
-    const iconOnly = node.props["icon-only"] === true;
-    const loading = node.props.loading === true;
-    const glyph = loading ? iconSvg("loader-circle", cx("size-4", c.spinner)) : icon !== undefined ? iconSvg(icon) : "";
-    const label = iconOnly ? `<span class="${c.hiddenLabel}">${esc(node.label!)}</span>` : esc(node.label!);
-    const disabled = node.props.disabled === true || loading;
-    const classes = cx(c.base, c.variant[variant], (iconOnly ? c.iconSize : c.size)[size]);
-    // Disabled wins over to=: a link cannot be disabled, so it renders as a disabled button.
-    const to = disabled ? undefined : (node.props.to as string | undefined);
-    if (to !== undefined) {
-      // A link styled as a Button, like the export's <Button asChild><a>.
-      ctx.script("to");
-      return `<a href="${esc(screenHref(to))}" class="${classes}">${glyph}${label}</a>`;
-    }
-    const opens = attrs({ "data-opens": node.props.opens, "aria-haspopup": node.props.opens && "dialog" });
-    return `<button type="button" class="${classes}"${attrs({ disabled })}${opens}>${glyph}${label}</button>`;
-  },
+  Button: (node, ctx) => button(node, ctx),
   Input: (node) => {
     const { type, placeholder, value, disabled, error } = node.props;
     const a = attrs({ id: fieldId(node), type, placeholder, value, disabled, "aria-invalid": error !== undefined && "true" });
@@ -324,8 +302,7 @@ function dialog(node: Node, ctx: Ctx, c: typeof CLASSES.Dialog | typeof CLASSES.
   const desc = node.props.desc as string | undefined;
   const title = `dialog-${node.line}`;
   const footer = node.slots?.footer?.map((n) => {
-    const closes = n.type === "Button" && n.props.opens === undefined && n.props.to === undefined;
-    return closes ? `<div data-dialog-close class="contents">${ctx.render([n])}</div>` : ctx.render([n]);
+    return n.type === "Button" && !hasBehavior(n) ? `<div data-dialog-close class="contents">${ctx.render([n])}</div>` : ctx.render([n]);
   });
   return lines(
     `<div${attrs({ "data-dialog": node.props.id ?? "", hidden: node.props.open !== true })}>`,
@@ -343,8 +320,26 @@ function dialog(node: Node, ctx: Ctx, c: typeof CLASSES.Dialog | typeof CLASSES.
   );
 }
 
-/** Joins the present lines. */
-const lines =(...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
+/** A Button: a <button>, or a link styled as one with to=. `trigger` adds attributes to the <button>, for Menu's. */
+function button(node: Node, ctx: Ctx, trigger = "") {
+  const c = CLASSES.Button;
+  const { variant, size, icon } = node.props as { variant: keyof typeof c.variant; size: "sm" | "md" | "lg"; icon?: string };
+  const iconOnly = node.props["icon-only"] === true;
+  const loading = node.props.loading === true;
+  const glyph = loading ? iconSvg("loader-circle", cx("size-4", c.spinner)) : icon !== undefined ? iconSvg(icon) : "";
+  const label = iconOnly ? `<span class="${c.hiddenLabel}">${esc(node.label!)}</span>` : esc(node.label!);
+  const disabled = node.props.disabled === true || loading;
+  const classes = cx(c.base, c.variant[variant], (iconOnly ? c.iconSize : c.size)[size]);
+  // Disabled wins over to=: a link cannot be disabled, so it renders as a disabled button.
+  const to = disabled ? undefined : (node.props.to as string | undefined);
+  if (to !== undefined) {
+    // A link styled as a Button, like the export's <Button asChild><a>.
+    ctx.script("to");
+    return `<a href="${esc(screenHref(to))}" class="${classes}">${glyph}${label}</a>`;
+  }
+  const opens = attrs({ "data-opens": node.props.opens, "aria-haspopup": node.props.opens && "dialog" });
+  return `<button type="button"${trigger} class="${classes}"${attrs({ disabled })}${opens}>${glyph}${label}</button>`;
+}
 
 /** A `<div>` holding `body`, which may be empty. */
 const div = (classes: string, body: string) => lines(`<div class="${classes}">`, body, "</div>");

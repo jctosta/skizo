@@ -1,4 +1,5 @@
 import { readAsset } from "./assets";
+import { pascalCase } from "./backend";
 
 /**
  * Lucide icons, from assets/icons.json (built from lucide-static by scripts/build-icons.mjs).
@@ -19,8 +20,4 @@ export const iconSvg = (name: string, className = "size-4") =>
   `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${className}" aria-hidden="true">${load().icons[canonical(name)]}</svg>`;
 
 /** The lucide-react component for an icon: `home` → `HouseIcon`. Canonical names are the stable exports. */
-export const iconComponent = (name: string) =>
-  `${canonical(name)
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("")}Icon`;
+export const iconComponent = (name: string) => `${pascalCase(canonical(name))}Icon`;
