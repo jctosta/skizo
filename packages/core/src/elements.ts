@@ -17,6 +17,11 @@ export type ElementSpec = {
   /** Element types this one may sit directly under; omitted for anywhere. */
   parents?: readonly string[];
   slots?: readonly ("actions" | "footer")[];
+  /**
+   * Props that give the Element its content instead of the Label (Text lorem=N).
+   * One content source only: the Label or one of these. A required Label is satisfied by any of them.
+   */
+  content?: readonly string[];
 };
 
 const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
@@ -29,5 +34,9 @@ const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
 export const ELEMENTS: Record<string, ElementSpec> = {
   Screen: { label: "required", props: { id: { kind: "string" }, subtitle: { kind: "string" } }, children: "any" },
   Heading: { label: "required", props: { level: { kind: "enum", values: ["2", "1", "3", "4"] } } },
-  Text: { label: "required", props: { size: sizes, muted: { kind: "flag" }, bold: { kind: "flag" } } },
+  Text: {
+    label: "required",
+    props: { size: sizes, muted: { kind: "flag" }, bold: { kind: "flag" }, lorem: { kind: "number", min: 1 } },
+    content: ["lorem"],
+  },
 };

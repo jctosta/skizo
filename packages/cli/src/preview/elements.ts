@@ -1,8 +1,13 @@
 import type { Node } from "@skizo/core";
 import { CLASSES, cx } from "../classes";
+import { lorem } from "../placeholder";
 
-/** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
-export type Ctx = { render(nodes: Node[]): string };
+/** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
+export type Ctx = {
+  render(nodes: Node[]): string;
+  /** The node's path: the seed for its placeholder content (see placeholder.ts). */
+  path(node: Node): string;
+};
 export type Emit = (node: Node, ctx: Ctx) => string;
 
 /** HTML-escapes text and attribute values. */
@@ -35,9 +40,9 @@ export const EMITTERS: Record<string, Emit> = {
     const level = node.props.level as keyof typeof CLASSES.Heading;
     return `<h${level} class="${CLASSES.Heading[level]}">${esc(node.label!)}</h${level}>`;
   },
-  Text: (node) => {
+  Text: (node, ctx) => {
     const c = CLASSES.Text;
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
-    return `<p class="${classes}">${esc(node.label!)}</p>`;
+    return `<p class="${classes}">${esc(node.label ?? lorem(ctx.path(node), node.props.lorem as number))}</p>`;
   },
 };

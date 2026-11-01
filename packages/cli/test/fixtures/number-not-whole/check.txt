@@ -1,0 +1,1 @@
+input.skz:2  Text  lorem=many is not a whole number

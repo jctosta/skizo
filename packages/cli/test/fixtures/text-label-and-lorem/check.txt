@@ -1,0 +1,1 @@
+input.skz:2  Text  has more than one content source (Label and lorem); keep one

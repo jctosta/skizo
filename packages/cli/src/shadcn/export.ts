@@ -1,4 +1,5 @@
 import type { Document, Node } from "@skizo/core";
+import { nodePaths } from "../placeholder";
 import { EMITTERS, wrap, type Ctx } from "./elements";
 
 /** The shadcn Export target: file name → TSX, one file per Screen, named after its id. */
@@ -15,8 +16,10 @@ const componentName = (id: string) =>
 
 function screenFile(screen: Node): string {
   const imports = new Map<string, Set<string>>();
+  const paths = nodePaths([screen]);
   const ctx: Ctx = {
     render: (nodes) => nodes.map((node) => emit(node, ctx)).join("\n"),
+    path: (node) => paths.get(node)!,
     use(from, ...names) {
       const set = imports.get(from) ?? new Set();
       for (const name of names) set.add(name);

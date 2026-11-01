@@ -1,9 +1,12 @@
 import type { Document, Node } from "@skizo/core";
 import { readAsset } from "../assets";
+import { nodePaths } from "../placeholder";
 import { EMITTERS, esc, type Ctx } from "./elements";
 
 /** The Preview: one self-contained HTML page holding every Screen. No network: CSS is inlined. */
 export function renderPreview(document: Document): string {
+  const paths = nodePaths(document.screens);
+  const ctx: Ctx = { render: (nodes) => render(nodes, ctx), path: (node) => paths.get(node)! };
   return [
     "<!doctype html>",
     '<html lang="en">',
@@ -14,16 +17,14 @@ export function renderPreview(document: Document): string {
     `<style>${readAsset("assets/preview.css")}</style>`,
     "</head>",
     "<body>",
-    render(document.screens),
+    render(document.screens, ctx),
     "</body>",
     "</html>",
     "",
   ].join("\n");
 }
 
-const ctx: Ctx = { render };
-
-function render(nodes: Node[]): string {
+function render(nodes: Node[], ctx: Ctx): string {
   return nodes
     .map((node) => {
       const emit = EMITTERS[node.type];
