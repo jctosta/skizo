@@ -2,18 +2,28 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 import { check, didYouMean, type CheckError, type Document } from "@skizo/core";
+import { readAsset } from "./assets";
 import { renderPreview } from "./preview/page";
 import { watchPreview } from "./preview/watch";
 
 export type Io = { stdout(s: string): void; stderr(s: string): void; cwd: string; signal?: AbortSignal };
 
 type Command = {
+  /** Set for commands that take no <file.skz>; `file` is then "". */
+  noFile?: true;
   options?: ParseArgsOptionsConfig;
   run(file: string, flags: Record<string, unknown>, io: Io): Promise<number> | number;
 };
 
-/** One entry per CLI command. Each takes one source file plus its own options. */
+/** One entry per CLI command. Each takes one source file (unless noFile) plus its own options. */
 const COMMANDS: Record<string, Command> = {
+  guide: {
+    noFile: true,
+    run(_file, _flags, io) {
+      io.stdout(readAsset("GUIDE.md"));
+      return 0;
+    },
+  },
   check: {
     options: { json: { type: "boolean" } },
     run(file, flags, io) {
@@ -44,9 +54,27 @@ const COMMANDS: Record<string, Command> = {
   },
 };
 
+const USAGE = `Usage: skizo <command>   (alias: skz)
+
+  skizo guide                                          print the Guide to the Skizo language
+  skizo check   <file.skz> [--json]                    report every error in a file
+  skizo preview <file.skz> [--watch]                   write <file>.html; --watch serves it with live reload
+  skizo export  <file.skz> --target shadcn [--out dir] write one React file per Screen
+
+Agents: run \`skizo guide\` before writing Skizo.
+`;
+
 /** The whole CLI. Never touches process: argv in, exit code out, file paths resolved against io.cwd. */
 export async function run(argv: string[], io: Io): Promise<number> {
   const [name = "", ...rest] = argv;
+  if (name === "--help" || name === "-h") {
+    io.stdout(USAGE);
+    return 0;
+  }
+  if (!name) {
+    io.stderr(USAGE);
+    return 2;
+  }
   const command = COMMANDS[name];
   if (!command) {
     io.stderr(`skizo: unknown command "${name}"${didYouMean(name, Object.keys(COMMANDS))}\n`);
@@ -59,8 +87,8 @@ export async function run(argv: string[], io: Io): Promise<number> {
     io.stderr(`skizo ${name}: ${(e as Error).message}\n`);
     return 2;
   }
-  const [file, ...extra] = args.positionals;
-  if (!file || extra.length) {
+  const [file = "", ...extra] = args.positionals;
+  if (!command.noFile && (!file || extra.length)) {
     io.stderr(`skizo ${name}: expected one <file.skz>\n`);
     return 2;
   }
