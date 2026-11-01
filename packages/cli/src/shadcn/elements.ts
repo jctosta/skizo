@@ -130,8 +130,11 @@ export const openState = (id: string) => {
   return [`${name[0]!.toLowerCase()}${name.slice(1)}Open`, `set${name}Open`] as const;
 };
 
-/** Dialog and Sheet: Content > Header(Title, Description) + body + Footer, with useState when an id lets opens= show it. */
-function dialog(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string) {
+/**
+ * Dialog and Sheet: Content > Header(Title, Description) + body + Footer, with useState when an id lets opens= show it.
+ * `trigger`, a Button, opens it from inside the root (the Screen's menu); `body` replaces the children's JSX.
+ */
+function dialog(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string, trigger?: string, body?: string) {
   /** Imports a part and returns its name. */
   const ui = (part: string) => (ctx.use(`@/components/ui/${kind.toLowerCase()}`, `${kind}${part}`), `${kind}${part}`);
   const id = node.props.id as string | undefined;
@@ -149,28 +152,43 @@ function dialog(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string)
       ? wrap(`<${ui("Close")} asChild>`, ctx.render([n]), `</${kind}Close>`)
       : ctx.render([n]),
   );
+  const children = body ?? ctx.render(node.children);
   ctx.use(`@/components/ui/${kind.toLowerCase()}`, kind);
   return wrap(
     `<${kind}${state}>`,
-    wrap(
-      // Without a Description, Radix warns unless told there is none.
-      `<${ui("Content")}${content}${desc === undefined ? " aria-describedby={undefined}" : ""}>`,
-      lines(
-        wrap(
-          `<${ui("Header")}>`,
-          lines(
-            `<${ui("Title")}>${text(node.label!)}</${kind}Title>`,
-            desc !== undefined && `<${ui("Description")}>${text(desc)}</${kind}Description>`,
+    lines(
+      trigger && wrap(`<${ui("Trigger")} asChild>`, trigger, `</${kind}Trigger>`),
+      wrap(
+        // Without a Description, Radix warns unless told there is none.
+        `<${ui("Content")}${content}${desc === undefined ? " aria-describedby={undefined}" : ""}>`,
+        lines(
+          wrap(
+            `<${ui("Header")}>`,
+            lines(
+              `<${ui("Title")}>${text(node.label!)}</${kind}Title>`,
+              desc !== undefined && `<${ui("Description")}>${text(desc)}</${kind}Description>`,
+            ),
+            `</${kind}Header>`,
           ),
-          `</${kind}Header>`,
+          children && wrap(`<div className="${CLASSES[kind].body}">`, children, "</div>"),
+          footer && wrap(`<${ui("Footer")}>`, lines(...footer), `</${kind}Footer>`),
         ),
-        node.children.length > 0 && wrap(`<div className="${CLASSES[kind].body}">`, ctx.render(node.children), "</div>"),
-        footer && wrap(`<${ui("Footer")}>`, lines(...footer), `</${kind}Footer>`),
+        `</${kind}Content>`,
       ),
-      `</${kind}Content>`,
     ),
     `</${kind}>`,
   );
+}
+
+/**
+ * The menu button that shows the Sidebar's `nav` on phones: a ghost icon Button, hidden from md:, that opens a left
+ * Sheet holding the nav.
+ */
+function menu(ctx: Ctx, nav: string) {
+  const b = CLASSES.Button;
+  ctx.use("@/components/ui/button", "Button");
+  const button = wrap(`<Button variant="ghost" size="icon" className="${CLASSES.Screen.menu}">`, lines(icon(ctx, "menu"), `<span className="${b.hiddenLabel}">Menu</span>`), "</Button>");
+  return dialog({ type: "Sheet", label: "Menu", props: {}, children: [], line: 0 }, ctx, "Sheet", ` side="left"`, button, nav);
 }
 
 /** Skizo `size` → shadcn Button `size`, for text Buttons and for icon-only ones. md is shadcn's default. */
@@ -182,34 +200,37 @@ const ICON_BUTTON_SIZE = { sm: "icon-sm", md: "icon", lg: "icon-lg" } as const;
  * Props arrive checked, coerced and with enum defaults filled in.
  */
 export const EMITTERS: Record<string, Emit> = {
-  /** With a Sidebar: a page shell, the sidebar column beside <main>. The shared Sidebar is <AppSidebar> (app-sidebar.tsx). */
+  /**
+   * With a Sidebar: a page shell, the sidebar column beside <main>. On phones the column hides and a SheetTrigger
+   * before the title opens the Sidebar in a left Sheet. The shared Sidebar is <AppSidebar> (app-sidebar.tsx) in both.
+   */
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
     const { sidebar, isShared, body } = screenParts(node, ctx.sidebar);
+    if (isShared) ctx.use("./app-sidebar", "AppSidebar");
+    const nav = sidebar && (isShared ? `<AppSidebar${jsxAttrs({ current: node.props.id })} />` : ctx.render([sidebar]));
+    const title = `<h1 className="${c.title}">${text(node.label!)}</h1>`;
     const header = lines(
-      `<h1 className="${c.title}">${text(node.label!)}</h1>`,
+      nav ? wrap(`<div className="${c.titleRow}">`, lines(menu(ctx, nav), title), "</div>") : title,
       subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
       actions && wrap(`<div className="${c.actions}">`, ctx.render(actions), "</div>"),
     );
     const main = wrap(
-      `<main className="${sidebar ? c.main : c.root}">`,
+      `<main className="${nav ? c.main : c.root}">`,
       lines(
         wrap(`<header className="${cx(c.header, actions && c.headerWithActions)}">`, header, "</header>"),
         wrap(`<div className="${c.body}">`, ctx.render(body), "</div>"),
       ),
       "</main>",
     );
-    if (!sidebar) return main;
-    if (isShared) ctx.use("./app-sidebar", "AppSidebar");
-    const column = isShared ? `<AppSidebar${jsxAttrs({ current: node.props.id })} />` : ctx.render([sidebar]);
+    if (!nav) return main;
+    const column = wrap(`<aside className="${CLASSES.Sidebar.root}">`, nav, "</aside>");
     return wrap(`<div className="${c.shell}">`, lines(column, main), "</div>");
   },
-  Sidebar: (node, ctx) => {
-    const c = CLASSES.Sidebar;
-    return wrap(`<aside className="${c.root}">`, wrap(`<nav className="${c.nav}">`, ctx.render(node.children), "</nav>"), "</aside>");
-  },
+  /** The Sidebar's nav: the Screen puts it in its column and in the Sheet of its menu button. */
+  Sidebar: (node, ctx) => wrap(`<nav className="${CLASSES.Sidebar.nav}">`, ctx.render(node.children), "</nav>"),
   /** In the shared Sidebar (AppSidebar) the active Link is the one whose to= is the `current` prop. */
   Link: (node, ctx) => {
     const { to, active } = node.props as { to?: string; active?: true };

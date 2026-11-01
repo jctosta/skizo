@@ -30,6 +30,7 @@ async function openPreview(flow = FLOW) {
   const cwd = withFiles({ "flow.skz": flow });
   await runCli(["preview", "flow.skz"], cwd);
   // 1280 px shows the desktop sketch unscaled: Playwright's click checks miss in a scaled frame.
+  // The desktop sketch shows the Sidebar; below md: (768 px) it hides behind the menu Button (responsive.slow.test.ts).
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const external: string[] = [];
   await context.route("**/*", (route) => {

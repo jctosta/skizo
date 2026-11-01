@@ -103,3 +103,45 @@ test("a window narrower than the picked width shows the whole sketch scaled down
   }).toEqual({ width: 1280, shown: { left: 0, right: 640 }, pageOverflows: false, selected: "Open" });
   await page.context().close();
 });
+
+const SHARED_SIDEBAR = `Sidebar
+  Link "Orders" to=orders
+  Link "Dashboard" to=dashboard
+
+Screen "Orders"
+  "Recent orders"
+
+Screen "Dashboard"
+  "Welcome back"
+`;
+
+test("on a phone the Sidebar hides behind a menu Button that opens it in a left Sheet, where a Link shows its Screen", async () => {
+  const cwd = withFiles({ "app.skz": SHARED_SIDEBAR });
+  await runCli(["preview", "app.skz", "--viewport", "phone"], cwd);
+  // 1280 px shows the phone sketch unscaled: Playwright's click checks miss in a scaled frame.
+  const page = await browser.newPage({ viewport: { width: 1280, height: 844 } });
+  await page.goto(pathToFileURL(join(cwd, "app.html")).href);
+  const sketch = page.frameLocator("iframe");
+  const shown = (role: "navigation" | "dialog" | "heading") => sketch.getByRole(role).filter({ visible: true });
+  const menu = sketch.getByRole("button", { name: "Menu" }).filter({ visible: true });
+
+  const column = await shown("navigation").count();
+  await menu.click();
+  const sheet = sketch.getByRole("dialog", { name: "Menu" }).filter({ visible: true });
+  const left = await sheet.evaluate((el) => el.getBoundingClientRect().left);
+  await sheet.getByRole("link", { name: "Dashboard" }).click();
+  // hashchange fires after the click resolves.
+  await expect.poll(() => shown("heading").first().textContent()).toBe("Dashboard");
+  const after = { dialogs: await shown("dialog").count(), menu: await menu.count() };
+  // From md: up the column shows and the menu Button does not.
+  await page.getByRole("button", { name: "Tablet" }).click();
+  const tablet = { navigation: await shown("navigation").count(), menu: await menu.count() };
+
+  expect({ column, left, after, tablet }).toEqual({
+    column: 0,
+    left: 0,
+    after: { dialogs: 0, menu: 1 },
+    tablet: { navigation: 1, menu: 0 },
+  });
+  await page.close();
+});
