@@ -132,13 +132,16 @@ export const openState = (id: string) => {
 
 /**
  * Dialog and Sheet: Content > Header(Title, Description) + body + Footer, with useState when an id lets opens= show it.
- * `trigger`, a Button, opens it from inside the root (the Screen's Sidebar toggle); `body` replaces the children's JSX.
+ * For the Sidebar toggle's Sheet: `trigger`, a Button, opens it from inside the root; `body` replaces the children's JSX.
  */
-function dialog(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string, trigger?: string, body?: string) {
+function dialog(node: Node, ctx: Ctx, { trigger, body }: { trigger?: string; body?: string } = {}) {
+  const kind = node.type as "Dialog" | "Sheet";
   /** Imports a part and returns its name. */
   const ui = (part: string) => (ctx.use(`@/components/ui/${kind.toLowerCase()}`, `${kind}${part}`), `${kind}${part}`);
   const id = node.props.id as string | undefined;
   const desc = node.props.desc as string | undefined;
+  // side=right is shadcn's default; a Dialog has no side.
+  const side = jsxAttrs({ side: node.props.side === "right" ? undefined : node.props.side });
   let state = jsxAttrs({ defaultOpen: node.props.open === true });
   if (id !== undefined) {
     const [value, set] = openState(id);
@@ -160,7 +163,7 @@ function dialog(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string,
       trigger && wrap(`<${ui("Trigger")} asChild>`, trigger, `</${kind}Trigger>`),
       wrap(
         // Without a Description, Radix warns unless told there is none.
-        `<${ui("Content")}${content}${desc === undefined ? " aria-describedby={undefined}" : ""}>`,
+        `<${ui("Content")}${side}${desc === undefined ? " aria-describedby={undefined}" : ""}>`,
         lines(
           wrap(
             `<${ui("Header")}>`,
@@ -188,7 +191,8 @@ function sidebarSheet(ctx: Ctx, nav: string) {
   const b = CLASSES.Button;
   ctx.use("@/components/ui/button", "Button");
   const button = wrap(`<Button variant="ghost" size="icon" className="${CLASSES.Screen.sidebarToggle}">`, lines(icon(ctx, "menu"), `<span className="${b.hiddenLabel}">Menu</span>`), "</Button>");
-  return dialog({ type: "Sheet", label: "Menu", props: {}, children: [], line: 0 }, ctx, "Sheet", ` side="left"`, button, nav);
+  const sheet: Node = { type: "Sheet", label: "Menu", props: { side: "left" }, children: [], line: 0 };
+  return dialog(sheet, ctx, { trigger: button, body: nav });
 }
 
 /** Skizo `size` → shadcn Button `size`, for text Buttons and for icon-only ones. md is shadcn's default. */
@@ -420,8 +424,8 @@ export const EMITTERS: Record<string, Emit> = {
       "</ChartContainer>",
     );
   },
-  Dialog: (node, ctx) => dialog(node, ctx, "Dialog", ""),
-  Sheet: (node, ctx) => dialog(node, ctx, "Sheet", node.props.side === "right" ? "" : ` side="${node.props.side}"`),
+  Dialog: dialog,
+  Sheet: dialog,
   /** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
   Tabs: (node, ctx) => {
     ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");
