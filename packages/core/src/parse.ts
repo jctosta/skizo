@@ -10,7 +10,7 @@ const BARE = /[^\s"]*/y;
 const FLAG = /^[a-z][a-z0-9-]*$/;
 
 /**
- * Line-based parser for the Spec v0.2 line grammar. Builds the AST and reports syntax errors.
+ * Line-based parser for the Skizo line grammar (the Syntax section of packages/cli/GUIDE.md). Builds the AST and reports syntax errors.
  * Prop values stay raw strings (`\,` kept for list splitting); the validator coerces them.
  * `\,` is a literal comma everywhere: in Labels here, in string and list props in the validator.
  */
