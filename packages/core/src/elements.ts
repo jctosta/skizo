@@ -46,5 +46,10 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Row: { label: "none", props: flex, children: "any" },
   Grid: { label: "none", props: { cols: { kind: "number", min: 2, max: 6, default: 2 }, gap: sizes }, children: "any" },
   Separator: { label: "none", props: {} },
-  Card: { label: "optional", props: { desc: { kind: "string" } }, children: "any", slots: ["actions", "footer"] },
+  Card: {
+    label: "optional",
+    props: { desc: { kind: "string" }, span: { kind: "number", min: 1 } },
+    children: "any",
+    slots: ["actions", "footer"],
+  },
 };

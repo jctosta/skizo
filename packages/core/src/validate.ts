@@ -34,6 +34,13 @@ export function validate(document: Document): CheckError[] {
           err(node, `takes no "${name}" slot (allowed in: ${owners.join(", ")})`);
         }
       props(node, spec, err);
+      // `span` (on any Element type whose schema lists it) counts columns of the Grid it sits directly in.
+      const span = node.props.span;
+      if (typeof span === "number") {
+        const cols = parent?.type === "Grid" && !inSlot ? parent.props.cols : undefined;
+        if (cols === undefined) err(node, "span only works directly inside a Grid");
+        else if (typeof cols === "number" && span > cols) err(node, `span=${span} is larger than the Grid's cols=${cols}`);
+      }
       if (node.type === "Screen" && node.props.id === undefined && node.label !== undefined) {
         const slug = slugify(node.label);
         if (slug) node.props.id = slug;

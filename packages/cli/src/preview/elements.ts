@@ -56,7 +56,7 @@ export const EMITTERS: Record<string, Emit> = {
       actions && div(cx(c.action, c.actions), ctx.render(actions)),
     );
     return div(
-      c.root,
+      cx(c.root, c.span[node.props.span as keyof typeof c.span]),
       lines(
         header && div(cx(c.header, actions && c.headerWithActions), header),
         node.children.length > 0 && div(c.content, ctx.render(node.children)),

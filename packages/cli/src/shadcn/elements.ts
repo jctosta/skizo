@@ -64,13 +64,14 @@ export const EMITTERS: Record<string, Emit> = {
     const ui = (name: string) => (ctx.use("@/components/ui/card", name), name);
     const desc = node.props.desc as string | undefined;
     const { actions, footer } = node.slots ?? {};
+    const span = c.span[node.props.span as keyof typeof c.span];
     const header = lines(
       node.label !== undefined && `<${ui("CardTitle")}>${text(node.label)}</CardTitle>`,
       desc !== undefined && `<${ui("CardDescription")}>${text(desc)}</CardDescription>`,
       actions && wrap(`<${ui("CardAction")} className="${c.actions}">`, ctx.render(actions), "</CardAction>"),
     );
     return wrap(
-      `<${ui("Card")}>`,
+      `<${ui("Card")}${span ? ` className="${span}"` : ""}>`,
       lines(
         header && wrap(`<${ui("CardHeader")}>`, header, "</CardHeader>"),
         node.children.length > 0 && wrap(`<${ui("CardContent")}>`, ctx.render(node.children), "</CardContent>"),

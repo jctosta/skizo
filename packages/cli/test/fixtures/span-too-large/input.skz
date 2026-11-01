@@ -1,0 +1,6 @@
+Screen "Dashboard"
+  Grid cols=3
+    Card "Revenue" span=4
+    Card "Orders" span=0
+  Grid
+    Card "Customers" span=3

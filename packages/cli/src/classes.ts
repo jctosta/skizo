@@ -59,6 +59,7 @@ export const CLASSES = {
     // Added in every Backend: a slot lays its Elements out side by side.
     actions: "flex items-center gap-2",
     footerItems: "gap-2",
+    span: { 1: "col-span-1", 2: "col-span-2", 3: "col-span-3", 4: "col-span-4", 5: "col-span-5", 6: "col-span-6" },
   },
 } as const;
 
