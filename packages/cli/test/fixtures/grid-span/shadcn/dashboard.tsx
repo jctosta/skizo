@@ -76,7 +76,7 @@ export function DashboardScreen() {
             </div>
           </div>
           <div className="grid col-span-2">
-            <div role="img" aria-label="Chart" className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground aspect-video">Chart</div>
+            <div role="img" aria-label="Chart" className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground" style={{ aspectRatio: "16 / 9" }}>Chart</div>
           </div>
           <div className="grid col-span-4">
             <Button>Export</Button>

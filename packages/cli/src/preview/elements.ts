@@ -116,9 +116,9 @@ export const EMITTERS: Record<string, Emit> = {
     return `<span role="img" aria-label="${esc(node.label!)}" class="${cx(c.root, size)}">${esc(initials(node.label!))}</span>`;
   },
   Image: (node) => {
-    const c = CLASSES.Image;
     const alt = esc(node.label!);
-    return `<div role="img" aria-label="${alt}" class="${cx(c.root, c[node.props.ratio as "16:9" | "4:3" | "3:2" | "1:1"])}">${alt}</div>`;
+    const ratio = (node.props.ratio as string).replace(":", " / ");
+    return `<div role="img" aria-label="${alt}" class="${CLASSES.Image.root}" style="aspect-ratio: ${ratio}">${alt}</div>`;
   },
   Alert: (node) => {
     const c = CLASSES.Alert;

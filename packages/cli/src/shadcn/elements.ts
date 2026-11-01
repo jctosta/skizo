@@ -208,9 +208,9 @@ export const EMITTERS: Record<string, Emit> = {
   },
   // No shadcn Image: a placeholder box to swap for an <img>.
   Image: (node) => {
-    const c = CLASSES.Image;
-    const classes = cx(c.root, c[node.props.ratio as "16:9" | "4:3" | "3:2" | "1:1"]);
-    return `<div role="img" aria-label=${attr(node.label!)} className="${classes}">${text(node.label!)}</div>`;
+    const ratio = (node.props.ratio as string).replace(":", " / ");
+    const style = `style={{ aspectRatio: "${ratio}" }}`;
+    return `<div role="img" aria-label=${attr(node.label!)} className="${CLASSES.Image.root}" ${style}>${text(node.label!)}</div>`;
   },
   Alert: (node, ctx) => {
     const description = node.props.text as string | undefined;

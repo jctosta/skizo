@@ -131,7 +131,7 @@ function props(
   for (const [key, prop] of Object.entries(spec.props)) {
     if (node.props[key] !== undefined) continue;
     if (prop.kind === "enum") node.props[key] = prop.values[0]!;
-    if (prop.kind === "number" && prop.default !== undefined) node.props[key] = prop.default;
+    if ((prop.kind === "number" || prop.kind === "ratio") && prop.default !== undefined) node.props[key] = prop.default;
   }
 }
 
@@ -158,6 +158,9 @@ function coerce(
         err(`${key}=${value} is out of range (expected: ${prop.min ?? ""}..${prop.max ?? ""})`);
       return n;
     }
+    case "ratio":
+      if (!/^[1-9]\d*:[1-9]\d*$/.test(value)) err(`${key}=${value} is not a ratio (expected: W:H with whole numbers above 0, e.g. 4:3)`);
+      return value;
     case "list": {
       const items = value.split(/(?<!\\),/).map((item) => item.replaceAll("\\,", ",").trim());
       // An empty option, column or item renders as nothing (and Radix throws on <SelectItem value="">).

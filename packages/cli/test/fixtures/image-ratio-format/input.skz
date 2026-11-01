@@ -1,0 +1,5 @@
+Screen "Gallery"
+  Image "Banner" ratio=wide
+  Image "Photo" ratio=16/9
+  Image "Empty" ratio=0:1
+  Image "Spaced" ratio="4 : 3"

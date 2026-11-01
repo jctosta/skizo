@@ -1,0 +1,4 @@
+input.skz:2  Image  ratio=wide is not a ratio (expected: W:H with whole numbers above 0, e.g. 4:3)
+input.skz:3  Image  ratio=16/9 is not a ratio (expected: W:H with whole numbers above 0, e.g. 4:3)
+input.skz:4  Image  ratio=0:1 is not a ratio (expected: W:H with whole numbers above 0, e.g. 4:3)
+input.skz:5  Image  ratio=4 : 3 is not a ratio (expected: W:H with whole numbers above 0, e.g. 4:3)

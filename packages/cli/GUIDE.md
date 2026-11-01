@@ -35,7 +35,7 @@ Text "Text"         size muted bold lorem=N
 Stat "$12,450"      title hint trend=none|up|down
 Badge "Text"        variant=default|secondary|outline|destructive
 Avatar "Name"       size
-Image "Alt"         ratio=16:9|4:3|3:2|1:1           placeholder box
+Image "Alt"         ratio=W:H (default 16:9)         placeholder box
 Alert "Title"       text variant=default|destructive
 Progress            value=0..100
 Card "Title"        desc; slots: actions footer

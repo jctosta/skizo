@@ -11,6 +11,8 @@ export type PropSpec =
   | { kind: "enum"; values: readonly string[] }
   /** `default` is filled in when the prop is missing. */
   | { kind: "number"; min?: number; max?: number; default?: number }
+  /** `W:H`, two whole numbers above 0. `default` is filled in when the prop is missing. */
+  | { kind: "ratio"; default?: string }
   /** Comma-separated; `\,` is a literal comma. */
   | { kind: "list" }
   /**
@@ -116,7 +118,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   /** The Label is a name; the Avatar shows its initials. */
   Avatar: { label: "required", props: { size: sizes } },
   /** The Label is the alt text of a placeholder box. */
-  Image: { label: "required", props: { ratio: { kind: "enum", values: ["16:9", "4:3", "3:2", "1:1"] } } },
+  Image: { label: "required", props: { ratio: { kind: "ratio", default: "16:9" } } },
   /** The Label is the title. */
   Alert: { label: "required", props: { text: { kind: "string" }, variant: { kind: "enum", values: ["default", "destructive"] } } },
   Progress: { label: "none", props: { value: { kind: "number", min: 0, max: 100 } } },

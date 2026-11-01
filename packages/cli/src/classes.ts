@@ -96,13 +96,8 @@ export const CLASSES = {
     md: "size-8 text-sm",
     lg: "size-10 text-sm",
   },
-  Image: {
-    root: "flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground",
-    "16:9": "aspect-video",
-    "4:3": "aspect-4/3",
-    "3:2": "aspect-3/2",
-    "1:1": "aspect-square",
-  },
+  /** Its ratio=W:H is an inline aspect-ratio style in every Backend, so any ratio works without a class built for it. */
+  Image: { root: "flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground" },
   Alert: {
     root: "grid w-full gap-0.5 rounded-lg border bg-card px-4 py-3 text-left text-sm",
     default: "text-card-foreground",

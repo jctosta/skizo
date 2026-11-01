@@ -72,6 +72,7 @@ test("every prop=value in the Guide is a prop of that row's Element types, with 
       if (range && (spec.kind !== "number" || `${spec.min}..${spec.max}` !== shown))
         return [`${prop}=${shown}, check: ${spec.kind === "number" ? `${spec.min}..${spec.max}` : spec.kind}`];
       if (shown === "N" && spec.kind !== "number") return [`${prop}=N, check: ${spec.kind}`];
+      if (shown === "W:H" && spec.kind !== "ratio") return [`${prop}=W:H, check: ${spec.kind}`];
       return [];
     }),
   );
