@@ -177,7 +177,7 @@ function coerce(
       return value;
     case "list": {
       const items = value.split(/(?<!\\),/).map((item) => item.replaceAll("\\,", ",").trim());
-      // An empty option, column or item renders as nothing (and Radix throws on <SelectItem value="">).
+      // An empty option, column or item names nothing.
       if (items.includes("")) err(`${key} has an empty item (remove the extra comma)`);
       return items;
     }

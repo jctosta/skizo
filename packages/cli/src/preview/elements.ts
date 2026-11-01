@@ -40,7 +40,7 @@ const activeFor = (sidebar: Node, id: string): Node => ({
 });
 
 /** A form control under its Label, with error text below. */
-const field =(node: Node, control: string, error?: unknown) =>
+const field = (node: Node, control: string, error?: unknown) =>
   [
     `<div class="${CLASSES.Field.root}">`,
     `<label for="${fieldId(node)}" class="${CLASSES.Field.label}">${esc(node.label!)}</label>`,

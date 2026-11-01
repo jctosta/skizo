@@ -35,7 +35,6 @@ export const text = (s: string) => (/[{}<>&]/.test(s) ? `{${JSON.stringify(s)}}`
 /** A string as a JSX attribute value: quoted, or a string expression when it holds `"` or `&`. */
 export const attr = (s: string) => (/["&]/.test(s) ? `{${JSON.stringify(s)}}` : `"${s}"`);
 
-
 /** `start`, then `body` indented two spaces, then `end`; one line when `body` is empty. */
 export const wrap = (start: string, body: string, end: string) =>
   body ? `${start}\n${body.replace(/^/gm, "  ")}\n${end}` : `${start}${end}`;
