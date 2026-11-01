@@ -7,6 +7,17 @@
 <style>/* preview.css */</style>
 </head>
 <body>
+<div class="flex h-screen flex-col bg-muted">
+<div role="toolbar" aria-label="Viewport" class="flex shrink-0 justify-center gap-1 border-b bg-background p-2">
+<button type="button" value="desktop" data-width="1280" aria-pressed="true" title="1280 px" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground h-8 gap-1 px-2.5 text-muted-foreground aria-pressed:bg-accent aria-pressed:text-accent-foreground">Desktop</button>
+<button type="button" value="tablet" data-width="768" aria-pressed="false" title="768 px" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground h-8 gap-1 px-2.5 text-muted-foreground aria-pressed:bg-accent aria-pressed:text-accent-foreground">Tablet</button>
+<button type="button" value="phone" data-width="390" aria-pressed="false" title="390 px" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground h-8 gap-1 px-2.5 text-muted-foreground aria-pressed:bg-accent aria-pressed:text-accent-foreground">Phone</button>
+</div>
+<div class="flex min-h-0 flex-1 justify-center overflow-hidden">
+<iframe title="Orders" class="shrink-0 origin-top bg-background"></iframe>
+</div>
+</div>
+<template id="sketch">
 <section data-screen="orders" class="min-h-screen p-4 md:p-6">
 <header class="mb-6 grid gap-1">
 <h1 class="text-2xl font-semibold tracking-tight">Orders</h1>
@@ -71,6 +82,40 @@ document.addEventListener("click", (event) => {
     panels[i].hidden = t !== tab;
   });
 });
+</script>
+</template>
+<script>
+// Viewport toolbar: the frame is as wide as the pressed button says, so the breakpoint classes respond as on a device.
+// A narrower window scales the frame down to fit, like a browser's device mode.
+// history.state keeps the picked width and this page's hash keeps the shown Screen, so a reload keeps both.
+const frame = document.querySelector("iframe");
+const buttons = [...document.querySelectorAll("button[data-width]")];
+let width;
+const fit = () => {
+  const stage = frame.parentElement;
+  const scale = Math.min(1, stage.clientWidth / width);
+  frame.style.width = width + "px";
+  frame.style.height = stage.clientHeight / scale + "px";
+  frame.style.scale = String(scale);
+};
+const pick = (button) => {
+  for (const b of buttons) b.setAttribute("aria-pressed", String(b === button));
+  width = Number(button.dataset.width);
+  history.replaceState({ viewport: button.value }, "");
+  fit();
+};
+for (const b of buttons) b.addEventListener("click", () => pick(b));
+addEventListener("resize", fit);
+pick(buttons.find((b) => b.value === history.state?.viewport) || buttons.find((b) => b.ariaPressed === "true"));
+// The base keeps the sketch's #screen links inside the frame. The frame starts on this page's hash and copies its own back.
+frame.addEventListener("load", () => {
+  const sketch = frame.contentWindow;
+  sketch.addEventListener("hashchange", () => history.replaceState(history.state, "", location.href.split("#")[0] + sketch.location.hash));
+});
+frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><base href="about:srcdoc">' +
+  '<script>history.replaceState(null, "", parent.location.hash)<\/script>' +
+  "<style>" + document.querySelector("style").textContent + "</style></head><body>" +
+  document.getElementById("sketch").innerHTML;
 </script>
 </body>
 </html>

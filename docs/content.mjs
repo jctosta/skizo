@@ -225,7 +225,12 @@ phone (narrower than 768 px), a Grid shows one column. On a tablet (768 px to 10
 of two columns. A Row puts the children that do not fit on a new line. A Table scrolls horizontally. A Screen
 has less padding on a phone. On a phone, the Sidebar is hidden, and a button with the <code>menu</code> icon opens
 it from the left. The Preview and the export use the same Tailwind classes: <code>md:</code> for tablets and
-<code>lg:</code> for desktops.</p>`,
+<code>lg:</code> for desktops.</p>
+<p>The toolbar at the top of the Preview sets the width of the sketch: Desktop (1280 px), Tablet (768 px) or
+Phone (390 px). If the window is narrower than the width, the Preview makes the sketch smaller to fit the
+window. To open the Preview at a width, use <code>--viewport</code>:</p>
+${h.sh("skizo preview orders.skz --viewport phone")}
+<p>With <code>--watch</code>, the page keeps the width and the Screen after each reload.</p>`,
   },
   {
     id: "cli",
@@ -238,10 +243,11 @@ it from the left. The Preview and the export use the same Tailwind classes: <cod
   <tr><td><code>skizo check &lt;file.skz&gt; [--json]</code></td><td>Shows all errors in the file, one on each
   line, in the format <code>file:line  Type  message</code>. With <code>--json</code>, the command prints
   <code>{"errors": [{"file", "line", "type", "message"}]}</code>.</td></tr>
-  <tr><td><code>skizo preview &lt;file.skz&gt; [--watch]</code></td><td>Writes <code>&lt;file&gt;.html</code>
+  <tr><td><code>skizo preview &lt;file.skz&gt; [--watch] [--viewport desktop|tablet|phone]</code></td><td>Writes <code>&lt;file&gt;.html</code>
   next to the source file. The page holds all Screens and works offline. With <code>--watch</code>, the command
   also serves the page on 127.0.0.1 and reloads it after each save. If a save fails <code>check</code>, the
-  command shows the errors and keeps the last good page.</td></tr>
+  command shows the errors and keeps the last good page. <code>--viewport</code> sets the width at which the
+  page opens. The default is <code>desktop</code>.</td></tr>
   <tr><td><code>skizo export &lt;file.skz&gt; --target shadcn [--out dir] [--router next|react-router]</code></td><td>Writes one
   <code>.tsx</code> file for each Screen, and <code>app-sidebar.tsx</code> for a shared Sidebar. The files go next
   to the source file, or into the <code>--out</code> folder. With <code>--router</code>, the links use the
