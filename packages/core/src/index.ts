@@ -3,7 +3,7 @@ import { parse } from "./parse";
 import { validate, type CheckOptions } from "./validate";
 
 export type { CheckError, Document, Node } from "./ast";
-export { ELEMENTS, slugify } from "./elements";
+export { ELEMENTS, pascalCase, slugify } from "./elements";
 export { didYouMean } from "./nearest";
 export type { CheckOptions } from "./validate";
 
