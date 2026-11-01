@@ -50,7 +50,7 @@ export function OrdersScreen() {
           </DialogContent>
         </Dialog>
         <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
-          <SheetContent side="left">
+          <SheetContent side="left" aria-describedby={undefined}>
             <SheetHeader>
               <SheetTitle>Filters</SheetTitle>
             </SheetHeader>
@@ -76,7 +76,7 @@ export function OrdersScreen() {
           </SheetContent>
         </Sheet>
         <Dialog defaultOpen>
-          <DialogContent>
+          <DialogContent aria-describedby={undefined}>
             <DialogHeader>
               <DialogTitle>Welcome back</DialogTitle>
             </DialogHeader>
