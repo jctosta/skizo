@@ -1,0 +1,52 @@
+import type { Node } from "@skizo/core";
+import { CLASSES, cx } from "../classes";
+
+/** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
+export type Ctx = {
+  render(nodes: Node[]): string;
+  /** Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
+  use(from: string, ...names: string[]): void;
+};
+export type Emit = (node: Node, ctx: Ctx) => string;
+
+/** Text as JSX children: verbatim, or as a string expression when it holds characters JSX reads as markup. */
+export const text = (s: string) => (/[{}<>&]/.test(s) ? `{${JSON.stringify(s)}}` : s);
+
+/** Joins the present lines. */
+export const lines = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
+
+/** `open`, then `body` indented two spaces, then `close`; one line when `body` is empty. */
+export const wrap = (open: string, body: string, close: string) =>
+  body ? `${open}\n${body.replace(/^/gm, "  ")}\n${close}` : `${open}${close}`;
+
+/**
+ * The shadcn Export target: one emitter per Element type, returning TSX.
+ * Props arrive checked, coerced and with enum defaults filled in.
+ */
+export const EMITTERS: Record<string, Emit> = {
+  Screen: (node, ctx) => {
+    const c = CLASSES.Screen;
+    const subtitle = node.props.subtitle as string | undefined;
+    const header = lines(
+      `<h1 className="${c.title}">${text(node.label!)}</h1>`,
+      subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
+    );
+    return wrap(
+      `<main className="${c.root}">`,
+      lines(
+        wrap(`<header className="${c.header}">`, header, "</header>"),
+        wrap(`<div className="${c.body}">`, ctx.render(node.children), "</div>"),
+      ),
+      "</main>",
+    );
+  },
+  Heading: (node) => {
+    const level = node.props.level as keyof typeof CLASSES.Heading;
+    return `<h${level} className="${CLASSES.Heading[level]}">${text(node.label!)}</h${level}>`;
+  },
+  Text: (node) => {
+    const c = CLASSES.Text;
+    const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
+    return `<p className="${classes}">${text(node.label!)}</p>`;
+  },
+};

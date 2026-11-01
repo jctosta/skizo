@@ -1,5 +1,5 @@
 // Golden fixtures: one directory per rule or sketch under fixtures/, holding input.skz and its goldens.
-// check.txt is the stdout of `skizo check input.skz`; preview.html is written only for inputs that pass check.
+// check.txt is the stdout of `skizo check input.skz`. Inputs that pass check also get preview.html and shadcn/<screen id>.tsx.
 // Add a fixture by adding a directory; `vitest run -u` writes goldens for a new one (review them before committing).
 import { copyFileSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -25,5 +25,10 @@ for (const name of readdirSync(FIXTURES)) {
     const previewed = await runCli(["preview", "input.skz"], cwd);
     expect(previewed.code).toBe(0);
     await expect(withoutCss(readFileSync(join(cwd, "input.html"), "utf8"))).toMatchFileSnapshot(join(dir, "preview.html"));
+
+    const exported = await runCli(["export", "input.skz", "--target", "shadcn", "--out", "shadcn"], cwd);
+    expect(exported.code).toBe(0);
+    for (const file of readdirSync(join(cwd, "shadcn")))
+      await expect(readFileSync(join(cwd, "shadcn", file), "utf8")).toMatchFileSnapshot(join(dir, "shadcn", file));
   });
 }
