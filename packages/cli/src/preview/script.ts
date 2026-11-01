@@ -14,9 +14,16 @@ document.addEventListener("click", (event) => {
     panels[i].hidden = t !== tab;
   });
 });`,
-  popup: `// Popups (Select): a [data-popup] holds a [data-popup-trigger] and a [data-popup-content].
+  popup: `// Popups (Select, Menu): a [data-popup] holds a [data-popup-trigger] and a [data-popup-content].
 // A click on a trigger toggles its popup; any other click closes every open popup.
 // Picking a [role="option"] in a popup also shows it on the trigger.
+// An open popup that would cross the window's right edge shifts left to fit, like shadcn's.
+const fitPopup = (content) => {
+  content.style.translate = "";
+  const overflow = content.getBoundingClientRect().right + 8 - document.documentElement.clientWidth;
+  if (overflow > 0) content.style.translate = -overflow + "px";
+};
+document.querySelectorAll("[data-popup-content]:not([hidden])").forEach(fitPopup);
 document.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : null;
   const popup = target && target.closest("[data-popup]");
@@ -32,6 +39,7 @@ document.addEventListener("click", (event) => {
     const content = p.querySelector("[data-popup-content]");
     const open = p === toggled && content.hidden;
     content.hidden = !open;
+    if (open) fitPopup(content);
     p.querySelector("[data-popup-trigger]").setAttribute("aria-expanded", String(open));
   }
 });`,

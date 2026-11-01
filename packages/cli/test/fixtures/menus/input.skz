@@ -1,0 +1,12 @@
+Screen "Orders"
+  Card "Pending"
+    actions
+      Menu "Pending actions" icon=ellipsis icon-only variant=ghost
+        Item "Send reminders"
+        Item "Cancel all" destructive
+  Row
+    Menu "Export" icon=download variant=outline open
+      Item "CSV"
+      Item "PDF" disabled
+    Menu "More"
+      Item "Archive"
