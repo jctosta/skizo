@@ -115,12 +115,12 @@
   <li>pnpm (recommended) or npm.</li>
 </ul>
 <h3>Install</h3>
-<p>Skizo installs from its Git repository. Each release has a Git tag, for example <code>v0.3.0-alpha.1</code>.
+<p>Skizo installs from its Git repository. Each release has a Git tag, for example <code>v0.4.0-alpha.1</code>.
 Always put the tag in the install command. Then each install gets the same release.</p>
 <p>Install with pnpm (recommended):</p>
-<pre class="code "><code><span class="ln" style="padding-left:4ch">pnpm add -g github:jctosta/skizo#v0.3.0-alpha.1</span></code></pre>
+<pre class="code "><code><span class="ln" style="padding-left:4ch">pnpm add -g github:jctosta/skizo#v0.4.0-alpha.1</span></code></pre>
 <p>Or install with npm:</p>
-<pre class="code "><code><span class="ln" style="padding-left:4ch">npm install -g --allow-git=all github:jctosta/skizo#v0.3.0-alpha.1</span></code></pre>
+<pre class="code "><code><span class="ln" style="padding-left:4ch">npm install -g --allow-git=all github:jctosta/skizo#v0.4.0-alpha.1</span></code></pre>
 <p class="note">npm 12 and later blocks Git dependencies by default. The <code>--allow-git=all</code> option
 allows them for this command only.</p>
 <p>Make sure that the install is correct:</p>
@@ -132,7 +132,7 @@ It has no build scripts and no dependencies. Thus the install runs no code from 
 <p>A tag can move to a different commit. To pin one exact build, use the commit hash instead of the tag.</p>
 <ol>
   <li>Get the commit hash of the release:
-  <pre class="code "><code><span class="ln" style="padding-left:4ch">git ls-remote https://github.com/jctosta/skizo &quot;refs/tags/v0.3.0-alpha.1^{}&quot;</span></code></pre></li>
+  <pre class="code "><code><span class="ln" style="padding-left:4ch">git ls-remote https://github.com/jctosta/skizo &quot;refs/tags/v0.4.0-alpha.1^{}&quot;</span></code></pre></li>
   <li>Install that commit:
   <pre class="code "><code><span class="ln" style="padding-left:4ch">pnpm add -g github:jctosta/skizo#&lt;commit-hash&gt;</span></code></pre></li>
 </ol>
