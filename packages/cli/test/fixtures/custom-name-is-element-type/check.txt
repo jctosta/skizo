@@ -1,0 +1,3 @@
+input.skz:4  Custom  "Button" is an Element type (use Button instead of Custom)
+input.skz:5  Custom  "Table" is an Element type (use Table instead of Custom)
+input.skz:7  Custom  "Custom" is not the name of a component (write the name of your component, e.g. Custom "ChatBubble")

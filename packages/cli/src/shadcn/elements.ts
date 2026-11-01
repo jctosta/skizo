@@ -1,20 +1,34 @@
-import { slugify, type Node } from "@skizo/core";
-import { hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
+import { pascalCase, slugify, type Node } from "@skizo/core";
+import { chartColor, chartHasLegend, customProps, hasBehavior, lines, screenParts, statHint, type ChartType } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
-import { initials, listItems, lorem, tableRows } from "../placeholder";
+import { chartRows, initials, listItems, lorem, tableRows } from "../placeholder";
+
+/**
+ * One name an import declares: `"Card"`, or an object for a name under an alias (`{ name: "Label", as: "CustomLabel" }`),
+ * a type (`{ name: "ChartConfig", type: true }`) or the default export (`{ name: "default", as: "Link" }`).
+ */
+export type Import = string | { name: string; as?: string; type?: true };
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
-  /** Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
-  use(from: string, ...names: string[]): void;
+  /** Adds imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
+  use(from: string, ...names: Import[]): void;
+  /** The `--router` whose Link the export writes links with; undefined for plain anchors. Read it through `screenLink`. */
+  router?: Router;
   /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
   path: string;
-  /** `base`, or `base-2`, `base-3`... when the Screen's file already uses it: DOM ids for form controls. */
+  /** `base`, or `base-2`, `base-3`... when the Screen's file already uses it: DOM ids for form controls, Chart names. */
   id(base: string): string;
   /** Adds a line to the top of the Screen's component, before `return`: state hooks. */
   hook(line: string): void;
+  /** Adds a declaration above the Screen's component: a Chart's data and config. */
+  declare(code: string): void;
+  /** The Sidebar shared by every Screen without its own (Document.sidebar), exported once as AppSidebar. */
+  sidebar?: Node;
+  /** Names the file would otherwise declare twice. A Custom with one of them imports under an alias: CustomLabel. */
+  clashes: ReadonlySet<string>;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -24,18 +38,39 @@ export const text = (s: string) => (/[{}<>&]/.test(s) ? `{${JSON.stringify(s)}}`
 /** A string as a JSX attribute value: quoted, or a string expression when it holds `"` or `&`. */
 export const attr = (s: string) => (/["&]/.test(s) ? `{${JSON.stringify(s)}}` : `"${s}"`);
 
-
 /** `start`, then `body` indented two spaces, then `end`; one line when `body` is empty. */
 export const wrap = (start: string, body: string, end: string) =>
   body ? `${start}\n${body.replace(/^/gm, "  ")}\n${end}` : `${start}${end}`;
 
-/** JSX attributes from name → value: strings through `attr`, numbers in braces, true bare; undefined and false skipped. */
+/**
+ * JSX attributes from name → value: strings through `attr`, numbers and `{ expr: "code" }` in braces, true bare;
+ * undefined and false skipped. Only emitters build an `expr`, so source text never becomes code.
+ */
 export const jsxAttrs = (pairs: Record<string, unknown>) =>
   Object.entries(pairs)
-    .map(([name, v]) =>
-      v === undefined || v === false ? "" : v === true ? ` ${name}` : typeof v === "number" ? ` ${name}={${v}}` : ` ${name}=${attr(String(v))}`,
-    )
+    .map(([name, v]) => {
+      if (v === undefined || v === false) return "";
+      if (v === true) return ` ${name}`;
+      if (typeof v === "number") return ` ${name}={${v}}`;
+      if (typeof v === "object" && v !== null && "expr" in v) return ` ${name}={${v.expr}}`;
+      return ` ${name}=${attr(String(v))}`;
+    })
     .join("");
+
+/**
+ * Slugs of `labels`, which read as hand-written; `<fallback>-1`, `<fallback>-2`... for all when one is empty, two
+ * collide or one is `taken` (a key the export writes beside them).
+ */
+const slugs = (labels: string[], fallback: string, taken: readonly string[] = []) => {
+  const s = labels.map(slugify);
+  return s.every((k) => k && !taken.includes(k)) && new Set(s).size === s.length ? s : s.map((_, i) => `${fallback}-${i + 1}`);
+};
+
+/** An object literal key: bare when it is an identifier, else quoted. */
+const key = (s: string) => (/^[A-Za-z_$][\w$]*$/.test(s) ? s : JSON.stringify(s));
+
+/** The recharts chart and series components of each cartesian Chart type. */
+const CHARTS = { line: ["LineChart", "Line"], bar: ["BarChart", "Bar"], area: ["AreaChart", "Area"] } as const;
 
 /** A form control under its Label, with error text below. `id` ties the Label to the control. */
 const field = (node: Node, ctx: Ctx, id: string, control: string, error?: unknown) => {
@@ -67,8 +102,24 @@ export const icon = (ctx: Ctx, name: string, className?: string) => {
   return `<${component}${className ? ` className="${className}"` : ""} />`;
 };
 
-/** Where `to=` goes: the Screen's route. A plain path, so swapping in a router's link component is left to the user. */
-const screenHref = (id: string) => `/${id}`;
+/** `--router`: each router's Link component, as `ctx.use` imports it, and the prop that takes the path. */
+export const ROUTERS = {
+  next: { from: "next/link", link: { name: "default", as: "Link" }, prop: "href" },
+  "react-router": { from: "react-router", link: "Link", prop: "to" },
+};
+export type Router = keyof typeof ROUTERS;
+
+/**
+ * A link to the Screen `to`, at its route `/<id>`. Every emitter that writes a link calls this, so `--router` reaches
+ * them all: the router's Link, else a plain `<a href>`. Without `to` it goes nowhere yet: a plain `<a>` with no href.
+ */
+export function screenLink(ctx: Ctx, to: string | undefined, attrs: Record<string, unknown>, body: string) {
+  const router = to === undefined || ctx.router === undefined ? undefined : ROUTERS[ctx.router];
+  if (router) ctx.use(router.from, router.link);
+  const tag = router ? "Link" : "a";
+  const open = `<${tag}${jsxAttrs({ [router?.prop ?? "href"]: to === undefined ? undefined : `/${to}`, ...attrs })}>`;
+  return body.includes("\n") ? wrap(open, body, `</${tag}>`) : `${open}${body}</${tag}>`;
+}
 
 /**
  * The useState pair behind opens=, named after the id of the Dialog or Sheet: `new-order` → ["newOrderOpen", "setNewOrderOpen"].
@@ -131,12 +182,12 @@ const ICON_BUTTON_SIZE = { sm: "icon-sm", md: "icon", lg: "icon-lg" } as const;
  * Props arrive checked, coerced and with enum defaults filled in.
  */
 export const EMITTERS: Record<string, Emit> = {
-  /** With a Sidebar first: a page shell, the sidebar column beside <main>. */
+  /** With a Sidebar: a page shell, the sidebar column beside <main>. The shared Sidebar is <AppSidebar> (app-sidebar.tsx). */
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
-    const { sidebar, body } = screenParts(node);
+    const { sidebar, isShared, body } = screenParts(node, ctx.sidebar);
     const header = lines(
       `<h1 className="${c.title}">${text(node.label!)}</h1>`,
       subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
@@ -150,19 +201,22 @@ export const EMITTERS: Record<string, Emit> = {
       ),
       "</main>",
     );
-    return sidebar ? wrap(`<div className="${c.shell}">`, lines(ctx.render([sidebar]), main), "</div>") : main;
+    if (!sidebar) return main;
+    if (isShared) ctx.use("./app-sidebar", "AppSidebar");
+    const column = isShared ? `<AppSidebar${jsxAttrs({ current: node.props.id })} />` : ctx.render([sidebar]);
+    return wrap(`<div className="${c.shell}">`, lines(column, main), "</div>");
   },
   Sidebar: (node, ctx) => {
     const c = CLASSES.Sidebar;
     return wrap(`<aside className="${c.root}">`, wrap(`<nav className="${c.nav}">`, ctx.render(node.children), "</nav>"), "</aside>");
   },
-  /** A plain anchor, like every to=; a Link without to= goes nowhere yet: no href. */
+  /** In the shared Sidebar (AppSidebar) the active Link is the one whose to= is the `current` prop. */
   Link: (node, ctx) => {
     const { to, active } = node.props as { to?: string; active?: true };
-    const href = to === undefined ? undefined : screenHref(to);
-    const tag = `<a${jsxAttrs({ href, "aria-current": active && "page" })} className="${CLASSES.Link.root}">`;
-    if (node.props.icon === undefined) return `${tag}${text(node.label!)}</a>`;
-    return wrap(tag, lines(icon(ctx, node.props.icon as string, CLASSES.Link.icon), text(node.label!)), "</a>");
+    const shared = to !== undefined && ctx.sidebar?.children.includes(node);
+    const current = shared ? { expr: `current === ${JSON.stringify(to)} ? "page" : undefined` } : active && "page";
+    const glyph = node.props.icon !== undefined && icon(ctx, node.props.icon as string, CLASSES.Link.icon);
+    return screenLink(ctx, to, { "aria-current": current, className: CLASSES.Link.root }, lines(glyph, text(node.label!)));
   },
   Heading: (node) => {
     const level = node.props.level as keyof typeof CLASSES.Heading;
@@ -276,15 +330,82 @@ export const EMITTERS: Record<string, Emit> = {
     );
   },
   List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
+  /**
+   * The project's shadcn chart around a recharts chart. The data and the ChartConfig go above the component, named
+   * after the Label; data keys are the column slugs. A pie, as in shadcn's examples, names each slice by a config
+   * key (the slug of its name) that labels and colors it, so its legend and tooltip read the config.
+   */
+  Chart: (node, ctx) => {
+    const type = node.props.type as ChartType;
+    const cols = node.props.cols as string[];
+    // A pie's data rows also hold fill; config keys are the series and the slices, so a slice key differs from the series key.
+    const [x, ...series] = slugs(cols, "col", type === "pie" ? ["fill"] : []);
+    const pascal = pascalCase(ctx.id(slugify(node.label!) || "chart"), "Chart");
+    const name = `${pascal[0]!.toLowerCase()}${pascal.slice(1)}`;
+    const data = chartRows(node, ctx.path);
+    const slices = type === "pie" ? slugs(data.map(([slice]) => slice!), "slice", series) : [];
+    const rows = data.map(([first, ...values], r) => {
+      const fields = [`${key(x!)}: ${JSON.stringify(slices[r] ?? first)}`, ...values.map((v, i) => `${key(series[i]!)}: ${Number(v)}`)];
+      return `{ ${[...fields, slices[r] && `fill: "var(--color-${slices[r]})"`].filter(Boolean).join(", ")} },`;
+    });
+    const config = [
+      ...series.map((s, i) => `${key(s)}: { label: ${JSON.stringify(cols[i + 1])}${type === "pie" ? "" : `, color: "${chartColor(i)}"`} },`),
+      ...slices.map((s, r) => `${key(s)}: { label: ${JSON.stringify(data[r]![0])}, color: "${chartColor(r)}" },`),
+    ];
+    ctx.declare(wrap(`const ${name}Data = [`, lines(...rows), "]"));
+    ctx.declare(wrap(`const ${name}Config = {`, lines(...config), "} satisfies ChartConfig"));
+    const legend = chartHasLegend(node);
+    ctx.use("@/components/ui/chart", "ChartContainer", "ChartTooltip", "ChartTooltipContent", { name: "ChartConfig", type: true });
+    if (legend) ctx.use("@/components/ui/chart", "ChartLegend", "ChartLegendContent");
+    const title = ` title=${attr(node.label!)}`;
+    if (type === "pie") {
+      ctx.use("recharts", "Pie", "PieChart");
+      return wrap(
+        `<ChartContainer config={${name}Config} className="${CLASSES.Chart.pieContainer}">`,
+        wrap(
+          `<PieChart${title}>`,
+          lines(
+            "<ChartTooltip content={<ChartTooltipContent hideLabel />} />",
+            `<Pie data={${name}Data} dataKey="${series[0]}" nameKey="${x}" />`,
+            `<ChartLegend content={<ChartLegendContent nameKey="${x}" />} />`,
+          ),
+          "</PieChart>",
+        ),
+        "</ChartContainer>",
+      );
+    }
+    const [chart, part] = CHARTS[type];
+    ctx.use("recharts", "CartesianGrid", chart, part, "XAxis");
+    const look = {
+      line: (s: string) => `stroke="var(--color-${s})" strokeWidth={2} dot={false}`,
+      bar: (s: string) => `fill="var(--color-${s})" radius={4}`,
+      area: (s: string) => `fill="var(--color-${s})" fillOpacity={0.4} stroke="var(--color-${s})"`,
+    }[type];
+    // Line and area points sit on the plot's edges: the margin keeps the first and last x labels whole.
+    const margin = type === "bar" ? "" : " margin={{ left: 12, right: 12 }}";
+    return wrap(
+      `<ChartContainer config={${name}Config} className="${CLASSES.Chart.container}">`,
+      wrap(
+        `<${chart} data={${name}Data}${margin}${title}>`,
+        lines(
+          "<CartesianGrid vertical={false} />",
+          `<XAxis dataKey="${x}" tickLine={false} axisLine={false} tickMargin={8} />`,
+          "<ChartTooltip content={<ChartTooltipContent />} />",
+          legend && "<ChartLegend content={<ChartLegendContent />} />",
+          ...series.map((s) => `<${part} dataKey="${s}" ${look(s)} />`),
+        ),
+        `</${chart}>`,
+      ),
+      "</ChartContainer>",
+    );
+  },
   Dialog: (node, ctx) => dialog(node, ctx, "Dialog", ""),
   Sheet: (node, ctx) => dialog(node, ctx, "Sheet", node.props.side === "right" ? "" : ` side="${node.props.side}"`),
   /** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
   Tabs: (node, ctx) => {
     ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");
     const tabs = node.children;
-    // Slugged Labels read as hand-written; fall back to tab-1, tab-2, ... when they are empty or collide.
-    const slugs = tabs.map((tab) => slugify(tab.label!));
-    const values = slugs.every(Boolean) && new Set(slugs).size === slugs.length ? slugs : slugs.map((_, i) => `tab-${i + 1}`);
+    const values = slugs(tabs.map((tab) => tab.label!), "tab");
     const active = values[tabs.findIndex((tab) => tab.props.active === true)];
     const triggers = tabs.map((tab, i) => `<TabsTrigger value="${values[i]}">${text(tab.label!)}</TabsTrigger>`);
     return wrap(
@@ -330,11 +451,8 @@ export const EMITTERS: Record<string, Emit> = {
     const glyph = loading ? icon(ctx, "loader-circle", c.spinner) : node.props.icon !== undefined && icon(ctx, node.props.icon as string);
     const label = iconOnly ? `<span className="${c.hiddenLabel}">${text(node.label!)}</span>` : text(node.label!);
     const content = glyph ? lines(glyph, label) : label;
-    // to=: the Button renders a plain anchor (asChild), like a Link.
-    if (to !== undefined) {
-      const anchor = `<a href=${attr(screenHref(to))}>`;
-      return wrap(tag, glyph ? wrap(anchor, content, "</a>") : `${anchor}${content}</a>`, "</Button>");
-    }
+    // to=: the Button renders the link (asChild), like a Link.
+    if (to !== undefined) return wrap(tag, screenLink(ctx, to, {}, content), "</Button>");
     return glyph ? wrap(tag, content, "</Button>") : `${tag}${content}</Button>`;
   },
   Input: (node, ctx) => {
@@ -389,5 +507,19 @@ export const EMITTERS: Record<string, Emit> = {
     });
     const radios = wrap(`<RadioGroup${jsxAttrs({ "aria-labelledby": group, defaultValue: node.props.value })}>`, lines(...items), "</RadioGroup>");
     return wrap(`<div className="${CLASSES.Field.root}">`, lines(`<Label${jsxAttrs({ id: group })}>${text(node.label!)}</Label>`, radios), "</div>");
+  },
+  /**
+   * The project's own component from `@/components/<kebab-name>`, with the props (keys in camelCase) and children.
+   * Named like another import of the file (Label) or its component, it imports as Custom<Name>.
+   */
+  Custom: (node, ctx) => {
+    const name = node.label!;
+    const tag = ctx.clashes.has(name) ? `Custom${name}` : name;
+    // ChatBubble → chat-bubble, KPICard → kpi-card.
+    const file = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").toLowerCase();
+    ctx.use(`@/components/${file}`, tag === name ? name : { name, as: tag });
+    const camel = (key: string) => key.replace(/-(\w)/g, (_, c: string) => c.toUpperCase());
+    const props = jsxAttrs(Object.fromEntries(customProps(node).map(([key, v]) => [camel(key), v])));
+    return node.children.length ? wrap(`<${tag}${props}>`, ctx.render(node.children), `</${tag}>`) : `<${tag}${props} />`;
   },
 };

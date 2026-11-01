@@ -1,4 +1,5 @@
 import type { CheckError, Document, Node } from "./ast";
+import { ELEMENTS } from "./elements";
 
 /** Where the children of a line go: an Element's children, a slot of it, or nowhere (row lines). */
 type Frame = { node?: Node; into: Node[] | null };
@@ -8,6 +9,8 @@ const STRING = /"((?:[^"\\]|\\.)*)"/y;
 const WORD = /([^\s="]+)(=?)/y;
 const BARE = /[^\s"]*/y;
 const FLAG = /^[a-z][a-z0-9-]*$/;
+/** Element types that take `| a | b` row lines as their data (ElementSpec.rows). */
+const ROWS = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type]!.rows);
 
 /**
  * Line-based parser for the Skizo line grammar (the Syntax section of packages/cli/GUIDE.md). Builds the AST and reports syntax errors.
@@ -45,10 +48,10 @@ export function parse(source: string): { document: Document; errors: CheckError[
     const parent = stack[level]!;
 
     if (content.startsWith("|")) {
-      if (parent.node?.type === "Table") {
+      if (parent.node && ROWS.includes(parent.node.type)) {
         (parent.node.rows ??= []).push(cells(content));
         (parent.node.rowLines ??= []).push(line);
-      } else err("row line outside a Table");
+      } else err(`row line outside a ${ROWS.join(" or ")}`);
       stack.push({ into: null });
     } else if ((SLOTS as readonly string[]).includes(content)) {
       const name = content as (typeof SLOTS)[number];

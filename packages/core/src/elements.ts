@@ -25,11 +25,15 @@ export type ElementSpec = {
   label: "required" | "optional" | "none";
   /** `id` is allowed on every Element and need not be listed. */
   props: Record<string, PropSpec>;
+  /** Any other prop or flag passes unchecked, as written: a string, or true for a flag (Custom). */
+  anyProps?: true;
   /** Element types allowed as children; "any" for all; omitted for none. */
   children?: readonly string[] | "any";
   /** Element types this one may sit directly under (not in their slots); omitted for anywhere. */
   parents?: readonly string[];
   slots?: readonly ("actions" | "footer")[];
+  /** Takes `| a | b` lines under it as its data (Node.rows); any other Element type refuses them. */
+  rows?: true;
   /**
    * Sets props the source implies but does not write: a Screen's id, a Sidebar's active Link. Runs after the
    * Element's own props are coerced, before `check` and before its children are walked.
@@ -55,7 +59,7 @@ const variants = { kind: "enum", values: ["default", "secondary", "outline", "gh
 const iconOnly: ElementSpec["check"] = (node, err) => {
   if (node.props["icon-only"] === true && node.props.icon === undefined) err("icon-only needs icon=... too");
 };
-/** Select and Radio: value= picks one of options=, or it would show nothing once exported. */
+/** Select and Radio: value= is one of options=. */
 const valueInOptions: ElementSpec["check"] = (node, err) => {
   const value = node.props.value;
   const options = (node.props.options ?? []) as string[];
@@ -63,6 +67,21 @@ const valueInOptions: ElementSpec["check"] = (node, err) => {
   if (!options.length) err(`value=${value} needs options= that include it`);
   else err(`unknown value "${value}"${didYouMean(value, options)} (expected: ${options.join(", ")})`);
 };
+/**
+ * Table and Chart: `|` rows or rows=N, not both; cols= is required; one cell per column. Returns the columns, or
+ * undefined without cols=. `example` shows how to write cols= in the error.
+ */
+const tabular = (node: Node, err: (message: string, line?: number) => void, example: string) => {
+  if (node.rows && node.props.rows !== undefined) err("has both | rows and rows= (keep one)");
+  const cols = node.props.cols as string[] | undefined;
+  if (!cols) return void err(`needs cols (${example})`);
+  node.rows?.forEach((cells, i) => {
+    if (cells.length !== cols.length) err(`row has ${cells.length} cells, expected ${cols.length} (cols: ${cols.join(", ")})`, node.rowLines![i]);
+  });
+  return cols;
+};
+/** A Chart value: digits, with an optional minus sign and decimal part (1200, -3, 12.5). */
+const NUMBER = /^-?\d+(\.\d+)?$/;
 /** Dialog and Sheet. */
 const dialog = { desc: { kind: "string" }, open: { kind: "flag" } } as const;
 /** Stack and Row. */
@@ -78,10 +97,10 @@ const flex = {
  * Screens go only at the top level; that rule lives in validate.ts.
  */
 export const ELEMENTS: Record<string, ElementSpec> = {
-  /** Every Screen gets an id: the slug of its Label when it has no id=. */
+  /** Every Screen gets an id: the slug of its Label when it has no id=. `plain` hides the shared Sidebar. */
   Screen: {
     label: "required",
-    props: { id: { kind: "string" }, subtitle: { kind: "string" } },
+    props: { id: { kind: "string" }, subtitle: { kind: "string" }, plain: { kind: "flag" } },
     children: "any",
     slots: ["actions"],
     infer(node) {
@@ -90,9 +109,13 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     },
     check(node, err) {
       if (node.props.id === undefined && node.label !== undefined) err("cannot derive an id from the Label (add id=name)");
+      if (node.props.plain === true && node.children.some((child) => child.type === "Sidebar")) err("has both its own Sidebar and plain (keep one)");
     },
   },
-  /** A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default). */
+  /**
+   * A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default).
+   * At the top level it is shared (Document.sidebar): validate.ts places it, and its Links get no inferred active.
+   */
   Sidebar: {
     label: "none",
     props: {},
@@ -159,14 +182,9 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Table: {
     label: "none",
     props: { cols: { kind: "list" }, rows: { kind: "number", min: 1 } },
+    rows: true,
     check(node, err) {
-      if (node.rows && node.props.rows !== undefined) err("has both | rows and rows= (keep one)");
-      const cols = node.props.cols as string[] | undefined;
-      if (!cols) return err('needs cols (Table cols="A,B,C")');
-      node.rows?.forEach((cells, i) => {
-        if (cells.length !== cols.length)
-          err(`row has ${cells.length} cells, expected ${cols.length} (cols: ${cols.join(", ")})`, node.rowLines![i]);
-      });
+      tabular(node, err, 'Table cols="A,B,C"');
     },
   },
   List: {
@@ -174,6 +192,24 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     props: { items: { kind: "list" }, rows: { kind: "number", min: 1 } },
     check(node, err) {
       if (node.props.items !== undefined && node.props.rows !== undefined) err("has both items= and rows= (keep one)");
+    },
+  },
+  /** Data as a Table's: the first column is the x axis (pie: the slice names), each further column a series of numbers. The Label is the accessible name. */
+  Chart: {
+    label: "required",
+    props: { type: { kind: "enum", values: ["line", "bar", "area", "pie"] }, cols: { kind: "list" }, rows: { kind: "number", min: 1 } },
+    rows: true,
+    check(node, err) {
+      const cols = tabular(node, err, 'Chart "Label" cols="X,Series"');
+      if (!node.rows && node.props.rows === undefined) err("needs | rows or rows=N (a Chart without data draws nothing)");
+      if (!cols) return;
+      if (cols.length < 2) err("needs at least two columns in cols (the x column, then one per series)");
+      else if (node.props.type === "pie" && cols.length !== 2) err("type=pie needs exactly two columns in cols (the slice name, then its value)");
+      node.rows?.forEach((cells, i) => {
+        if (cells.length !== cols.length) return;
+        for (const [j, cell] of cells.entries())
+          if (j > 0 && !NUMBER.test(cell)) err(`"${cell}" in column ${cols[j]} is not a number (write digits, e.g. 1200 or 12.5)`, node.rowLines![i]);
+      });
     },
   },
   /** The Label is the title. Shown by a Button's opens=, or on load with `open`. */
@@ -239,6 +275,23 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Checkbox: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
   Switch: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
   Radio: { label: "required", props: { options: { kind: "list" }, value: { kind: "string" } }, check: valueInOptions },
+  /** A component of the project that the vocabulary lacks. The Label is its name, so the export can import it. */
+  Custom: {
+    label: "required",
+    props: {},
+    anyProps: true,
+    children: "any",
+    check(node, err) {
+      const name = node.label;
+      if (name === "Custom") return err('"Custom" is not the name of a component (write the name of your component, e.g. Custom "ChatBubble")');
+      // One way to write each thing: an Element type is written as itself, never through Custom.
+      if (name !== undefined && Object.hasOwn(ELEMENTS, name)) return err(`"${name}" is an Element type (use ${name} instead of Custom)`);
+      if (name === undefined || /^[A-Z][A-Za-z0-9]*$/.test(name)) return;
+      const fixed = pascalCase(name);
+      const hint = /^[A-Z]/.test(fixed) ? ` — did you mean ${fixed}?` : " (expected: a capital letter, then letters and digits)";
+      err(`"${name}" is not a PascalCase name${hint}`);
+    },
+  },
 };
 
 /** "Order list" → "order-list". */
@@ -249,3 +302,15 @@ export const slugify = (label: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+
+/**
+ * A JS identifier in PascalCase from an id or icon name: `order-details` → `OrderDetails`. One that would start
+ * with a digit (or be empty) gets `prefix` first: `2026-report` → `Screen2026Report` with prefix `Screen`.
+ */
+export const pascalCase = (id: string, prefix = "") => {
+  const name = id
+    .split(/[^A-Za-z0-9]+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+  return /^[A-Za-z]/.test(name) ? name : `${prefix}${name}`;
+};

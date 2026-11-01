@@ -1,0 +1,1 @@
+input.skz:2  Chart  has both | rows and rows= (keep one)

@@ -1,0 +1,6 @@
+// app-sidebar is reserved in every file, so adding a shared Sidebar later breaks no Screen.
+Screen "Home"
+  "Welcome"
+
+Screen "Settings" id=app-sidebar
+  "Nothing here yet."

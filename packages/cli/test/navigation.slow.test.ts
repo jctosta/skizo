@@ -57,6 +57,32 @@ test("the first Screen shows on load and a Sidebar Link shows its Screen, marked
   await page.context().close();
 });
 
+test("a shared Sidebar shows on each Screen, with the current Screen's Link marked, and not on a plain Screen", async () => {
+  const { page } = await openPreview(`Sidebar
+  Link "Dashboard" to=dashboard
+  Link "Orders" to=orders
+
+Screen "Orders"
+  Button "Sign out" to=sign-in
+
+Screen "Dashboard"
+  "Welcome back"
+
+Screen "Sign in" plain
+  "Sign in to continue"
+`);
+  const current = () => page.locator('[aria-current="page"]').filter({ visible: true }).allTextContents();
+  expect(await current()).toEqual(["Orders"]);
+  await page.getByRole("link", { name: "Dashboard" }).filter({ visible: true }).click();
+  await expect.poll(() => shownTitle(page)).toEqual(["Dashboard"]);
+  expect(await current()).toEqual(["Dashboard"]);
+  await page.getByRole("link", { name: "Orders" }).filter({ visible: true }).click();
+  await page.getByRole("link", { name: "Sign out" }).click();
+  await expect.poll(() => shownTitle(page)).toEqual(["Sign in"]);
+  expect(await page.getByRole("navigation").filter({ visible: true }).count()).toBe(0);
+  await page.context().close();
+});
+
 test("a Button with to= shows its Screen", async () => {
   const { page } = await openPreview();
   await page.getByRole("link", { name: "Open dashboard" }).click();

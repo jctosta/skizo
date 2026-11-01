@@ -1,0 +1,7 @@
+// A Custom named like an Element type: write the Element. A name that only contains one is fine.
+// Custom "Custom" names no component at all.
+Screen "Chat"
+  Custom "Button" variant=chat
+  Custom "Table"
+  Custom "ChatButton"
+  Custom "Custom"

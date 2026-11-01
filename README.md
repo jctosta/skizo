@@ -22,19 +22,21 @@ Skizo (Esperanto for *sketch*) is an indentation-based language for UI sketches.
 
 When you ask a coding agent for a UI mockup, it usually writes full React or HTML. That output is long and slow to change, and the agent adds components, state and styles that you did not ask for. Skizo gives the agent a small, fixed vocabulary instead:
 
-- A sketch is short. The Orders example below is 36 lines of Skizo. Its shadcn export is 225 lines of TSX.
-- There is one way to write each thing. Skizo has 31 Element types, and `skizo check` rejects all other types.
+- A sketch is short. The Orders example below is 34 lines of Skizo. Its shadcn export is 222 lines of TSX.
+- A Sidebar written one time, before the first Screen, goes on all Screens.
+- There is one way to write each thing. Skizo has 33 Element types, and `skizo check` rejects all other types. For a component that Skizo does not have, write `Custom "Name"`.
 - `skizo check` shows all errors in one run, each with a hint. An agent can fix the file in one pass.
-- The Preview is one HTML file that works offline. Links switch Screens, Buttons open Dialogs and Sheets, and Tabs, Menus and Selects work.
-- The export is code that you keep. It imports the shadcn components of your own project.
+- The Preview is one HTML file that works offline. Links switch Screens. Buttons open Dialogs and Sheets. Tabs, Menus and Selects work. Charts show as SVG images.
+- The export is code that you keep. It imports the shadcn components and the Custom components of your own project. With `--router`, the links use the `Link` component of Next.js or React Router.
 
 ## Example
 
 ```
+Sidebar
+  Link "Dashboard" icon=home to=dashboard
+  Link "Orders" icon=package to=orders
+
 Screen "Orders" id=orders subtitle="Manage and track customer orders"
-  Sidebar
-    Link "Dashboard" icon=home to=dashboard
-    Link "Orders" icon=package to=orders
   actions
     Button "New order" icon=plus opens=new-order
   Grid cols=3
@@ -73,13 +75,13 @@ You need Node.js 22.12 or later and Git. Skizo installs from a Git tag. Always p
 With pnpm (recommended):
 
 ```sh
-pnpm add -g github:jctosta/skizo#v0.2.0-alpha.1
+pnpm add -g github:jctosta/skizo#v0.3.0-alpha.1
 ```
 
 With npm:
 
 ```sh
-npm install -g --allow-git=all github:jctosta/skizo#v0.2.0-alpha.1
+npm install -g --allow-git=all github:jctosta/skizo#v0.3.0-alpha.1
 ```
 
 The tag points to a commit on the `release` branch. That commit holds only the built CLI. It has no install scripts and no dependencies. To pin one exact build, use the commit hash of the tag instead of the tag. The [install section](https://jctosta.github.io/skizo/#getting-started) of the documentation shows how.
@@ -95,9 +97,11 @@ skizo check orders.skz --json                            # the same errors as JS
 skizo preview orders.skz                                 # write orders.html, one offline page
 skizo preview orders.skz --watch                         # serve the page and reload it on each save
 skizo export orders.skz --target shadcn --out src/screens   # write one .tsx file for each Screen
+skizo export orders.skz --target shadcn --router next       # write the links with Link from next/link
+skizo export orders.skz --target shadcn --router react-router   # write the links with Link from react-router
 ```
 
-`preview` and `export` do not accept a file that fails `check`. The exit code is 0 for success, 1 when the file has errors, and 2 when the command is not correct or Skizo cannot read the file.
+A shared Sidebar becomes one more file, `app-sidebar.tsx`. `preview` and `export` do not accept a file that fails `check`. The exit code is 0 for success, 1 when the file has errors, and 2 when the command is not correct or Skizo cannot read the file.
 
 ## Use Skizo with an agent
 
@@ -119,9 +123,10 @@ While the agent works, keep `skizo preview <name>.skz --watch` open. The page re
 |---|---|
 | Screens and navigation | [Screen](https://jctosta.github.io/skizo/#screen), [Sidebar, Link](https://jctosta.github.io/skizo/#sidebar) |
 | Layout | [Stack, Row](https://jctosta.github.io/skizo/#stack), [Grid](https://jctosta.github.io/skizo/#grid), [Separator](https://jctosta.github.io/skizo/#separator), [Card](https://jctosta.github.io/skizo/#card), [Tabs, Tab](https://jctosta.github.io/skizo/#tabs) |
-| Content | [Heading](https://jctosta.github.io/skizo/#heading), [Text](https://jctosta.github.io/skizo/#text), [Stat](https://jctosta.github.io/skizo/#stat), [Badge](https://jctosta.github.io/skizo/#badge), [Avatar](https://jctosta.github.io/skizo/#avatar), [Image](https://jctosta.github.io/skizo/#image), [Alert](https://jctosta.github.io/skizo/#alert), [Progress](https://jctosta.github.io/skizo/#progress), [Table](https://jctosta.github.io/skizo/#table), [List](https://jctosta.github.io/skizo/#list) |
+| Content | [Heading](https://jctosta.github.io/skizo/#heading), [Text](https://jctosta.github.io/skizo/#text), [Stat](https://jctosta.github.io/skizo/#stat), [Badge](https://jctosta.github.io/skizo/#badge), [Avatar](https://jctosta.github.io/skizo/#avatar), [Image](https://jctosta.github.io/skizo/#image), [Alert](https://jctosta.github.io/skizo/#alert), [Progress](https://jctosta.github.io/skizo/#progress), [Table](https://jctosta.github.io/skizo/#table), [List](https://jctosta.github.io/skizo/#list), [Chart](https://jctosta.github.io/skizo/#chart) |
 | Actions and forms | [Button](https://jctosta.github.io/skizo/#button), [Input](https://jctosta.github.io/skizo/#input), [Textarea](https://jctosta.github.io/skizo/#textarea), [Select](https://jctosta.github.io/skizo/#select), [Checkbox, Switch](https://jctosta.github.io/skizo/#checkbox), [Radio](https://jctosta.github.io/skizo/#radio) |
 | Overlays | [Dialog](https://jctosta.github.io/skizo/#dialog), [Sheet](https://jctosta.github.io/skizo/#sheet), [Menu, Item](https://jctosta.github.io/skizo/#menu) |
+| Your components | [Custom](https://jctosta.github.io/skizo/#custom) |
 
 The [Element reference](https://jctosta.github.io/skizo/#elements) shows the props, the rules and a live Preview for each type.
 

@@ -1,0 +1,1 @@
+input.skz:2  Chart  type=pie needs exactly two columns in cols (the slice name, then its value)

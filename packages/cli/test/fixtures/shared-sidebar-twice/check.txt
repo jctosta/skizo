@@ -1,0 +1,1 @@
+input.skz:4  Sidebar  only one Sidebar per file can be shared (line 1 is shared too)

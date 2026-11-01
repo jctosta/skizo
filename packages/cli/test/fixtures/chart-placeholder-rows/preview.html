@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard</title>
+<style>/* preview.css */</style>
+</head>
+<body>
+<section data-screen="dashboard" class="min-h-screen p-6">
+<header class="mb-6 grid gap-1">
+<h1 class="text-2xl font-semibold tracking-tight">Dashboard</h1>
+</header>
+<div class="flex flex-col gap-4">
+<div role="img" aria-label="Visits" class="grid gap-2">
+<svg viewBox="0 0 100 100" preserveAspectRatio="none" class="h-48 w-full overflow-visible">
+<line x1="0" x2="100" y1="5" y2="5" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="28.75" y2="28.75" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="52.5" y2="52.5" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="76.25" y2="76.25" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="100" y2="100" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<polyline points="8.33,33.68 25,27.89 41.67,39.01 58.33,26.97 75,19.21 91.67,5" fill="none" stroke="var(--chart-1)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+<polyline points="8.33,51.18 25,42.96 41.67,32.24 58.33,42.43 75,33.09 91.67,24.54" fill="none" stroke="var(--chart-2)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+</svg>
+<div class="grid text-center text-xs text-muted-foreground" style="grid-template-columns: repeat(6, minmax(0, 1fr))"><div class="truncate">Jan</div><div class="truncate">Feb</div><div class="truncate">Mar</div><div class="truncate">Apr</div><div class="truncate">May</div><div class="truncate">Jun</div></div>
+<div class="flex flex-wrap items-center justify-center gap-4 pt-3 text-xs">
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-1)"></div>Visits</div>
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-2)"></div>Signups</div>
+</div>
+</div>
+<div role="img" aria-label="Plans" class="grid gap-2">
+<svg viewBox="-100 -100 200 200" class="mx-auto aspect-square h-48">
+<path d="M0,0 L0,-100 A100,100 0 0,1 82.67,56.27 Z" fill="var(--chart-1)"/>
+<path d="M0,0 L82.67,56.27 A100,100 0 0,1 -88.5,46.56 Z" fill="var(--chart-2)"/>
+<path d="M0,0 L-88.5,46.56 A100,100 0 0,1 0,-100 Z" fill="var(--chart-3)"/>
+</svg>
+<div class="flex flex-wrap items-center justify-center gap-4 pt-3 text-xs">
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-1)"></div>Item 1</div>
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-2)"></div>Item 2</div>
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-3)"></div>Item 3</div>
+</div>
+</div>
+</div>
+</section>
+</body>
+</html>

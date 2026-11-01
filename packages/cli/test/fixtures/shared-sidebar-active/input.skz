@@ -1,0 +1,10 @@
+// Each Screen marks its own Link in a shared Sidebar: active is not written.
+Sidebar
+  Link "Orders" to=orders active
+  Link "Dashboard" to=dashboard
+
+Screen "Orders"
+  "Recent orders"
+
+Screen "Dashboard"
+  "Welcome back"

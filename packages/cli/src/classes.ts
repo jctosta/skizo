@@ -120,6 +120,21 @@ export const CLASSES = {
     cell: "p-2 align-middle whitespace-nowrap",
   },
   List: { root: "ml-6 list-disc text-sm [&>li]:mt-1" },
+  Chart: {
+    /** The Preview: the plot (an inline SVG), the x labels in a row of equal columns, then the legend. */
+    root: "grid gap-2",
+    plot: "h-48 w-full overflow-visible",
+    pie: "mx-auto aspect-square h-48",
+    labels: "grid text-center text-xs text-muted-foreground",
+    label: "truncate",
+    // shadcn's ChartLegendContent look.
+    legend: "flex flex-wrap items-center justify-center gap-4 pt-3 text-xs",
+    legendItem: "flex items-center gap-1.5",
+    swatch: "h-2 w-2 shrink-0 rounded-[2px]",
+    /** The export: the size of the ChartContainer. */
+    container: "aspect-auto h-60 w-full",
+    pieContainer: "mx-auto aspect-square h-60",
+  },
   /** shadcn's TabsList and TabsTrigger looks; the Preview marks the active Tab with aria-selected. */
   Tabs: {
     root: "flex flex-col gap-2",
@@ -219,6 +234,12 @@ export const CLASSES = {
     thumbOff: "translate-x-0",
   },
   Radio: { group: "grid gap-3", control: "peer size-4 shrink-0 accent-primary disabled:cursor-not-allowed disabled:opacity-50" },
+  /** The Preview's stand-in for a project component: a dashed box, its `<Name>` tag and props on top. The export renders the component. */
+  Custom: {
+    root: "flex flex-col gap-3 rounded-lg border border-dashed p-3",
+    tag: "font-mono text-xs break-words text-muted-foreground",
+    name: "font-medium text-foreground",
+  },
 } as const;
 
 /** Joins the truthy class strings. */

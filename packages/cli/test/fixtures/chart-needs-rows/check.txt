@@ -1,0 +1,1 @@
+input.skz:2  Chart  needs | rows or rows=N (a Chart without data draws nothing)

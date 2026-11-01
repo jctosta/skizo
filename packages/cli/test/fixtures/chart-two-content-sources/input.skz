@@ -1,0 +1,3 @@
+Screen "Dashboard"
+  Chart "Revenue" cols="Month,Revenue" rows=3
+    | Jan | 120

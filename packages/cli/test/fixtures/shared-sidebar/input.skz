@@ -1,0 +1,26 @@
+// One Sidebar for every Screen: each Screen shows it with the Link to itself active.
+Sidebar
+  Link "Dashboard" icon=home to=dashboard
+  Link "Orders" icon=package to=orders
+  Link "Help"
+
+Screen "Dashboard"
+  Button "See orders" to=orders
+
+Screen "Orders"
+  "Recent orders"
+
+// No Link goes to this Screen, so it shows the shared Sidebar with none active.
+Screen "Reports"
+  "Monthly totals"
+
+// Its own Sidebar wins over the shared one.
+Screen "Settings"
+  Sidebar
+    Link "Back to dashboard" icon=arrow-left to=dashboard
+    Link "Settings" to=settings
+  "Preferences"
+
+// plain: no Sidebar at all.
+Screen "Sign in" plain
+  Button "Sign in" to=dashboard

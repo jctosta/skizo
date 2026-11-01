@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard</title>
+<style>/* preview.css */</style>
+</head>
+<body>
+<section data-screen="dashboard" class="min-h-screen p-6">
+<header class="mb-6 grid gap-1">
+<h1 class="text-2xl font-semibold tracking-tight">Dashboard</h1>
+</header>
+<div class="flex flex-col gap-4">
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
+<div class="grid auto-rows-min items-start gap-1 px-6">
+<div class="text-base leading-normal font-medium">Revenue</div>
+</div>
+<div class="flex flex-col gap-3 px-6">
+<div role="img" aria-label="Revenue" class="grid gap-2">
+<svg viewBox="0 0 100 100" preserveAspectRatio="none" class="h-48 w-full overflow-visible">
+<line x1="0" x2="100" y1="5" y2="5" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="28.75" y2="28.75" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="52.5" y2="52.5" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="76.25" y2="76.25" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="100" y2="100" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<polyline points="16.67,22.84 50,5 83.33,13.93" fill="none" stroke="var(--chart-1)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+<polyline points="16.67,46.58 50,37.68 83.33,100" fill="none" stroke="var(--chart-2)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+</svg>
+<div class="grid text-center text-xs text-muted-foreground" style="grid-template-columns: repeat(3, minmax(0, 1fr))"><div class="truncate">Jan</div><div class="truncate">Feb</div><div class="truncate">Mar</div></div>
+<div class="flex flex-wrap items-center justify-center gap-4 pt-3 text-xs">
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-1)"></div>Revenue</div>
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-2)"></div>Costs</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
+<div class="grid auto-rows-min items-start gap-1 px-6">
+<div class="text-base leading-normal font-medium">Orders</div>
+</div>
+<div class="flex flex-col gap-3 px-6">
+<div role="img" aria-label="Orders" class="grid gap-2">
+<svg viewBox="0 0 100 100" preserveAspectRatio="none" class="h-48 w-full overflow-visible">
+<line x1="0" x2="100" y1="5" y2="5" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="28.75" y2="28.75" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="52.5" y2="52.5" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="76.25" y2="76.25" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="100" y2="100" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<rect x="3.33" y="36.67" width="26.67" height="63.33" fill="var(--chart-1)"/>
+<rect x="36.67" y="5" width="26.67" height="95" fill="var(--chart-1)"/>
+<rect x="70" y="52.5" width="26.67" height="47.5" fill="var(--chart-1)"/>
+</svg>
+<div class="grid text-center text-xs text-muted-foreground" style="grid-template-columns: repeat(3, minmax(0, 1fr))"><div class="truncate">Mon</div><div class="truncate">Tue</div><div class="truncate">Wed</div></div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
+<div class="grid auto-rows-min items-start gap-1 px-6">
+<div class="text-base leading-normal font-medium">Traffic</div>
+</div>
+<div class="flex flex-col gap-3 px-6">
+<div role="img" aria-label="Traffic &quot;weekly&quot;" class="grid gap-2">
+<svg viewBox="0 0 100 100" preserveAspectRatio="none" class="h-48 w-full overflow-visible">
+<line x1="0" x2="100" y1="5" y2="5" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="28.75" y2="28.75" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="52.5" y2="52.5" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="76.25" y2="76.25" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="100" y2="100" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<polygon points="16.67,100 16.67,64.38 50,46.56 83.33,55.47 83.33,100" fill="var(--chart-1)" fill-opacity="0.4"/>
+<polyline points="16.67,64.38 50,46.56 83.33,55.47" fill="none" stroke="var(--chart-1)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+<polygon points="16.67,100 16.67,10.94 50,16.88 83.33,5 83.33,100" fill="var(--chart-2)" fill-opacity="0.4"/>
+<polyline points="16.67,10.94 50,16.88 83.33,5" fill="none" stroke="var(--chart-2)" stroke-width="2" vector-effect="non-scaling-stroke"/>
+</svg>
+<div class="grid text-center text-xs text-muted-foreground" style="grid-template-columns: repeat(3, minmax(0, 1fr))"><div class="truncate">W1</div><div class="truncate">W2</div><div class="truncate">W3</div></div>
+<div class="flex flex-wrap items-center justify-center gap-4 pt-3 text-xs">
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-1)"></div>New users</div>
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-2)"></div>Returning users</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
+<div class="grid auto-rows-min items-start gap-1 px-6">
+<div class="text-base leading-normal font-medium">Plans</div>
+</div>
+<div class="flex flex-col gap-3 px-6">
+<div role="img" aria-label="Plans" class="grid gap-2">
+<svg viewBox="-100 -100 200 200" class="mx-auto aspect-square h-48">
+<path d="M0,0 L0,-100 A100,100 0 1,1 -81.86,57.43 Z" fill="var(--chart-1)"/>
+<path d="M0,0 L-81.86,57.43 A100,100 0 0,1 -56.07,-82.8 Z" fill="var(--chart-2)"/>
+<path d="M0,0 L-56.07,-82.8 A100,100 0 0,1 0,-100 Z" fill="var(--chart-3)"/>
+</svg>
+<div class="flex flex-wrap items-center justify-center gap-4 pt-3 text-xs">
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-1)"></div>Free</div>
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-2)"></div>Pro</div>
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-3)"></div>Team</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div role="img" aria-label="Revenue" class="grid gap-2">
+<svg viewBox="0 0 100 100" preserveAspectRatio="none" class="h-48 w-full overflow-visible">
+<line x1="0" x2="100" y1="5" y2="5" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="28.75" y2="28.75" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="52.5" y2="52.5" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="76.25" y2="76.25" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<line x1="0" x2="100" y1="100" y2="100" stroke="var(--border)" vector-effect="non-scaling-stroke"/>
+<rect x="5" y="5" width="20" height="95" fill="var(--chart-1)"/>
+<rect x="55" y="40.63" width="20" height="59.38" fill="var(--chart-1)"/>
+<rect x="25" y="24" width="20" height="76" fill="var(--chart-2)"/>
+<rect x="75" y="28.75" width="20" height="71.25" fill="var(--chart-2)"/>
+</svg>
+<div class="grid text-center text-xs text-muted-foreground" style="grid-template-columns: repeat(2, minmax(0, 1fr))"><div class="truncate">North</div><div class="truncate">South</div></div>
+<div class="flex flex-wrap items-center justify-center gap-4 pt-3 text-xs">
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-1)"></div>2026</div>
+<div class="flex items-center gap-1.5"><div class="h-2 w-2 shrink-0 rounded-[2px]" style="background-color: var(--chart-2)"></div>2025</div>
+</div>
+</div>
+</div>
+</section>
+</body>
+</html>

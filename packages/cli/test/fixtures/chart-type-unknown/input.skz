@@ -1,0 +1,2 @@
+Screen "Dashboard"
+  Chart "Revenue" type=lines cols="Month,Revenue" rows=3

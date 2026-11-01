@@ -1,0 +1,5 @@
+// A pie's data rows hold fill (the slice color), so a column that slugs to fill takes a col-N key instead.
+Screen "Plans"
+  Chart "Plans" type=pie cols="Plan,Fill"
+    | Free | 1
+    | Pro | 2
