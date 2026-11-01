@@ -1,0 +1,20 @@
+Screen "Analytics" id=analytics subtitle="Traffic and conversion for the last 30 days"
+  actions
+    Button "Export" variant=outline icon=download
+  Grid cols=4
+    Stat "24,310" title="Visitors" hint="+8.2% vs last period" trend=up
+    Stat "3.4%" title="Conversion" hint="-0.3% vs last period" trend=down
+    Stat "$48,200" title="Revenue" hint="+12% vs last period" trend=up
+    Stat "1m 52s" title="Avg. session"
+  Grid cols=3
+    Card "Traffic" desc="Visits per day" span=2
+      Image "Line chart of daily visits" ratio=21:9
+    Card "Top channels"
+      List items="Organic search,Direct,Referral,Social"
+  Alert "Tracking paused on 2 pages" text="Add the snippet to /pricing and /blog to resume."
+  Card "Goals"
+    Stack gap=sm
+      Text "Newsletter signups" size=sm
+      Progress value=64
+      Text "Trial starts" size=sm
+      Progress value=38

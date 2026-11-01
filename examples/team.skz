@@ -1,0 +1,41 @@
+Screen "Team" id=team subtitle="Invite people and manage their access"
+  Sidebar
+    Link "Overview" icon=layout-dashboard to=overview
+    Link "Team" icon=users to=team
+  actions
+    Button "Invite member" icon=user-plus opens=invite
+  Row gap=sm
+    Input "Search" type=search placeholder="Search by name or email"
+    Select "Role" options="All roles,Admin,Member,Viewer" value="All roles"
+  Card "Members" desc="Showing 5 of 12 people."
+    actions
+      Menu "Bulk actions" icon=ellipsis icon-only variant=ghost
+        Item "Export as CSV"
+        Item "Resend invites"
+        Item "Remove selected" destructive
+    Table cols="Name,Email,Role,Status"
+      | Ana Souza | ana@example.com | Admin | Active
+      | Bruno Lima | bruno@example.com | Member | Active
+      | Grace Kim | grace@example.com | Member | Invited
+      | Diego Rocha | diego@example.com | Viewer | Active
+      | Elena Costa | elena@example.com | Viewer | Suspended
+  Sheet "Invite a member" id=invite desc="They get an email with a link to join."
+    Input "Email" type=email placeholder="name@company.com"
+    Select "Role" options="Admin,Member,Viewer" value=Member
+    Textarea "Message" placeholder="Optional note"
+    footer
+      Button "Send invite" icon=send
+
+Screen "Overview" id=overview
+  Sidebar
+    Link "Overview" icon=layout-dashboard to=overview
+    Link "Team" icon=users to=team
+  Grid cols=3
+    Card "Members"
+      Stat "12" hint="+2 this month" trend=up
+    Card "Pending invites"
+      Stat "3" hint="Oldest sent 4 days ago"
+    Card "Seats used"
+      Progress value=75
+      Text "12 of 16 seats" muted size=sm
+  Button "Manage team" variant=outline icon=arrow-right to=team

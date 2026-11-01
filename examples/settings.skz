@@ -1,0 +1,30 @@
+Screen "Settings" id=settings subtitle="Manage your account and preferences"
+  Tabs
+    Tab "Profile"
+      Card "Profile" desc="This is how others see you."
+        Row gap=md align=center
+          Avatar "Ana Souza" size=lg
+          Stack gap=sm
+            Text "Ana Souza" bold
+            Text "ana@example.com" muted size=sm
+        Input "Display name" value="Ana Souza"
+        Input "Email" type=email value="ana@example.com"
+        Textarea "Bio" placeholder="Tell us a little about yourself" rows=3
+        footer
+          Button "Save changes"
+    Tab "Notifications"
+      Card "Notifications" desc="Choose what we email you about."
+        Switch "Product updates" checked
+        Switch "Weekly digest"
+        Switch "Security alerts" checked disabled
+        Separator
+        Radio "Email frequency" options="Instantly,Daily,Weekly" value=Daily
+    Tab "Danger zone"
+      Alert "Deleting your account is permanent" text="All projects and data are removed. This cannot be undone." variant=destructive
+      Button "Delete account" variant=destructive icon=trash-2 opens=confirm-delete
+  Dialog "Delete account?" id=confirm-delete desc="Type your email to confirm."
+    Input "Email" type=email placeholder="ana@example.com"
+    Checkbox "I understand this cannot be undone"
+    footer
+      Button "Cancel" variant=outline
+      Button "Delete account" variant=destructive

@@ -3,12 +3,16 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=22.18"
+  },
   "scripts": {
     "build": "pnpm -F @jctosta/skizo build",
     "typecheck": "tsc -p packages/core && tsc -p packages/cli",
     "test": "pnpm -F @jctosta/skizo assets && vitest run --project fast",
     "test:slow": "pnpm -F @jctosta/skizo assets && vitest run --project slow",
-    "test:all": "pnpm -F @jctosta/skizo assets && vitest run"
+    "test:all": "pnpm -F @jctosta/skizo assets && vitest run",
+    "build:docs": "pnpm build && node scripts/docs.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
