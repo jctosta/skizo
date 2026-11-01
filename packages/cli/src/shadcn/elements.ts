@@ -4,14 +4,17 @@ import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
 import { chartRows, initials, listItems, lorem, tableRows } from "../placeholder";
 
+/**
+ * One name an import declares: `"Card"`, or an object for a name under an alias (`{ name: "Label", as: "CustomLabel" }`),
+ * a type (`{ name: "ChartConfig", type: true }`) or the default export (`{ name: "default", as: "Link" }`).
+ */
+export type Import = string | { name: string; as?: string; type?: true };
+
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
-  /**
-   * Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`.
-   * `default as Link` imports the default export: `import Link from ...`.
-   */
-  use(from: string, ...names: string[]): void;
+  /** Adds imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
+  use(from: string, ...names: Import[]): void;
   /** The `--router` whose Link the export writes links with; undefined for plain anchors. Read it through `screenLink`. */
   router?: Router;
   /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
@@ -101,8 +104,8 @@ export const icon = (ctx: Ctx, name: string, className?: string) => {
 
 /** `--router`: each router's Link component, as `ctx.use` imports it, and the prop that takes the path. */
 export const ROUTERS = {
-  next: { from: "next/link", name: "default as Link", prop: "href" },
-  "react-router": { from: "react-router", name: "Link", prop: "to" },
+  next: { from: "next/link", link: { name: "default", as: "Link" }, prop: "href" },
+  "react-router": { from: "react-router", link: "Link", prop: "to" },
 };
 export type Router = keyof typeof ROUTERS;
 
@@ -112,7 +115,7 @@ export type Router = keyof typeof ROUTERS;
  */
 export function screenLink(ctx: Ctx, to: string | undefined, attrs: Record<string, unknown>, body: string) {
   const router = to === undefined || ctx.router === undefined ? undefined : ROUTERS[ctx.router];
-  if (router) ctx.use(router.from, router.name);
+  if (router) ctx.use(router.from, router.link);
   const tag = router ? "Link" : "a";
   const open = `<${tag}${jsxAttrs({ [router?.prop ?? "href"]: to === undefined ? undefined : `/${to}`, ...attrs })}>`;
   return body.includes("\n") ? wrap(open, body, `</${tag}>`) : `${open}${body}</${tag}>`;
@@ -352,7 +355,7 @@ export const EMITTERS: Record<string, Emit> = {
     ctx.declare(wrap(`const ${name}Data = [`, lines(...rows), "]"));
     ctx.declare(wrap(`const ${name}Config = {`, lines(...config), "} satisfies ChartConfig"));
     const legend = chartHasLegend(node);
-    ctx.use("@/components/ui/chart", "ChartContainer", "ChartTooltip", "ChartTooltipContent", "type ChartConfig");
+    ctx.use("@/components/ui/chart", "ChartContainer", "ChartTooltip", "ChartTooltipContent", { name: "ChartConfig", type: true });
     if (legend) ctx.use("@/components/ui/chart", "ChartLegend", "ChartLegendContent");
     const title = ` title=${attr(node.label!)}`;
     if (type === "pie") {
@@ -514,7 +517,7 @@ export const EMITTERS: Record<string, Emit> = {
     const tag = ctx.clashes.has(name) ? `Custom${name}` : name;
     // ChatBubble → chat-bubble, KPICard → kpi-card.
     const file = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").toLowerCase();
-    ctx.use(`@/components/${file}`, tag === name ? name : `${name} as ${tag}`);
+    ctx.use(`@/components/${file}`, tag === name ? name : { name, as: tag });
     const camel = (key: string) => key.replace(/-(\w)/g, (_, c: string) => c.toUpperCase());
     const props = jsxAttrs(Object.fromEntries(customProps(node).map(([key, v]) => [camel(key), v])));
     return node.children.length ? wrap(`<${tag}${props}>`, ctx.render(node.children), `</${tag}>`) : `<${tag}${props} />`;
