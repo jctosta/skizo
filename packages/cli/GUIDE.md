@@ -45,7 +45,7 @@ Sheet "Title"       desc open side=right|left; slot: footer   direct child of Sc
 Menu "Trigger"      icon variant icon-only open; children: Item "Label" (destructive disabled)
 Button "Label"      variant=default|secondary|outline|ghost|destructive|link
                     size icon icon-only disabled loading opens to
-Link "Label"        icon active to
+Link "Label"        icon active to                   only in Sidebar
 Input "Label"       type=text|email|password|number|search placeholder value error disabled
 Textarea "Label"    placeholder value rows
 Select "Label"      options value placeholder open
