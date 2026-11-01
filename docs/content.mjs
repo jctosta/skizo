@@ -258,6 +258,8 @@ Screen becomes one file with the name of its id. For example, <code>orders.tsx</
   <li>The shadcn components that the file uses: alert, avatar, badge, button, card, checkbox, dialog,
   dropdown-menu, input, label, progress, radio-group, select, separator, sheet, switch, table, tabs and
   textarea.</li>
+  <li>For each Custom name, your component in <code>@/components/&lt;kebab-name&gt;</code>. For example,
+  <code>ChatBubble</code> comes from <code>@/components/chat-bubble</code>.</li>
 </ul>
 <h3>Output</h3>
 <ul>
@@ -617,6 +619,24 @@ Sheet "Filters" id=filters desc="Show fewer orders." open
         },
         notes: ["A Menu can contain only Items. An Item can only be in a Menu."],
         shadcn: "`DropdownMenu > DropdownMenuTrigger(Button) > DropdownMenuContent > DropdownMenuItem*`.",
+      },
+    ],
+  },
+  {
+    title: "Your components",
+    entries: [
+      {
+        types: ["Custom"],
+        summary: "A component of your app that Skizo does not have, for example a chat bubble. Use it only when no other Element type fits.",
+        example: `Custom "ChatBubble" author="Ana Souza" sent-at="9:41" mine
+  Text "Where is my order?"
+Custom "TypingIndicator"`,
+        about: { Custom: { label: "The name of the component, in PascalCase. For example, ChatBubble." } },
+        notes: [
+          "A Custom takes all props and flags. `skizo check` does not check them.",
+          "The Preview shows a box with a dashed border. The box shows the name, the props and the children.",
+        ],
+        shadcn: "`import { ChatBubble } from \"@/components/chat-bubble\"` and `<ChatBubble author=\"Ana Souza\" sentAt=\"9:41\" mine>`. A prop key with a hyphen becomes camelCase. A Custom without children becomes a self-closing tag.",
       },
     ],
   },
