@@ -1,0 +1,1 @@
+input.skz:2  Heading  more than one level deeper than its parent (indent 2 spaces per level)
