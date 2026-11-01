@@ -195,10 +195,10 @@ test("an unknown --router gets a nearest-match hint and writes nothing", async (
   });
 });
 
-test("--router without --target is a usage error", async () => {
+test("--router without --target is a usage error that names the target --router needs", async () => {
   const cwd = withFiles({ "orders.skz": TWO_SCREENS });
   const { code, stderr } = await runCli(["export", "orders.skz", "--router", "next"], cwd);
-  expect({ code, stderr }).toEqual({ code: 2, stderr: "skizo export: --target is required (expected: shadcn)\n" });
+  expect({ code, stderr }).toEqual({ code: 2, stderr: "skizo export: --router needs --target shadcn\n" });
 });
 
 /** Exports one pie Chart: its data and config declarations and its legend line. */
