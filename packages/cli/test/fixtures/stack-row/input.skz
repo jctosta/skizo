@@ -1,0 +1,14 @@
+// Stack and Row with every gap, align and justify value; defaults are gap=md align=start justify=start.
+Screen "Layout"
+  Stack
+    Text "Default stack"
+  Stack gap=sm align=center justify=between
+    Text "Small, centered"
+  Stack gap=lg align=end justify=end
+    Text "Large, end"
+  Row
+    Text "Left"
+    Text "Right"
+  Row gap=sm align=center justify=between
+    Row gap=lg align=end justify=end
+      Text "Nested"

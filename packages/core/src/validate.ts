@@ -66,8 +66,11 @@ function props(node: Node, spec: ElementSpec, err: (node: Node, message: string)
       err(node, `${key} needs a value${prop.kind === "enum" ? ` (expected: ${prop.values.join(", ")})` : ""}`);
     } else node.props[key] = coerce(key, String(raw), prop, (message) => err(node, message));
   }
-  for (const [key, prop] of Object.entries(spec.props))
-    if (prop.kind === "enum" && node.props[key] === undefined) node.props[key] = prop.values[0]!;
+  for (const [key, prop] of Object.entries(spec.props)) {
+    if (node.props[key] !== undefined) continue;
+    if (prop.kind === "enum") node.props[key] = prop.values[0]!;
+    if (prop.kind === "number" && prop.default !== undefined) node.props[key] = prop.default;
+  }
 }
 
 function coerce(key: string, value: string, prop: PropSpec, err: (message: string) => void): string | number | string[] {

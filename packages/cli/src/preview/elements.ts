@@ -1,5 +1,5 @@
 import type { Node } from "@skizo/core";
-import { CLASSES, cx } from "../classes";
+import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
 export type Ctx = { render(nodes: Node[]): string };
@@ -40,4 +40,10 @@ export const EMITTERS: Record<string, Emit> = {
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p class="${classes}">${esc(node.label!)}</p>`;
   },
+  Stack: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
+  Row: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
+  Grid: (node, ctx) => div(gridClasses(node), ctx.render(node.children)),
 };
+
+/** A `<div>` holding `body`, which may be empty. */
+const div = (classes: string, body: string) => [`<div class="${classes}">`, body, "</div>"].filter(Boolean).join("\n");
