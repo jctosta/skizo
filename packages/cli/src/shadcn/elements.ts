@@ -132,6 +132,23 @@ export const EMITTERS: Record<string, Emit> = {
     ctx.use("@/components/ui/textarea", "Textarea");
     return field(node, ctx, id, `<Textarea${jsxAttrs({ id, placeholder, defaultValue: value, rows })} />`);
   },
+  Select: (node, ctx) => {
+    const { value, placeholder, open } = node.props;
+    const id = fieldId(node, ctx);
+    ctx.use("@/components/ui/select", "Select", "SelectContent", "SelectItem", "SelectTrigger", "SelectValue");
+    const items = ((node.props.options ?? []) as string[]).map(
+      (option) => `<SelectItem${jsxAttrs({ value: option })}>${text(option)}</SelectItem>`,
+    );
+    const select = wrap(
+      `<Select${jsxAttrs({ defaultValue: value, defaultOpen: open })}>`,
+      lines(
+        wrap(`<SelectTrigger${jsxAttrs({ id })}>`, `<SelectValue${jsxAttrs({ placeholder })} />`, "</SelectTrigger>"),
+        wrap("<SelectContent>", lines(...items), "</SelectContent>"),
+      ),
+      "</Select>",
+    );
+    return field(node, ctx, id, select);
+  },
   Checkbox: (node, ctx) => {
     const id = fieldId(node, ctx);
     ctx.use("@/components/ui/checkbox", "Checkbox");

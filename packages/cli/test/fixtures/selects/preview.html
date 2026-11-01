@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order</title>
+<style>/* preview.css */</style>
+</head>
+<body>
+<section data-screen="order" class="min-h-screen p-6">
+<header class="mb-6 grid gap-1">
+<h1 class="text-2xl font-semibold tracking-tight">Order</h1>
+</header>
+<div class="flex flex-col gap-4">
+<div class="grid gap-2">
+<label for="field-2" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Status</label>
+<div data-popup class="relative">
+<button type="button" role="combobox" id="field-2" aria-expanded="false" aria-haspopup="listbox" data-popup-trigger class="flex h-9 w-fit items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"><span>Open</span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none size-4 text-muted-foreground" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<div role="listbox" data-popup-content class="absolute top-full left-0 z-50 mt-1 min-w-36 overflow-hidden rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10 hidden">
+<div role="option" aria-selected="true" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Open<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+<div role="option" aria-selected="false" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Paid<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+<div role="option" aria-selected="false" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Refunded, partly<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+</div>
+</div>
+</div>
+<div class="grid gap-2">
+<label for="field-3" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Plan</label>
+<div data-popup class="relative">
+<button type="button" role="combobox" id="field-3" aria-expanded="true" aria-haspopup="listbox" data-popup-trigger class="flex h-9 w-fit items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"><span class="text-muted-foreground">Pick a plan</span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none size-4 text-muted-foreground" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<div role="listbox" data-popup-content class="absolute top-full left-0 z-50 mt-1 min-w-36 overflow-hidden rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10">
+<div role="option" aria-selected="false" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Free<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+<div role="option" aria-selected="false" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Pro<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<script>/* preview.js */</script>
+</body>
+</html>

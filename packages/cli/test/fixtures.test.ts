@@ -9,8 +9,11 @@ import { runCli, tempDir } from "./helpers/run-cli";
 
 const FIXTURES = fileURLToPath(new URL("./fixtures/", import.meta.url));
 
-/** The inlined CSS changes whenever any emitter gains a class; keep it out of the goldens. */
-const withoutCss = (html: string) => html.replace(/<style>[\s\S]*?<\/style>/, "<style>/* preview.css */</style>");
+/** The inlined CSS and JS change with every emitter or interaction added; keep them out of the goldens. */
+const withoutAssets = (html: string) =>
+  html
+    .replace(/<style>[\s\S]*?<\/style>/, "<style>/* preview.css */</style>")
+    .replace(/<script>[\s\S]*?<\/script>/, "<script>/* preview.js */</script>");
 
 for (const name of readdirSync(FIXTURES)) {
   const dir = join(FIXTURES, name);
@@ -24,7 +27,7 @@ for (const name of readdirSync(FIXTURES)) {
 
     const previewed = await runCli(["preview", "input.skz"], cwd);
     expect(previewed.code).toBe(0);
-    await expect(withoutCss(readFileSync(join(cwd, "input.html"), "utf8"))).toMatchFileSnapshot(join(dir, "preview.html"));
+    await expect(withoutAssets(readFileSync(join(cwd, "input.html"), "utf8"))).toMatchFileSnapshot(join(dir, "preview.html"));
 
     const exported = await runCli(["export", "input.skz", "--target", "shadcn", "--out", "shadcn"], cwd);
     expect(exported.code).toBe(0);

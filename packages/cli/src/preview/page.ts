@@ -1,8 +1,9 @@
 import type { Document, Node } from "@skizo/core";
 import { readAsset } from "../assets";
 import { EMITTERS, esc, type Ctx } from "./elements";
+import { SCRIPT } from "./script";
 
-/** The Preview: one self-contained HTML page holding every Screen. No network: CSS is inlined. */
+/** The Preview: one self-contained HTML page holding every Screen. No network: CSS and JS are inlined. */
 export function renderPreview(document: Document): string {
   return [
     "<!doctype html>",
@@ -15,6 +16,7 @@ export function renderPreview(document: Document): string {
     "</head>",
     "<body>",
     render(document.screens),
+    `<script>${SCRIPT}</script>`,
     "</body>",
     "</html>",
     "",

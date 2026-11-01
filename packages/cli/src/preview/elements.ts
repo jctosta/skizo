@@ -87,6 +87,28 @@ export const EMITTERS: Record<string, Emit> = {
     const a = attrs({ id: fieldId(node), placeholder, rows });
     return field(node, `<textarea${a} class="${CLASSES.Textarea.control}">${esc(String(value))}</textarea>`);
   },
+  Select: (node) => {
+    const c = CLASSES.Select;
+    const { value, placeholder = "", open } = node.props as { value?: string; placeholder?: string; open?: true };
+    const options = (node.props.options ?? []) as string[];
+    const shown = value === undefined ? `<span class="${c.placeholder}">${esc(placeholder)}</span>` : `<span>${esc(value)}</span>`;
+    const trigger = `<button type="button" role="combobox"${attrs({ id: fieldId(node), "aria-expanded": String(open === true) })} aria-haspopup="listbox" data-popup-trigger class="${c.trigger}">${shown}${iconSvg("chevron-down", c.chevron)}</button>`;
+    const check = iconSvg("check", c.check);
+    const items = options.map(
+      (option) => `<div role="option" aria-selected="${option === value}" class="${c.item}">${esc(option)}${check}</div>`,
+    );
+    return field(
+      node,
+      [
+        `<div data-popup class="${c.root}">`,
+        trigger,
+        `<div role="listbox" data-popup-content class="${cx(c.content, open !== true && c.closed)}">`,
+        ...items,
+        `</div>`,
+        `</div>`,
+      ].join("\n"),
+    );
+  },
   Checkbox: (node) => {
     const { checked, disabled } = node.props;
     const control = `<input type="checkbox"${attrs({ id: fieldId(node), checked, disabled })} class="${CLASSES.Checkbox.control}">`;
