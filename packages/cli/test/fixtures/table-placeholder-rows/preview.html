@@ -53,8 +53,10 @@
 // Viewport toolbar: the frame is as wide as the pressed button says, so the breakpoint classes respond as on a device.
 // A narrower window scales the frame down to fit, like a browser's device mode.
 // history.state keeps the picked width and this page's hash keeps the shown Screen, so a reload keeps both.
+// The picked width is saved with the width the page was written at (--viewport): a page written at another one opens at it.
 const frame = document.querySelector("iframe");
 const buttons = [...document.querySelectorAll("button[data-width]")];
+const written = buttons.find((b) => b.ariaPressed === "true");
 let width;
 const fit = () => {
   const stage = frame.parentElement;
@@ -66,12 +68,13 @@ const fit = () => {
 const pick = (button) => {
   for (const b of buttons) b.setAttribute("aria-pressed", String(b === button));
   width = Number(button.dataset.width);
-  history.replaceState({ viewport: button.value }, "");
+  history.replaceState({ viewport: button.value, written: written.value }, "");
   fit();
 };
 for (const b of buttons) b.addEventListener("click", () => pick(b));
 addEventListener("resize", fit);
-pick(buttons.find((b) => b.value === history.state?.viewport) || buttons.find((b) => b.ariaPressed === "true"));
+const saved = history.state?.written === written.value && buttons.find((b) => b.value === history.state.viewport);
+pick(saved || written);
 // The base keeps the sketch's #screen links inside the frame. The frame starts on this page's hash and copies its own back.
 frame.addEventListener("load", () => {
   const sketch = frame.contentWindow;

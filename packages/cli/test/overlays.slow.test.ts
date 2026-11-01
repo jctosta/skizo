@@ -1,8 +1,6 @@
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { chromium, type Browser, type FrameLocator, type Page } from "playwright";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { runCli, withFiles } from "./helpers/run-cli";
+import { openPreview } from "./helpers/preview-page";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -24,24 +22,6 @@ const SKETCH = `Screen "Orders"
     Text "Narrow the list."
 `;
 
-/** Opens the Preview of `sketch` with the network blocked; `external` collects any request that left the file. */
-async function openPreview(source = SKETCH) {
-  const cwd = withFiles({ "orders.skz": source });
-  await runCli(["preview", "orders.skz"], cwd);
-  // 1280 px shows the desktop sketch unscaled: Playwright's click checks miss in a scaled frame.
-  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  const external: string[] = [];
-  await context.route("**/*", (route) => {
-    const url = route.request().url();
-    if (url.startsWith("file:")) return route.continue();
-    external.push(url);
-    return route.abort();
-  });
-  const page = await context.newPage();
-  await page.goto(pathToFileURL(join(cwd, "orders.html")).href);
-  return { page, sketch: page.frameLocator("iframe"), external };
-}
-
 /** Opens the Overlay named `name` from its Button and reports whether it was hidden before and shown after. */
 async function open(sketch: FrameLocator, name: string) {
   const overlay = sketch.getByRole("dialog", { name });
@@ -57,7 +37,7 @@ async function clickBackdrop(page: Page) {
 }
 
 test("opens= shows the Dialog and its close button hides it, without network requests", async () => {
-  const { page, sketch, external } = await openPreview();
+  const { sketch, external } = await openPreview(browser, SKETCH);
   const { overlay, hiddenBefore, visibleAfter } = await open(sketch, "New order");
   await overlay.getByRole("button", { name: "Close" }).click();
   expect({ hiddenBefore, visibleAfter, hiddenAfterClose: await overlay.isHidden(), external }).toEqual({
@@ -66,27 +46,24 @@ test("opens= shows the Dialog and its close button hides it, without network req
     hiddenAfterClose: true,
     external: [],
   });
-  await page.context().close();
 });
 
 test("a backdrop click closes the Dialog", async () => {
-  const { page, sketch } = await openPreview();
+  const { page, sketch } = await openPreview(browser, SKETCH);
   const { overlay, visibleAfter } = await open(sketch, "New order");
   await clickBackdrop(page);
   expect({ visibleAfter, hiddenAfterClose: await overlay.isHidden() }).toEqual({ visibleAfter: true, hiddenAfterClose: true });
-  await page.context().close();
 });
 
 test("a footer Button without Behavior closes the Dialog", async () => {
-  const { page, sketch } = await openPreview();
+  const { sketch } = await openPreview(browser, SKETCH);
   const { overlay, visibleAfter } = await open(sketch, "New order");
   await overlay.getByRole("button", { name: "Cancel" }).click();
   expect({ visibleAfter, hiddenAfterClose: await overlay.isHidden() }).toEqual({ visibleAfter: true, hiddenAfterClose: true });
-  await page.context().close();
 });
 
 test("opens= shows the Sheet at its side and a backdrop click closes it", async () => {
-  const { page, sketch } = await openPreview();
+  const { page, sketch } = await openPreview(browser, SKETCH);
   const { overlay, visibleAfter } = await open(sketch, "Filters");
   const box = await overlay.boundingBox();
   await clickBackdrop(page);
@@ -96,11 +73,11 @@ test("opens= shows the Sheet at its side and a backdrop click closes it", async 
     right: 1280,
     hiddenAfterClose: true,
   });
-  await page.context().close();
 });
 
 test("Escape closes an open Select first, then the Dialog under it", async () => {
   const { page, sketch } = await openPreview(
+    browser,
     `Screen "Orders"\n  Button "New order" opens=new-order\n  Dialog "New order" id=new-order\n    Select "Status" options="Open,Paid"\n`,
   );
   const { overlay, visibleAfter } = await open(sketch, "New order");
@@ -116,11 +93,9 @@ test("Escape closes an open Select first, then the Dialog under it", async () =>
     afterFirst: { option: false, dialog: true },
     dialogAfterSecond: false,
   });
-  await page.context().close();
 });
 
 test("an Overlay flagged open shows on load", async () => {
-  const { page, sketch } = await openPreview(`Screen "Orders"\n  Dialog "Welcome back" open\n    "Here is what changed."\n`);
+  const { sketch } = await openPreview(browser, `Screen "Orders"\n  Dialog "Welcome back" open\n    "Here is what changed."\n`);
   expect(await sketch.getByRole("dialog", { name: "Welcome back" }).isVisible()).toBe(true);
-  await page.context().close();
 });

@@ -67,7 +67,7 @@ const helpers = { skz: (t) => codeBlock(t, highlight), sh: (t) => codeBlock(t, s
 let css;
 const frames = [];
 /** Renders Skizo source with the real CLI and returns the index of its frame. */
-function frame(source, name, { demo = false, wrapped = false } = {}) {
+function frame(source, name, { demo = false, wrapped = false, height } = {}) {
   const file = join(tmp, `${name}.skz`);
   writeFileSync(file, source);
   try {
@@ -79,11 +79,12 @@ function frame(source, name, { demo = false, wrapped = false } = {}) {
   const style = html.match(/<style>([\s\S]*?)<\/style>/)[1];
   if (css !== undefined && style !== css) throw new Error(`Preview CSS differs in "${name}"`);
   css = style;
-  // An example is the whole Preview, with its viewport toolbar. A demo is the sketch alone, as wide as its box:
-  // the Preview's <template> in place of the toolbar and frame.
+  // An example is the whole Preview, with its viewport toolbar. A demo is the sketch alone: the Preview's <template>
+  // in place of the toolbar and frame, at the width the toolbar starts at (desktop), scaled down to fit its box.
   const page = demo ? html.replace(/<body>[\s\S]*<\/body>/, () => `<body>\n${html.match(/<template id="sketch">\n([\s\S]*?)<\/template>/)[1]}</body>`) : html;
+  const width = demo ? Number(html.match(/data-width="(\d+)" aria-pressed="true"/)[1]) : undefined;
   // srcdoc frames resolve links against this page; the base keeps the Preview's #screen links inside the frame.
-  frames.push({ html: page.replace(style, "").replace("<head>", '<head>\n<base href="about:srcdoc">'), demo, wrapped });
+  frames.push({ html: page.replace(style, "").replace("<head>", '<head>\n<base href="about:srcdoc">'), demo, wrapped, width, height });
   return frames.length - 1;
 }
 
@@ -146,8 +147,7 @@ function elementEntry(entry) {
   const id = slug(entry.types[0]);
   const full = /^(Screen|Sidebar)\b/.test(entry.example);
   const source = full ? entry.example : `Screen "${entry.types[0]}"\n${entry.example.replace(/^/gm, "  ")}`;
-  const index = frame(source, `element-${id}`, { demo: true, wrapped: !full });
-  const height = entry.height ? ` style="height:${entry.height}px"` : "";
+  const index = frame(source, `element-${id}`, { demo: true, wrapped: !full, height: entry.height });
   const perType = entry.types
     .map((type) => {
       const spec = ELEMENTS[type];
@@ -160,7 +160,7 @@ function elementEntry(entry) {
   <h3><a href="#${id}">${entry.types.join(" / ")}</a></h3>
   <p>${md(entry.summary)}</p>
   <div class="demo">
-    <iframe title="Preview of ${esc(entry.types.join(" and "))}" data-frame="${index}"${height}></iframe>
+    <iframe title="Preview of ${esc(entry.types.join(" and "))}" data-frame="${index}"></iframe>
     ${codeBlock(entry.example, highlight)}
   </div>
   ${perType}
@@ -285,7 +285,7 @@ const page = `<!doctype html>
   table.props td:first-child, table.ref td:first-child { white-space: nowrap; }
   .element { max-width: 900px; padding-bottom: 8px; }
   .demo { border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; margin: 16px 0; }
-  .demo iframe { display: block; width: 100%; height: 96px; border: 0; background: #fff; }
+  .demo iframe { display: block; width: 100%; height: 96px; border: 0; background: #fff; transform-origin: 0 0; }
   .demo pre.code { margin: 0; border-radius: 0; }
   .facts { display: flex; flex-wrap: wrap; gap: 4px 28px; margin: 16px 0 4px; font-size: 14px; }
   .facts div { display: flex; gap: 8px; } .facts dt { color: #737373; } .facts dd { margin: 0; }
@@ -365,13 +365,22 @@ ${sections.map((s) => `<section class="prose" id="${s.id}"><h2><a href="#${s.id}
     const f = FRAMES[frame.dataset.frame];
     const style = CSS + (f.demo ? DEMO_CSS : "") + (f.wrapped ? WRAPPED_CSS : "");
     frame.srcdoc = f.html.replace("<style></style>", () => "<style>" + style + "</style>");
-    if (f.demo && !frame.style.height)
-      frame.addEventListener("load", () => {
-        const body = frame.contentDocument.body;
-        const fit = () => (frame.style.height = body.scrollHeight + "px");
-        new ResizeObserver(fit).observe(body);
-        fit();
-      });
+    if (!f.demo) continue;
+    // A demo lays out at f.width, like an example's Preview, and scales down to its box. It is as tall as its content,
+    // or f.height (in sketch px) for open Overlays; the negative margin gives back the space that the scale frees.
+    frame.style.width = f.width + "px";
+    const fit = () => {
+      const scale = Math.min(1, frame.parentElement.clientWidth / f.width);
+      const height = f.height ?? frame.contentDocument.body.scrollHeight;
+      frame.style.scale = String(scale);
+      frame.style.height = height + "px";
+      frame.style.marginBottom = height * (scale - 1) + "px";
+    };
+    frame.addEventListener("load", () => {
+      new ResizeObserver(fit).observe(frame.contentDocument.body);
+      fit();
+    });
+    addEventListener("resize", fit);
   }
   document.addEventListener("click", (event) => {
     const tab = event.target.closest(".tabs button");

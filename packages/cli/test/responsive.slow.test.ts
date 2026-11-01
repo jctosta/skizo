@@ -1,9 +1,8 @@
 // Responsive layout at real widths: the breakpoint classes only respond in a browser.
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { chromium, type Browser } from "playwright";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { runCli, withFiles } from "./helpers/run-cli";
+import { openPreview } from "./helpers/preview-page";
+import { runCli } from "./helpers/run-cli";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -37,25 +36,8 @@ const SKETCH = `Screen "Orders" subtitle="Track customer orders"
       "Open orders"
 `;
 
-/** Opens the Preview at `window` px with the network blocked; `external` collects any request that left the file. */
-async function openPreview(args: string[], window: number) {
-  const cwd = withFiles({ "orders.skz": SKETCH });
-  await runCli(["preview", "orders.skz", ...args], cwd);
-  const context = await browser.newContext({ viewport: { width: window, height: 800 } });
-  const external: string[] = [];
-  await context.route("**/*", (route) => {
-    const url = route.request().url();
-    if (url.startsWith("file:")) return route.continue();
-    external.push(url);
-    return route.abort();
-  });
-  const page = await context.newPage();
-  await page.goto(pathToFileURL(join(cwd, "orders.html")).href);
-  return { page, sketch: page.frameLocator("iframe"), external };
-}
-
 test("--viewport phone opens at phone width and the toolbar switches to tablet and desktop: a 3-column Grid shows 1, 2 and 3 columns, and nothing overflows", async () => {
-  const { page, sketch, external } = await openPreview(["--viewport", "phone"], 1440);
+  const { page, sketch, external } = await openPreview(browser, SKETCH, { args: ["--viewport", "phone"], window: 1440 });
   const layout = () =>
     sketch.locator("html").evaluate(() => {
       const grid = document.querySelector<HTMLElement>(".grid.gap-4")!;
@@ -86,11 +68,20 @@ test("--viewport phone opens at phone width and the toolbar switches to tablet a
     pressed: ["Desktop"],
     external: [],
   });
-  await page.context().close();
+});
+
+test("a reload after preview runs again with another --viewport opens at the new width, not the saved one", async () => {
+  const { page, sketch, cwd } = await openPreview(browser, SKETCH, { args: ["--viewport", "phone"] });
+  await runCli(["preview", "sketch.skz", "--viewport", "tablet"], cwd);
+  await page.reload();
+  expect({
+    pressed: await page.getByRole("button", { pressed: true }).allTextContents(),
+    width: await sketch.locator("html").evaluate(() => innerWidth),
+  }).toEqual({ pressed: ["Tablet"], width: 768 });
 });
 
 test("a window narrower than the picked width shows the whole sketch scaled down to fit, and it still takes clicks", async () => {
-  const { page, sketch } = await openPreview([], 640);
+  const { page, sketch } = await openPreview(browser, SKETCH, { window: 640 });
   const frame = (await page.locator("iframe").boundingBox())!;
   // A real click at the scaled spot: Playwright's own click checks miss in a scaled frame.
   const tab = (await sketch.getByRole("tab", { name: "Open" }).boundingBox())!;
@@ -101,7 +92,6 @@ test("a window narrower than the picked width shows the whole sketch scaled down
     pageOverflows: await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
     selected: await sketch.getByRole("tab", { selected: true }).textContent(),
   }).toEqual({ width: 1280, shown: { left: 0, right: 640 }, pageOverflows: false, selected: "Open" });
-  await page.context().close();
 });
 
 const SHARED_SIDEBAR = `Sidebar
@@ -115,33 +105,36 @@ Screen "Dashboard"
   "Welcome back"
 `;
 
-test("on a phone the Sidebar hides behind a menu Button that opens it in a left Sheet, where a Link shows its Screen", async () => {
-  const cwd = withFiles({ "app.skz": SHARED_SIDEBAR });
-  await runCli(["preview", "app.skz", "--viewport", "phone"], cwd);
-  // 1280 px shows the phone sketch unscaled: Playwright's click checks miss in a scaled frame.
-  const page = await browser.newPage({ viewport: { width: 1280, height: 844 } });
-  await page.goto(pathToFileURL(join(cwd, "app.html")).href);
-  const sketch = page.frameLocator("iframe");
+test("on a phone the Sidebar hides behind the Sidebar toggle that opens it in a left Sheet, where a Link shows its Screen", async () => {
+  const { page, sketch } = await openPreview(browser, SHARED_SIDEBAR, { args: ["--viewport", "phone"] });
   const shown = (role: "navigation" | "dialog" | "heading") => sketch.getByRole(role).filter({ visible: true });
-  const menu = sketch.getByRole("button", { name: "Menu" }).filter({ visible: true });
+  const toggle = sketch.getByRole("button", { name: "Menu" }).filter({ visible: true });
 
   const column = await shown("navigation").count();
-  await menu.click();
+  await toggle.click();
   const sheet = sketch.getByRole("dialog", { name: "Menu" }).filter({ visible: true });
   const left = await sheet.evaluate((el) => el.getBoundingClientRect().left);
   await sheet.getByRole("link", { name: "Dashboard" }).click();
   // hashchange fires after the click resolves.
   await expect.poll(() => shown("heading").first().textContent()).toBe("Dashboard");
-  const after = { dialogs: await shown("dialog").count(), menu: await menu.count() };
-  // From md: up the column shows and the menu Button does not.
+  const after = { dialogs: await shown("dialog").count(), toggle: await toggle.count() };
+  // From md: up the column shows and the Sidebar toggle does not.
   await page.getByRole("button", { name: "Tablet" }).click();
-  const tablet = { navigation: await shown("navigation").count(), menu: await menu.count() };
+  const tablet = { navigation: await shown("navigation").count(), toggle: await toggle.count() };
 
   expect({ column, left, after, tablet }).toEqual({
     column: 0,
     left: 0,
-    after: { dialogs: 0, menu: 1 },
-    tablet: { navigation: 1, menu: 0 },
+    after: { dialogs: 0, toggle: 1 },
+    tablet: { navigation: 1, toggle: 0 },
   });
-  await page.close();
+});
+
+test("on a phone a Link in the Sidebar Sheet closes it, also the Link of the Screen already shown", async () => {
+  const { sketch } = await openPreview(browser, SHARED_SIDEBAR, { args: ["--viewport", "phone"] });
+  const sheet = sketch.getByRole("dialog", { name: "Menu" }).filter({ visible: true });
+  await sketch.getByRole("button", { name: "Menu" }).filter({ visible: true }).click();
+  const opened = await sheet.count();
+  await sheet.getByRole("link", { name: "Orders" }).click();
+  expect({ opened, open: await sheet.count() }).toEqual({ opened: 1, open: 0 });
 });

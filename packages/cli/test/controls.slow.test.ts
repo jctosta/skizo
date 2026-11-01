@@ -1,8 +1,6 @@
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { chromium, type Browser } from "playwright";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { runCli, withFiles } from "./helpers/run-cli";
+import { openPreview } from "./helpers/preview-page";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -24,26 +22,8 @@ const SKETCH = `Screen "New order"
         Item "Delete" destructive
 `;
 
-/** Opens the Preview of `sketch` with the network blocked; `external` collects any request that left the file. */
-async function openPreview(source = SKETCH) {
-  const cwd = withFiles({ "order.skz": source });
-  await runCli(["preview", "order.skz"], cwd);
-  // 1280 px shows the desktop sketch unscaled: Playwright's click checks miss in a scaled frame.
-  const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
-  const external: string[] = [];
-  await context.route("**/*", (route) => {
-    const url = route.request().url();
-    if (url.startsWith("file:")) return route.continue();
-    external.push(url);
-    return route.abort();
-  });
-  const page = await context.newPage();
-  await page.goto(pathToFileURL(join(cwd, "order.html")).href);
-  return { page, sketch: page.frameLocator("iframe"), external };
-}
-
 test("a Select opens on click and shows its options, without network requests", async () => {
-  const { page, sketch, external } = await openPreview();
+  const { sketch, external } = await openPreview(browser, SKETCH);
   const paid = sketch.getByRole("option", { name: "Paid" });
   const hiddenBefore = await paid.isHidden();
   await sketch.getByRole("combobox", { name: "Status" }).click();
@@ -52,17 +32,15 @@ test("a Select opens on click and shows its options, without network requests", 
     visibleAfter: true,
     external: [],
   });
-  await page.context().close();
 });
 
 test("a Select flagged open shows its options on load", async () => {
-  const { page, sketch } = await openPreview();
+  const { sketch } = await openPreview(browser, SKETCH);
   expect(await sketch.getByRole("option", { name: "Pro" }).isVisible()).toBe(true);
-  await page.context().close();
 });
 
 test("a Menu opens on click, unclipped by its Card and inside the window, and closes on an outside click", async () => {
-  const { page, sketch } = await openPreview();
+  const { sketch } = await openPreview(browser, SKETCH);
   const deleteItem = sketch.getByRole("menuitem", { name: "Delete" });
   const hiddenBefore = await deleteItem.isHidden();
   await sketch.getByRole("button", { name: "Row actions" }).click();
@@ -82,11 +60,10 @@ test("a Menu opens on click, unclipped by its Card and inside the window, and cl
     insideWindow: true,
     hiddenAfter: true,
   });
-  await page.context().close();
 });
 
 test("a Select in a Card opens unclipped by the Card", async () => {
-  const { page, sketch } = await openPreview(`Screen "Billing"\n  Card "Payment"\n    Select "Currency" options="EUR,USD,BRL"\n`);
+  const { sketch } = await openPreview(browser, `Screen "Billing"\n  Card "Payment"\n    Select "Currency" options="EUR,USD,BRL"\n`);
   await sketch.getByRole("combobox", { name: "Currency" }).click();
   // The last option hangs below the short Card: the pointer hits it only if the Card's overflow-hidden does not clip it.
   const unclipped = await sketch.getByRole("option", { name: "BRL" }).evaluate((el) => {
@@ -94,11 +71,10 @@ test("a Select in a Card opens unclipped by the Card", async () => {
     return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el;
   });
   expect(unclipped).toBe(true);
-  await page.context().close();
 });
 
 test("an icon-only Button shows only its icon and keeps its Label as the accessible name", async () => {
-  const { page, sketch } = await openPreview();
+  const { sketch } = await openPreview(browser, SKETCH);
   const button = sketch.getByRole("button", { name: "More actions" });
   const box = await button.boundingBox();
   // The visible content is the icon alone: a square icon button (shadcn size="icon", 36px).
@@ -107,5 +83,4 @@ test("an icon-only Button shows only its icon and keeps its Label as the accessi
     width: 36,
     height: 36,
   });
-  await page.context().close();
 });
