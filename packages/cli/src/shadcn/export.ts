@@ -11,13 +11,16 @@ export const RESERVED_SCREEN_IDS: ReadonlyMap<string, string> = new Map([["app-s
  * the shared Sidebar (RESERVED_SCREEN_IDS keeps that name free).
  */
 export function exportShadcn(document: Document, { router }: { router?: Router } = {}): Record<string, string> {
-  const paths = nodePaths(document);
   const { sidebar } = document;
-  const file = (signature: string, node: Node) => componentFile(signature, node, paths, router, sidebar);
+  const options: FileOptions = { paths: nodePaths(document), router, sidebar, clashes: new Set() };
+  const file = (signature: string, node: Node) => componentFile(signature, node, options);
   const screens = document.screens.map((screen) => [`${screen.props.id}.tsx`, file(`${componentName(screen.props.id as string)}()`, screen)]);
   if (!sidebar) return Object.fromEntries(screens);
   return Object.fromEntries([["app-sidebar.tsx", file("AppSidebar({ current }: { current: string })", sidebar)], ...screens]);
 }
+
+/** What a file is rendered with besides its node: the export's node paths, plus the Ctx fields every Element of it shares. */
+type FileOptions = { paths: Map<Node, string> } & Pick<Ctx, "router" | "sidebar" | "clashes">;
 
 /** `order-details` → `OrderDetailsScreen`; `2026-report` → `Screen2026ReportScreen` (no identifier starts with a digit). */
 const componentName = (id: string) => `${pascalCase(id, "Screen")}Screen`;
@@ -31,16 +34,15 @@ const importClause = (names: string[]) => {
 };
 
 /** A file exporting one component, `signature` (name and parameters), that renders `node`. */
-function componentFile(signature: string, node: Node, paths: Map<Node, string>, router: Router | undefined, sidebar?: Node): string {
-  const render = (clashes: ReadonlySet<string>) => renderFile(node, paths, router, sidebar, clashes);
-  const first = render(new Set());
+function componentFile(signature: string, node: Node, options: FileOptions): string {
+  const first = renderFile(node, options);
   // A name the file would declare twice: a Custom named like another import (Label) or like the component itself.
   // Only a Custom can clash, so a second render that aliases it settles the file.
   const declared = [signature.slice(0, signature.indexOf("(")), ...[...first.imports.values()].flatMap((names) => [...names].map(localName))];
   const clashes = new Set(declared.filter((name, i) => declared.indexOf(name) !== i));
-  const { imports, hooks, declarations, jsx } = clashes.size ? render(clashes) : first;
+  const { imports, hooks, declarations, jsx } = clashes.size ? renderFile(node, { ...options, clashes }) : first;
   // The Next.js App Router renders a file on the server unless it says otherwise; hooks and recharts need the client.
-  const client = router === "next" && (hooks.length > 0 || imports.has("recharts")) ? `"use client"\n\n` : "";
+  const client = options.router === "next" && (hooks.length > 0 || imports.has("recharts")) ? `"use client"\n\n` : "";
   const head = [...imports.keys()].sort().map((from) => `import ${importClause([...imports.get(from)!].sort())} from "${from}"\n`);
   const body = wrap(`export function ${signature} {`, lines(...hooks, wrap("return (", jsx, ")")), "}");
   return `${client}${head.join("")}${head.length ? "\n" : ""}${declarations.map((code) => `${code}\n\n`).join("")}${body}\n`;
@@ -50,7 +52,7 @@ function componentFile(signature: string, node: Node, paths: Map<Node, string>, 
 const localName = (entry: string) => entry.split(" ").at(-1)!;
 
 /** Renders `node` with fresh per-file state: its JSX and what goes above it (imports, hooks, declarations). */
-function renderFile(node: Node, paths: Map<Node, string>, router: Router | undefined, sidebar: Node | undefined, clashes: ReadonlySet<string>) {
+function renderFile(node: Node, { paths, ...shared }: FileOptions) {
   const imports = new Map<string, Set<string>>();
   const use: Ctx["use"] = (from, ...names) => {
     const set = imports.get(from) ?? new Set();
@@ -69,14 +71,12 @@ function renderFile(node: Node, paths: Map<Node, string>, router: Router | undef
   const declarations: string[] = [];
   const declare: Ctx["declare"] = (code) => declarations.push(code);
   const ctx = (n: Node): Ctx => ({
+    ...shared,
     path: paths.get(n)!,
     use,
     id,
     hook,
     declare,
-    router,
-    sidebar,
-    clashes,
     render: (nodes) => nodes.map((child) => emitterFor(EMITTERS, child.type, "shadcn export")(child, ctx(child))).join("\n"),
   });
   const jsx = ctx(node).render([node]);
