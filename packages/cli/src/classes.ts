@@ -34,6 +34,14 @@ export const CLASSES = {
     cell: "p-2 align-middle whitespace-nowrap",
   },
   List: { root: "ml-6 list-disc text-sm [&>li]:mt-1" },
+  /** shadcn's TabsList and TabsTrigger looks; the Preview marks the active Tab with aria-selected. */
+  Tabs: {
+    root: "flex flex-col gap-2",
+    list: "inline-flex h-9 w-fit items-center justify-center rounded-lg bg-muted p-[3px] text-muted-foreground",
+    trigger:
+      "inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm",
+    panel: "flex flex-col gap-4",
+  },
 } as const;
 
 /** Joins the truthy class strings. */

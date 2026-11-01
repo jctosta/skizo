@@ -1,7 +1,22 @@
-import type { Node } from "@skizo/core";
+import type { Document, Node } from "@skizo/core";
 
-// Placeholder content shared by every Backend. Deterministic: seeded by the node path
-// (`<screen id>/<child index>/...`), so reruns and re-exports diff cleanly and the Preview shows what the export writes.
+// Placeholder content shared by every Backend. Deterministic: seeded by the node path,
+// so reruns and re-exports diff cleanly and the Preview shows what the export writes.
+
+/**
+ * The node path of every Element, the seed for its placeholder content: `<screen id>/<child index>/...`,
+ * slot children as `<path>/actions/<i>`. Taken from the AST, so it does not depend on how emitters nest output.
+ */
+export function nodePaths(document: Document): Map<Node, string> {
+  const paths = new Map<Node, string>();
+  const walk = (node: Node, path: string) => {
+    paths.set(node, path);
+    node.children.forEach((child, i) => walk(child, `${path}/${i}`));
+    for (const [slot, nodes] of Object.entries(node.slots ?? {})) nodes.forEach((child, i) => walk(child, `${path}/${slot}/${i}`));
+  };
+  for (const screen of document.screens) walk(screen, screen.props.id as string);
+  return paths;
+}
 
 const PEOPLE = ["Ana Souza", "Bruno Lima", "Carla Dias", "Diego Rocha", "Elena Costa", "Felipe Alves", "Grace Kim", "Hugo Martin"];
 const STATUSES = ["Active", "Pending", "Paid", "Failed"];

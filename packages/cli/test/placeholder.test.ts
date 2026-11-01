@@ -23,6 +23,12 @@ test("rows=N fills a Table with N rows whose cells are guessed from the column n
   expect(cells).toEqual([...row(1), ...row(2)]);
 });
 
+test("same-shaped Tables in different Tabs get different placeholder rows", async () => {
+  const table = `Table cols="Name,Amount" rows=3`;
+  const cells = await exportCells(`Screen "Customers"\n  Tabs\n    Tab "Paid"\n      ${table}\n    Tab "Open"\n      ${table}\n`);
+  expect(cells.slice(0, 6)).not.toEqual(cells.slice(6));
+});
+
 test("the Email cell belongs to the Name in the same row", async () => {
   const [name, email] = await exportCells(`Screen "Customers"\n  Table cols="Name,Email" rows=1\n`);
   expect(email).toBe(`${name!.toLowerCase().replace(" ", ".")}@example.com`);

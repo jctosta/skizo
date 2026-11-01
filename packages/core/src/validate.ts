@@ -48,6 +48,14 @@ export function validate(document: Document): CheckError[] {
 
     for (const child of node.children) walk(child, node);
     for (const child of [...(node.slots?.actions ?? []), ...(node.slots?.footer ?? [])]) walk(child, node, true);
+
+    if (spec?.exclusive) {
+      const { flag, firstByDefault } = spec.exclusive;
+      const [first, ...extra] = node.children.filter((child) => child.props[flag] === true);
+      for (const child of extra)
+        err(child, `only one ${child.type} per ${node.type} can be ${flag} (line ${first!.line} is ${flag} too)`);
+      if (!first && firstByDefault && node.children[0]) node.children[0].props[flag] = true;
+    }
   };
   for (const screen of document.screens) walk(screen);
   return errors;
@@ -92,7 +100,7 @@ function coerce(key: string, value: string, prop: PropSpec, err: (message: strin
 }
 
 /** "Order list" → "order-list". */
-const slugify = (label: string) =>
+export const slugify = (label: string) =>
   label
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")

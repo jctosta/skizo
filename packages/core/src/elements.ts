@@ -21,6 +21,8 @@ export type ElementSpec = {
   slots?: readonly ("actions" | "footer")[];
   /** Rules the generic checks can't express. Runs after props are coerced; `line` defaults to the Element's. */
   check?: (node: Node, err: (message: string, line?: number) => void) => void;
+  /** A flag at most one child may set; with `firstByDefault`, the first child gets it when none does. */
+  exclusive?: { flag: string; firstByDefault?: true };
 };
 
 const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
@@ -54,4 +56,6 @@ export const ELEMENTS: Record<string, ElementSpec> = {
       if (node.props.items !== undefined && node.props.rows !== undefined) err("has both items= and rows= (keep one)");
     },
   },
+  Tabs: { label: "none", props: {}, children: ["Tab"], exclusive: { flag: "active", firstByDefault: true } },
+  Tab: { label: "required", props: { active: { kind: "flag" } }, children: "any", parents: ["Tabs"] },
 };

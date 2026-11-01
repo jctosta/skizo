@@ -1,0 +1,2 @@
+input.skz:5  Tab  only one Tab per Tabs can be active (line 3 is active too)
+input.skz:6  Tab  only one Tab per Tabs can be active (line 3 is active too)
