@@ -80,7 +80,7 @@ There is one schema per Element type, in a hand-rolled, dependency-free table (`
 - A bare word that matches an enum value of some prop → error with a hint: `Badge: unknown flag "secondary" — did you mean variant=secondary?`
 - `opens` must resolve to a `Dialog` or `Sheet` on the same Screen. `to` must resolve to a `Screen`.
 - Duplicate ids → error. Only one `active` per `Tabs` or `Sidebar`. `Tabs` default to the first `Tab` if none is active. A Sidebar `Link` whose `to` is its own Screen is active.
-- Structural rules: `Tab` only under `Tabs`, `Item` only under `Menu`, `Link` only under `Sidebar`, row lines only under `Table`, `Sidebar` only as the first child of `Screen`, `Dialog` and `Sheet` only as direct children of `Screen`, `span` only directly inside a `Grid` and at most its `cols`, and a Table needs `cols`.
+- Structural rules: `Tab` only under `Tabs`, `Item` only under `Menu`, `Link` only under `Sidebar`, row lines only under `Table`, `Sidebar` only as the first child of `Screen`, `Dialog` and `Sheet` only as direct children of `Screen`, `span` (on any Element) only directly inside a `Grid` and at most its `cols`, and a Table needs `cols`.
 - A Table row must have exactly one cell per `cols` entry.
 - One content source per Element: Label or `lorem`, `|` rows or `rows`, `items` or `rows`. Both → error.
 - A list prop (`options`, `cols`, `items`) may not hold an empty item. A Select or Radio `value` must be one of its `options`.
@@ -98,6 +98,7 @@ The CLI exits non-zero on errors, and `--json` emits machine-readable output.
 Each Backend is a map `Element type → emitter`. Shared rules:
 
 - Sizes and gaps (`sm|md|lg`) map to Backend tokens (Tailwind: gap-2/4/6).
+- A `Grid` wraps each child that sets `span=N` in a cell spanning N columns, so no other emitter handles `span`.
 - Placeholder content (`rows=N`, `lorem=N`, `Image`) is **deterministic**, seeded by node path, so re-exports diff cleanly. Generated table cells are guessed from the column name (Name, Email, Date, Status, Amount, otherwise "Item n").
 - Overlays with the `open` flag render visibly in the Preview, and as `open` / `defaultOpen` in exported code.
 - `icon-only` renders the icon alone and keeps the Label as the accessible name (`aria-label` or `sr-only` text).

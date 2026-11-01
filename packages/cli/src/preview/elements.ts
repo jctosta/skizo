@@ -1,5 +1,5 @@
 import type { Node } from "@skizo/core";
-import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
+import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { initials, listItems, lorem, tableRows } from "../placeholder";
 import { iconSvg } from "../icons";
 import type { Script } from "./script";
@@ -140,7 +140,14 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Stack: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
   Row: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
-  Grid: (node, ctx) => div(gridClasses(node), ctx.render(node.children)),
+  /** Wraps each child with span=N in a cell spanning N columns, so no other emitter handles span. */
+  Grid: (node, ctx) => {
+    const cells = node.children.map((child) => {
+      const span = spanClasses(child);
+      return span ? div(span, ctx.render([child])) : ctx.render([child]);
+    });
+    return div(gridClasses(node), lines(...cells));
+  },
   Separator: () => `<div role="none" class="${CLASSES.Separator.root}"></div>`,
   Card: (node, ctx) => {
     const c = CLASSES.Card;
@@ -152,7 +159,7 @@ export const EMITTERS: Record<string, Emit> = {
       actions && div(cx(c.action, c.actions), ctx.render(actions)),
     );
     return div(
-      cx(c.root, c.span[node.props.span as keyof typeof c.span]),
+      c.root,
       lines(
         header && div(cx(c.header, actions && c.headerWithActions), header),
         node.children.length > 0 && div(c.content, ctx.render(node.children)),

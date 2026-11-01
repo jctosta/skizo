@@ -13,12 +13,14 @@
 </header>
 <div class="flex flex-col gap-4">
 <div class="grid grid-cols-3 gap-4">
-<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10 col-span-2">
+<div class="grid col-span-2">
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
 <div class="grid auto-rows-min items-start gap-1 px-6">
 <div class="text-base leading-normal font-medium">Revenue</div>
 </div>
 <div class="flex flex-col gap-3 px-6">
 <p class="text-sm">$12,450</p>
+</div>
 </div>
 </div>
 <div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
@@ -29,7 +31,8 @@
 <p class="text-sm">18</p>
 </div>
 </div>
-<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10 col-span-3">
+<div class="grid col-span-3">
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
 <div class="grid auto-rows-min items-start gap-1 px-6">
 <div class="text-base leading-normal font-medium">Customers</div>
 </div>
@@ -38,26 +41,49 @@
 </div>
 </div>
 </div>
+</div>
 <div class="grid grid-cols-6 gap-4">
-<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10 col-span-6">
+<div class="grid col-span-6">
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
 <div class="grid auto-rows-min items-start gap-1 px-6">
 <div class="text-base leading-normal font-medium">Wide</div>
 </div>
 </div>
-<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10 col-span-1">
+</div>
+<div class="grid col-span-1">
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
 <div class="grid auto-rows-min items-start gap-1 px-6">
 <div class="text-base leading-normal font-medium">Narrow</div>
 </div>
 </div>
-<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10 col-span-4">
+</div>
+<div class="grid col-span-4">
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
 <div class="grid auto-rows-min items-start gap-1 px-6">
 <div class="text-base leading-normal font-medium">Medium</div>
 </div>
 </div>
-<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10 col-span-5">
+</div>
+<div class="grid col-span-5">
+<div class="flex flex-col gap-6 overflow-hidden rounded-xl bg-card py-6 text-sm text-card-foreground shadow-xs ring-1 ring-foreground/10">
 <div class="grid auto-rows-min items-start gap-1 px-6">
 <div class="text-base leading-normal font-medium">Half</div>
 </div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-4 gap-4">
+<div class="grid col-span-2">
+<div class="grid gap-1">
+<p class="text-sm text-muted-foreground">Revenue</p>
+<div class="text-2xl font-bold">$12,450</div>
+</div>
+</div>
+<div class="grid col-span-2">
+<div role="img" aria-label="Chart" class="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground aspect-video">Chart</div>
+</div>
+<div class="grid col-span-4">
+<button type="button" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/80 h-9 gap-1.5 px-2.5">Export</button>
 </div>
 </div>
 </div>

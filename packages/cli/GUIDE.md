@@ -28,7 +28,7 @@ The first enum value is the default. `size` and `gap` are always `md|sm|lg`. `ic
 Screen "Title"      id subtitle                      top level; many per file
 Sidebar             children: Link                   first child of Screen
 Stack / Row         gap align=start|center|end justify=start|between|end
-Grid                cols=2..6 gap
+Grid                cols=2..6 gap; children may set span=N
 Separator
 Heading "Text"      level=2|1|3|4
 Text "Text"         size muted bold lorem=N
@@ -38,7 +38,7 @@ Avatar "Name"       size
 Image "Alt"         ratio=16:9|4:3|3:2|1:1           placeholder box
 Alert "Title"       text variant=default|destructive
 Progress            value=0..100
-Card "Title"        desc span=N (in a Grid); slots: actions footer
+Card "Title"        desc; slots: actions footer
 Tabs > Tab "Label"  active (one Tab); Tab children = its panel
 Dialog "Title"      desc open; slot: footer          direct child of Screen
 Sheet "Title"       desc open side=right|left; slot: footer   direct child of Screen

@@ -35,6 +35,10 @@ export type ElementSpec = {
   check?: (node: Node, err: (message: string, line?: number) => void, parent?: Node) => void;
   /** A flag at most one child may set; with `firstByDefault`, the first child gets it when none does. */
   exclusive?: { flag: string; firstByDefault?: true };
+  /** Props any direct child (not in a slot) may set, whatever its type: Grid's span. Anywhere else they are an error. */
+  childProps?: Record<string, PropSpec>;
+  /** Runs on each direct child once its props are coerced: the childProps rules that need this Element's props. */
+  checkChild?: (child: Node, err: (message: string) => void, parent: Node) => void;
 };
 
 const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
@@ -118,11 +122,21 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Progress: { label: "none", props: { value: { kind: "number", min: 0, max: 100 } } },
   Stack: { label: "none", props: flex, children: "any" },
   Row: { label: "none", props: flex, children: "any" },
-  Grid: { label: "none", props: { cols: { kind: "number", min: 2, max: 6, default: 2 }, gap: sizes }, children: "any" },
+  Grid: {
+    label: "none",
+    props: { cols: { kind: "number", min: 2, max: 6, default: 2 }, gap: sizes },
+    children: "any",
+    childProps: { span: { kind: "number", min: 1 } },
+    checkChild(child, err, grid) {
+      const { span } = child.props;
+      const { cols } = grid.props;
+      if (typeof span === "number" && typeof cols === "number" && span > cols) err(`span=${span} is larger than the Grid's cols=${cols}`);
+    },
+  },
   Separator: { label: "none", props: {} },
   Card: {
     label: "optional",
-    props: { desc: { kind: "string" }, span: { kind: "number", min: 1 } },
+    props: { desc: { kind: "string" } },
     children: "any",
     slots: ["actions", "footer"],
   },

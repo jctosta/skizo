@@ -44,17 +44,13 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
           const owners = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type]!.slots?.includes(name));
           err(node, `takes no "${name}" slot (allowed in: ${owners.join(", ")})`);
         }
-      props(node, spec, options, err);
+      // A direct child (not in a slot) may also set its parent's childProps: a Grid's span.
+      const host = parent && !inSlot ? ELEMENTS[parent.type] : undefined;
+      props(node, spec, host?.childProps, options, err);
       for (const [key, prop] of Object.entries(spec.props))
         if (prop.kind === "ref" && typeof node.props[key] === "string") refs.push({ node, screen: current, key, to: prop.to });
       spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }), parent);
-      // `span` (on any Element type whose schema lists it) counts columns of the Grid it sits directly in.
-      const span = node.props.span;
-      if (typeof span === "number") {
-        const cols = parent?.type === "Grid" && !inSlot ? parent.props.cols : undefined;
-        if (cols === undefined) err(node, "span only works directly inside a Grid");
-        else if (typeof cols === "number" && span > cols) err(node, `span=${span} is larger than the Grid's cols=${cols}`);
-      }
+      host?.checkChild?.(node, (message) => err(node, message), parent!);
       if (node.type === "Screen" && node.props.id === undefined && node.label !== undefined) {
         const slug = slugify(node.label);
         if (slug) node.props.id = slug;
@@ -109,13 +105,22 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
 /** What opens= can show. */
 const OPENABLE = ["Dialog", "Sheet"];
 
-function props(node: Node, spec: ElementSpec, options: CheckOptions, err: (node: Node, message: string) => void) {
-  const names = ["id", ...Object.keys(spec.props)];
+function props(
+  node: Node,
+  spec: ElementSpec,
+  granted: ElementSpec["childProps"],
+  options: CheckOptions,
+  err: (node: Node, message: string) => void,
+) {
+  const own = { ...granted, ...spec.props };
+  const names = ["id", ...Object.keys(own)];
   for (const [key, raw] of Object.entries(node.props)) {
-    const prop = key === "id" ? ID : spec.props[key];
+    const prop = key === "id" ? ID : own[key];
     if (!prop) {
       const enumProp = Object.entries(spec.props).find(([, p]) => p.kind === "enum" && p.values.includes(key))?.[0];
-      if (raw !== true) err(node, `unknown prop "${key}"${didYouMean(key, names)}`);
+      const grantors = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type]!.childProps?.[key]);
+      if (grantors.length) err(node, `${key} only works directly inside a ${grantors.join(" or ")}`);
+      else if (raw !== true) err(node, `unknown prop "${key}"${didYouMean(key, names)}`);
       else err(node, `unknown flag "${key}"${enumProp ? ` — did you mean ${enumProp}=${key}?` : didYouMean(key, names)}`);
     } else if (prop.kind === "flag") {
       if (raw !== true) err(node, `${key} is a flag and takes no value (write just ${key})`);

@@ -1,3 +1,4 @@
 input.skz:3  Card  span=4 is larger than the Grid's cols=3
 input.skz:4  Card  span=0 is out of range (expected: 1..)
 input.skz:6  Card  span=3 is larger than the Grid's cols=2
+input.skz:7  Text  span=3 is larger than the Grid's cols=2

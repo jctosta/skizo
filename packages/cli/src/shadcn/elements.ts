@@ -1,5 +1,5 @@
 import { slugify, type Node } from "@skizo/core";
-import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
+import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
 import { initials, listItems, lorem, tableRows } from "../placeholder";
 
@@ -231,7 +231,14 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Stack: (node, ctx) => wrap(`<div className="${flexClasses(node)}">`, ctx.render(node.children), "</div>"),
   Row: (node, ctx) => wrap(`<div className="${flexClasses(node)}">`, ctx.render(node.children), "</div>"),
-  Grid: (node, ctx) => wrap(`<div className="${gridClasses(node)}">`, ctx.render(node.children), "</div>"),
+  /** Wraps each child with span=N in a cell spanning N columns, so no other emitter handles span. */
+  Grid: (node, ctx) => {
+    const cells = node.children.map((child) => {
+      const span = spanClasses(child);
+      return span ? wrap(`<div className="${span}">`, ctx.render([child]), "</div>") : ctx.render([child]);
+    });
+    return wrap(`<div className="${gridClasses(node)}">`, lines(...cells), "</div>");
+  },
   Separator: (_node, ctx) => {
     ctx.use("@/components/ui/separator", "Separator");
     return "<Separator />";
@@ -242,14 +249,13 @@ export const EMITTERS: Record<string, Emit> = {
     const ui = (name: string) => (ctx.use("@/components/ui/card", name), name);
     const desc = node.props.desc as string | undefined;
     const { actions, footer } = node.slots ?? {};
-    const span = c.span[node.props.span as keyof typeof c.span];
     const header = lines(
       node.label !== undefined && `<${ui("CardTitle")}>${text(node.label)}</CardTitle>`,
       desc !== undefined && `<${ui("CardDescription")}>${text(desc)}</CardDescription>`,
       actions && wrap(`<${ui("CardAction")} className="${c.actions}">`, ctx.render(actions), "</CardAction>"),
     );
     return wrap(
-      `<${ui("Card")}${span ? ` className="${span}"` : ""}>`,
+      `<${ui("Card")}>`,
       lines(
         header && wrap(`<${ui("CardHeader")}>`, header, "</CardHeader>"),
         node.children.length > 0 && wrap(`<${ui("CardContent")}>`, ctx.render(node.children), "</CardContent>"),

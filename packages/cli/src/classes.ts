@@ -52,6 +52,9 @@ export const CLASSES = {
     root: "grid",
     gap,
     cols: { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5", 6: "grid-cols-6" },
+    /** Wraps a child with span=N: a one-cell grid, so the child still stretches like any other Grid child. */
+    cell: "grid",
+    span: { 1: "col-span-1", 2: "col-span-2", 3: "col-span-3", 4: "col-span-4", 5: "col-span-5", 6: "col-span-6" },
   },
   /** The shadcn look, for the Preview; the export gets it from the project's own Separator. */
   Separator: { root: "h-px w-full shrink-0 bg-border" },
@@ -68,7 +71,6 @@ export const CLASSES = {
     // Added in every Backend: a slot lays its Elements out side by side.
     actions: "flex items-center gap-2",
     footerItems: "gap-2",
-    span: { 1: "col-span-1", 2: "col-span-2", 3: "col-span-3", 4: "col-span-4", 5: "col-span-5", 6: "col-span-6" },
   },
   Stat: {
     root: "grid gap-1",
@@ -239,4 +241,10 @@ export function gridClasses(node: Node) {
   const c = CLASSES.Grid;
   const p = node.props as { cols: keyof typeof c.cols; gap: keyof typeof gap };
   return cx(c.root, c.cols[p.cols], c.gap[p.gap]);
+}
+
+/** The classes of the cell a Grid wraps around a child with span=N; undefined without span (no wrapper). */
+export function spanClasses(child: Node) {
+  const span = child.props.span as keyof typeof CLASSES.Grid.span | undefined;
+  return span === undefined ? undefined : cx(CLASSES.Grid.cell, CLASSES.Grid.span[span]);
 }

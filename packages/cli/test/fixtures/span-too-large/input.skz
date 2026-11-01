@@ -4,3 +4,4 @@ Screen "Dashboard"
     Card "Orders" span=0
   Grid
     Card "Customers" span=3
+    Text "Notes" span=3

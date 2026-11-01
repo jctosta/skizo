@@ -41,6 +41,8 @@ const valuesIn = (row: string) => [...row.matchAll(/([a-z][a-z-]*)=("[^"]*"|\S+?
 const NAMED = new Set(ROWS.flatMap((row) => [...typesIn(row)]));
 /** The Guide's shared size/gap values: "`size` and `gap` are always `md|sm|lg`". */
 const SIZES = GUIDE.match(/`size` and `gap` are always `([^`]+)`/)?.[1];
+/** A type's props plus those its direct children may set (Grid's span): its row in the Guide names both. */
+const propsOf = (type: string) => ({ ...ELEMENTS[type]?.props, ...ELEMENTS[type]?.childProps });
 
 test("every Element type check accepts appears in the Guide's Elements table", () => {
   expect(Object.keys(ELEMENTS).filter((type) => !NAMED.has(type))).toEqual([]);
@@ -51,8 +53,8 @@ test("every Element type the Guide's Elements table names is one check accepts",
 });
 
 test("every prop check accepts is named in a row of the Guide that names its Element type", () => {
-  const missing = Object.entries(ELEMENTS).flatMap(([type, spec]) =>
-    Object.keys(spec.props)
+  const missing = Object.keys(ELEMENTS).flatMap((type) =>
+    Object.keys(propsOf(type))
       .filter((prop) => !ROWS.some((row) => typesIn(row).has(type) && row.split(/[^a-z0-9-]+/).includes(prop)))
       .map((prop) => `${type} ${prop}`),
   );
@@ -62,7 +64,7 @@ test("every prop check accepts is named in a row of the Guide that names its Ele
 test("every prop=value in the Guide is a prop of that row's Element types, with exactly the values check accepts", () => {
   const drift = ROWS.flatMap((row) =>
     valuesIn(row).flatMap(([prop, shown]) => {
-      const spec = [...typesIn(row)].map((type) => ELEMENTS[type]?.props[prop]).find(Boolean);
+      const spec = [...typesIn(row)].map((type) => propsOf(type)[prop]).find(Boolean);
       const range = shown.match(/^(\d+)\.\.(\d+)$/);
       if (!spec) return [`${row.split(/\s/)[0]}: ${prop} is no prop of ${[...typesIn(row)].join(", ")}`];
       if (shown.includes("|") && (spec.kind !== "enum" || spec.values.join("|") !== shown))
@@ -77,8 +79,8 @@ test("every prop=value in the Guide is a prop of that row's Element types, with 
 });
 
 test("every enum check accepts is listed in the Guide with its values, default first", () => {
-  const unlisted = Object.entries(ELEMENTS).flatMap(([type, spec]) =>
-    Object.entries(spec.props).flatMap(([prop, p]) => {
+  const unlisted = Object.keys(ELEMENTS).flatMap((type) =>
+    Object.entries(propsOf(type)).flatMap(([prop, p]) => {
       if (p.kind !== "enum") return [];
       const values = p.values.join("|");
       if (prop === "size" || prop === "gap") return values === SIZES ? [] : [`${type} ${prop}=${values}, Guide: ${SIZES}`];
