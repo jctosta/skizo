@@ -53,6 +53,7 @@ Checkbox "Label"    checked disabled             (same for Switch)
 Radio "Label"       options value
 Table               cols="A,B,C"; rows as | lines (one cell per col), or rows=N (placeholder)
 List                items="a,b,c" or rows=N
+Custom "ChatBubble" any props, flags and children    a component of the app; only when no type fits
 ```
 
 Write a `Sidebar` at the top level, before the first Screen, to share it. Every Screen shows it. A Screen with its own Sidebar shows that one. A `plain` Screen shows no Sidebar.

@@ -1,5 +1,5 @@
 import type { Node } from "@skizo/core";
-import { hasBehavior, lines, screenParts, statHint } from "../backend";
+import { customProps, hasBehavior, lines, screenParts, statHint } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { initials, listItems, lorem, tableRows } from "../placeholder";
 import { iconSvg } from "../icons";
@@ -297,6 +297,13 @@ export const EMITTERS: Record<string, Emit> = {
       `</div>`,
       `</div>`,
     ].join("\n");
+  },
+  /** A dashed box: the `<Name>` tag and the props as written (a flag as its bare key), then the children. */
+  Custom: (node, ctx) => {
+    const c = CLASSES.Custom;
+    const props = customProps(node).map(([key, v]) => ` ${esc(v === true ? key : `${key}="${v}"`)}`);
+    const tag = `<div class="${c.tag}"><span class="${c.name}">${esc(`<${node.label}>`)}</span>${props.join("")}</div>`;
+    return div(c.root, lines(tag, ctx.render(node.children)));
   },
 };
 

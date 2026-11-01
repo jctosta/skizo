@@ -7,3 +7,4 @@ Screen "Dashboard"
       actions
         Card "Nested" span=2
   Button "Export" span=2
+  Custom "UsageMeter" span=2

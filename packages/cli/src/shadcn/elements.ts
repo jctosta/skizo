@@ -1,5 +1,5 @@
 import { slugify, type Node } from "@skizo/core";
-import { hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
+import { customProps, hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
 import { initials, listItems, lorem, tableRows } from "../placeholder";
@@ -7,8 +7,13 @@ import { initials, listItems, lorem, tableRows } from "../placeholder";
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
-  /** Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
+  /**
+   * Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`.
+   * `default as Link` imports the default export: `import Link from ...`.
+   */
   use(from: string, ...names: string[]): void;
+  /** The `--router` whose Link the export writes links with; undefined for plain anchors. Read it through `screenLink`. */
+  router?: Router;
   /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
   path: string;
   /** `base`, or `base-2`, `base-3`... when the Screen's file already uses it: DOM ids for form controls. */
@@ -31,12 +36,19 @@ export const attr = (s: string) => (/["&]/.test(s) ? `{${JSON.stringify(s)}}` : 
 export const wrap = (start: string, body: string, end: string) =>
   body ? `${start}\n${body.replace(/^/gm, "  ")}\n${end}` : `${start}${end}`;
 
-/** JSX attributes from name → value: strings through `attr`, numbers in braces, true bare; undefined and false skipped. */
+/**
+ * JSX attributes from name → value: strings through `attr`, numbers and `{ expr: "code" }` in braces, true bare;
+ * undefined and false skipped. Only emitters build an `expr`, so source text never becomes code.
+ */
 export const jsxAttrs = (pairs: Record<string, unknown>) =>
   Object.entries(pairs)
-    .map(([name, v]) =>
-      v === undefined || v === false ? "" : v === true ? ` ${name}` : typeof v === "number" ? ` ${name}={${v}}` : ` ${name}=${attr(String(v))}`,
-    )
+    .map(([name, v]) => {
+      if (v === undefined || v === false) return "";
+      if (v === true) return ` ${name}`;
+      if (typeof v === "number") return ` ${name}={${v}}`;
+      if (typeof v === "object" && v !== null && "expr" in v) return ` ${name}={${v.expr}}`;
+      return ` ${name}=${attr(String(v))}`;
+    })
     .join("");
 
 /** A form control under its Label, with error text below. `id` ties the Label to the control. */
@@ -69,8 +81,24 @@ export const icon = (ctx: Ctx, name: string, className?: string) => {
   return `<${component}${className ? ` className="${className}"` : ""} />`;
 };
 
-/** Where `to=` goes: the Screen's route. A plain path, so swapping in a router's link component is left to the user. */
-const screenHref = (id: string) => `/${id}`;
+/** `--router`: each router's Link component, as `ctx.use` imports it, and the prop that takes the path. */
+export const ROUTERS = {
+  next: { from: "next/link", name: "default as Link", prop: "href" },
+  "react-router": { from: "react-router", name: "Link", prop: "to" },
+};
+export type Router = keyof typeof ROUTERS;
+
+/**
+ * A link to the Screen `to`, at its route `/<id>`. Every emitter that writes a link calls this, so `--router` reaches
+ * them all: the router's Link, else a plain `<a href>`. Without `to` it goes nowhere yet: a plain `<a>` with no href.
+ */
+export function screenLink(ctx: Ctx, to: string | undefined, attrs: Record<string, unknown>, body: string) {
+  const router = to === undefined || ctx.router === undefined ? undefined : ROUTERS[ctx.router];
+  if (router) ctx.use(router.from, router.name);
+  const tag = router ? "Link" : "a";
+  const open = `<${tag}${jsxAttrs({ [router?.prop ?? "href"]: to === undefined ? undefined : `/${to}`, ...attrs })}>`;
+  return body.includes("\n") ? wrap(open, body, `</${tag}>`) : `${open}${body}</${tag}>`;
+}
 
 /**
  * The useState pair behind opens=, named after the id of the Dialog or Sheet: `new-order` → ["newOrderOpen", "setNewOrderOpen"].
@@ -161,20 +189,13 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Sidebar;
     return wrap(`<aside className="${c.root}">`, wrap(`<nav className="${c.nav}">`, ctx.render(node.children), "</nav>"), "</aside>");
   },
-  /**
-   * A plain anchor, like every to=; a Link without to= goes nowhere yet: no href. In the shared Sidebar (AppSidebar)
-   * the Link is active when its to= is the `current` prop.
-   */
+  /** In the shared Sidebar (AppSidebar) the active Link is the one whose to= is the `current` prop. */
   Link: (node, ctx) => {
     const { to, active } = node.props as { to?: string; active?: true };
-    const href = to === undefined ? undefined : screenHref(to);
-    const current =
-      to !== undefined && ctx.sidebar?.children.includes(node)
-        ? ` aria-current={current === ${JSON.stringify(to)} ? "page" : undefined}`
-        : jsxAttrs({ "aria-current": active && "page" });
-    const tag = `<a${jsxAttrs({ href })}${current} className="${CLASSES.Link.root}">`;
-    if (node.props.icon === undefined) return `${tag}${text(node.label!)}</a>`;
-    return wrap(tag, lines(icon(ctx, node.props.icon as string, CLASSES.Link.icon), text(node.label!)), "</a>");
+    const shared = to !== undefined && ctx.sidebar?.children.includes(node);
+    const current = shared ? { expr: `current === ${JSON.stringify(to)} ? "page" : undefined` } : active && "page";
+    const glyph = node.props.icon !== undefined && icon(ctx, node.props.icon as string, CLASSES.Link.icon);
+    return screenLink(ctx, to, { "aria-current": current, className: CLASSES.Link.root }, lines(glyph, text(node.label!)));
   },
   Heading: (node) => {
     const level = node.props.level as keyof typeof CLASSES.Heading;
@@ -342,11 +363,8 @@ export const EMITTERS: Record<string, Emit> = {
     const glyph = loading ? icon(ctx, "loader-circle", c.spinner) : node.props.icon !== undefined && icon(ctx, node.props.icon as string);
     const label = iconOnly ? `<span className="${c.hiddenLabel}">${text(node.label!)}</span>` : text(node.label!);
     const content = glyph ? lines(glyph, label) : label;
-    // to=: the Button renders a plain anchor (asChild), like a Link.
-    if (to !== undefined) {
-      const anchor = `<a href=${attr(screenHref(to))}>`;
-      return wrap(tag, glyph ? wrap(anchor, content, "</a>") : `${anchor}${content}</a>`, "</Button>");
-    }
+    // to=: the Button renders the link (asChild), like a Link.
+    if (to !== undefined) return wrap(tag, screenLink(ctx, to, {}, content), "</Button>");
     return glyph ? wrap(tag, content, "</Button>") : `${tag}${content}</Button>`;
   },
   Input: (node, ctx) => {
@@ -401,5 +419,18 @@ export const EMITTERS: Record<string, Emit> = {
     });
     const radios = wrap(`<RadioGroup${jsxAttrs({ "aria-labelledby": group, defaultValue: node.props.value })}>`, lines(...items), "</RadioGroup>");
     return wrap(`<div className="${CLASSES.Field.root}">`, lines(`<Label${jsxAttrs({ id: group })}>${text(node.label!)}</Label>`, radios), "</div>");
+  },
+  /**
+   * The project's own component from `@/components/<kebab-name>`, with the props (keys in camelCase) and children.
+   * ponytail: a Custom named like a component the file already imports (Button) clashes; alias it if it bites.
+   */
+  Custom: (node, ctx) => {
+    const name = node.label!;
+    // ChatBubble → chat-bubble, KPICard → kpi-card.
+    const file = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").toLowerCase();
+    ctx.use(`@/components/${file}`, name);
+    const camel = (key: string) => key.replace(/-(\w)/g, (_, c: string) => c.toUpperCase());
+    const props = jsxAttrs(Object.fromEntries(customProps(node).map(([key, v]) => [camel(key), v])));
+    return node.children.length ? wrap(`<${name}${props}>`, ctx.render(node.children), `</${name}>`) : `<${name}${props} />`;
   },
 };

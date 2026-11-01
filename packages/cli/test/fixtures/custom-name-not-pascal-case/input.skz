@@ -1,0 +1,6 @@
+// A Custom's Label names the component, so it must be PascalCase.
+Screen "Chat"
+  Custom "chat bubble"
+  Custom "chatBubble" mine
+  Custom "2fa-prompt"
+  Custom

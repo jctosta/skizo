@@ -1,4 +1,4 @@
-import type { Node } from "@skizo/core";
+import { ELEMENTS, type Node } from "@skizo/core";
 
 // Helpers every Backend shares, besides CLASSES (classes.ts) and placeholder content (placeholder.ts),
 // so the Preview and the exports read the AST the same way.
@@ -31,14 +31,10 @@ export const statHint = (node: Node) => [ARROWS[node.props.trend as keyof typeof
 /** Whether a Button declares a Behavior (opens= or to=). In a footer, a Button without one closes its Dialog or Sheet. */
 export const hasBehavior = (node: Node) => node.props.opens !== undefined || node.props.to !== undefined;
 
-/**
- * A JS identifier in PascalCase from an id or icon name: `order-details` → `OrderDetails`. One that would start
- * with a digit (or be empty) gets `prefix` first: `2026-report` → `Screen2026Report` with prefix `Screen`.
- */
-export const pascalCase = (id: string, prefix = "") => {
-  const name = id
-    .split(/[^A-Za-z0-9]+/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("");
-  return /^[A-Za-z]/.test(name) ? name : `${prefix}${name}`;
-};
+/** Props a parent grants (a Grid's span): the parent lays its child out with them. */
+const GRANTED = new Set(Object.values(ELEMENTS).flatMap((spec) => Object.keys(spec.childProps ?? {})));
+/** A Custom's props as written (strings, true for a flag), except those a parent grants: they are not the component's. */
+export const customProps = (node: Node) => Object.entries(node.props).filter(([key]) => !GRANTED.has(key));
+
+/** `order-details` → `OrderDetails`; lives in core, which uses it for a Custom name's hint. */
+export { pascalCase } from "@skizo/core";

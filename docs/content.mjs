@@ -230,9 +230,10 @@ the browser works. If the file has no <code>to=</code>, the Preview shows all Sc
   next to the source file. The page holds all Screens and works offline. With <code>--watch</code>, the command
   also serves the page on 127.0.0.1 and reloads it after each save. If a save fails <code>check</code>, the
   command shows the errors and keeps the last good page.</td></tr>
-  <tr><td><code>skizo export &lt;file.skz&gt; --target shadcn [--out dir]</code></td><td>Writes one
+  <tr><td><code>skizo export &lt;file.skz&gt; --target shadcn [--out dir] [--router next|react-router]</code></td><td>Writes one
   <code>.tsx</code> file for each Screen, and <code>app-sidebar.tsx</code> for a shared Sidebar. The files go next
-  to the source file, or into the <code>--out</code> folder.</td></tr>
+  to the source file, or into the <code>--out</code> folder. With <code>--router</code>, the links use the
+  <code>Link</code> component of Next.js or React Router.</td></tr>
 </table>
 <p><code>skz</code> is a short alias for <code>skizo</code>. <code>preview</code> and <code>export</code> do not
 accept a file that fails <code>check</code>. They show the same errors as <code>check</code>.</p>
@@ -258,14 +259,19 @@ Screen becomes one file with the name of its id. For example, <code>orders.tsx</
   <li>The shadcn components that the file uses: alert, avatar, badge, button, card, checkbox, dialog,
   dropdown-menu, input, label, progress, radio-group, select, separator, sheet, switch, table, tabs and
   textarea.</li>
+  <li>For each Custom name, your component in <code>@/components/&lt;kebab-name&gt;</code>. For example,
+  <code>ChatBubble</code> comes from <code>@/components/chat-bubble</code>.</li>
 </ul>
 <h3>Output</h3>
 <ul>
   <li><code>opens=</code> becomes a <code>useState</code> hook. A click on the Button sets the state, and the state
   opens the Dialog or Sheet. The <code>open</code> flag sets the initial state to open.</li>
   <li><code>to=</code> becomes a plain <code>&lt;a href="/screen-id"&gt;</code> link. A Button with
-  <code>to=</code> wraps the link with <code>asChild</code>. You can replace the link with the link component of
-  your router.</li>
+  <code>to=</code> wraps the link with <code>asChild</code>.</li>
+  <li><code>--router next</code> writes each link as <code>&lt;Link href="/screen-id"&gt;</code> and imports
+  <code>Link</code> from <code>next/link</code>.</li>
+  <li><code>--router react-router</code> writes each link as <code>&lt;Link to="/screen-id"&gt;</code> and imports
+  <code>{ Link }</code> from <code>react-router</code>.</li>
   <li>A shared Sidebar becomes one file, <code>app-sidebar.tsx</code>. It exports
   <code>AppSidebar({ current })</code>. Each Screen that shows the Sidebar renders
   <code>&lt;AppSidebar current="screen-id" /&gt;</code>.</li>
@@ -332,7 +338,7 @@ Screen "Archive" id=archive
           "A Screen with the `plain` flag shows no Sidebar.",
           "A Link can only be in a Sidebar. For a link in the page, write `Button variant=link to=...`.",
         ],
-        shadcn: "An `<aside><nav>` with plain `<a>` links. The active link gets `aria-current=\"page\"`. A shared Sidebar becomes `app-sidebar.tsx`, which exports `AppSidebar({ current })`. Each Screen that shows it renders `<AppSidebar current=\"screen-id\" />`.",
+        shadcn: "An `<aside><nav>` with plain `<a>` links, or the `Link` of your router with `--router`. The active link gets `aria-current=\"page\"`. A shared Sidebar becomes `app-sidebar.tsx`, which exports `AppSidebar({ current })`. Each Screen that shows it renders `<AppSidebar current=\"screen-id\" />`.",
       },
     ],
   },
@@ -631,6 +637,24 @@ Sheet "Filters" id=filters desc="Show fewer orders." open
         },
         notes: ["A Menu can contain only Items. An Item can only be in a Menu."],
         shadcn: "`DropdownMenu > DropdownMenuTrigger(Button) > DropdownMenuContent > DropdownMenuItem*`.",
+      },
+    ],
+  },
+  {
+    title: "Your components",
+    entries: [
+      {
+        types: ["Custom"],
+        summary: "A component of your app that Skizo does not have, for example a chat bubble. Use it only when no other Element type fits.",
+        example: `Custom "ChatBubble" author="Ana Souza" sent-at="9:41" mine
+  Text "Where is my order?"
+Custom "TypingIndicator"`,
+        about: { Custom: { label: "The name of the component, in PascalCase. For example, ChatBubble." } },
+        notes: [
+          "A Custom takes all props and flags. `skizo check` does not check them.",
+          "The Preview shows a box with a dashed border. The box shows the name, the props and the children.",
+        ],
+        shadcn: "`import { ChatBubble } from \"@/components/chat-bubble\"` and `<ChatBubble author=\"Ana Souza\" sentAt=\"9:41\" mine>`. A prop key with a hyphen becomes camelCase. A Custom without children becomes a self-closing tag.",
       },
     ],
   },

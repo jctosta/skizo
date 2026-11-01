@@ -118,3 +118,58 @@ test("an unknown --target gets a nearest-match hint", async () => {
     stderr: 'skizo export: unknown target "shadcm" — did you mean shadcn? (expected: shadcn)\n',
   });
 });
+
+const LINKS = `Screen "Orders"\n  Sidebar\n    Link "Orders" to=orders\n    Link "Help"\n  Button "Dashboard" to=dashboard\n\nScreen "Dashboard"\n  "Welcome"\n`;
+
+/** Exports LINKS with `flags`: the exit code, stderr, and the link lines of orders.tsx, trimmed, without classes. */
+async function linkLines(...flags: string[]) {
+  const cwd = withFiles({ "orders.skz": LINKS });
+  const { code, stderr } = await runCli(["export", "orders.skz", "--target", "shadcn", ...flags], cwd);
+  const file = readFileSync(join(cwd, "orders.tsx"), "utf8");
+  const links = file.split("\n").filter((line) => /Link|<a[ >]|asChild/.test(line));
+  return { code, stderr, links: links.map((line) => line.trim().replace(/ className="[^"]*"/, "")) };
+}
+
+test("--router next writes each link to a Screen as Link from next/link, with href=", async () => {
+  expect(await linkLines("--router", "next")).toEqual({
+    code: 0,
+    stderr: "",
+    links: [
+      'import Link from "next/link"',
+      '<Link href="/orders" aria-current="page">Orders</Link>',
+      "<a>Help</a>",
+      "<Button asChild>",
+      '<Link href="/dashboard">Dashboard</Link>',
+    ],
+  });
+});
+
+test("--router react-router writes each link to a Screen as Link from react-router, with to=", async () => {
+  expect(await linkLines("--router", "react-router")).toEqual({
+    code: 0,
+    stderr: "",
+    links: [
+      'import { Link } from "react-router"',
+      '<Link to="/orders" aria-current="page">Orders</Link>',
+      "<a>Help</a>",
+      "<Button asChild>",
+      '<Link to="/dashboard">Dashboard</Link>',
+    ],
+  });
+});
+
+test("an unknown --router gets a nearest-match hint and writes nothing", async () => {
+  const cwd = withFiles({ "orders.skz": TWO_SCREENS });
+  const { code, stderr } = await runCli(["export", "orders.skz", "--target", "shadcn", "--router", "nxt"], cwd);
+  expect({ code, stderr, files: readdirSync(cwd) }).toEqual({
+    code: 2,
+    stderr: 'skizo export: unknown router "nxt" — did you mean next? (expected: next, react-router)\n',
+    files: ["orders.skz"],
+  });
+});
+
+test("--router without --target is a usage error", async () => {
+  const cwd = withFiles({ "orders.skz": TWO_SCREENS });
+  const { code, stderr } = await runCli(["export", "orders.skz", "--router", "next"], cwd);
+  expect({ code, stderr }).toEqual({ code: 2, stderr: "skizo export: --target is required (expected: shadcn)\n" });
+});
