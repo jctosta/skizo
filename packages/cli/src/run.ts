@@ -7,7 +7,7 @@ import { iconNames } from "./icons";
 import { renderPreview } from "./preview/page";
 import { watchPreview } from "./preview/watch";
 import { ROUTERS, type Router } from "./shadcn/elements";
-import { exportShadcn } from "./shadcn/export";
+import { exportShadcn, RESERVED_SCREEN_IDS } from "./shadcn/export";
 
 export type Io = { stdout(s: string): void; stderr(s: string): void; cwd: string; signal?: AbortSignal };
 
@@ -149,7 +149,7 @@ function load(file: string, io: Io) {
     io.stderr(`skizo: cannot read ${file} (${(e as NodeJS.ErrnoException).code ?? (e as Error).message})\n`);
     return undefined;
   }
-  return check(source, { iconNames: iconNames() });
+  return check(source, { iconNames: iconNames(), reservedScreenIds: RESERVED_SCREEN_IDS });
 }
 
 /**

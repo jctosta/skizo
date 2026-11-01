@@ -3,9 +3,12 @@ import { emitterFor, lines, pascalCase } from "../backend";
 import { nodePaths } from "../placeholder";
 import { EMITTERS, wrap, type Ctx, type Router } from "./elements";
 
+/** Screen ids the export needs for its own files, with what for: `check` refuses them (CheckOptions). */
+export const RESERVED_SCREEN_IDS: ReadonlyMap<string, string> = new Map([["app-sidebar", "for the shared Sidebar"]]);
+
 /**
  * The shadcn Export target: file name → TSX, one file per Screen, named after its id, plus `app-sidebar.tsx` for
- * the shared Sidebar (check reserves that id when a shared Sidebar exists).
+ * the shared Sidebar (RESERVED_SCREEN_IDS keeps that name free).
  */
 export function exportShadcn(document: Document, { router }: { router?: Router } = {}): Record<string, string> {
   const paths = nodePaths(document);

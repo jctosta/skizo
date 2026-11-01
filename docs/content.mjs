@@ -339,7 +339,7 @@ Screen "Archive" id=archive
           "A file can have one shared Sidebar.",
           "A Screen with its own Sidebar shows its own Sidebar. Write the Sidebar as the first child of the Screen.",
           "A Screen with the `plain` flag shows no Sidebar.",
-          "With a shared Sidebar, no Screen can have the id `app-sidebar`. The export uses this name for the file of the Sidebar.",
+          "No Screen can have the id `app-sidebar`. The export uses this name for the file of the shared Sidebar.",
           "A Link can only be in a Sidebar. For a link in the page, write `Button variant=link to=...`.",
         ],
         shadcn: "An `<aside><nav>` with plain `<a>` links, or the `Link` of your router with `--router`. The active link gets `aria-current=\"page\"`. A shared Sidebar becomes `app-sidebar.tsx`, which exports `AppSidebar({ current })`. Each Screen that shows it renders `<AppSidebar current=\"screen-id\" />`.",
