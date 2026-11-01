@@ -28,7 +28,7 @@ The first enum value is the default. `size` and `gap` are always `md|sm|lg`. `ic
 Screen "Title"      id subtitle                      top level; many per file
 Sidebar             children: Link                   first child of Screen
 Stack / Row         gap align=start|center|end justify=start|between|end
-Grid                cols=2..6 gap; children may set span=N
+Grid                cols=2..6 (default 2) gap; children may set span=N
 Separator
 Heading "Text"      level=2|1|3|4
 Text "Text"         size muted bold lorem=N

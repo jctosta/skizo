@@ -12,7 +12,7 @@ Terms in this document (Element, Element type, Label, Screen, Overlay, Behavior,
 
 The document has two parts:
 
-- **Part A — Guide.** Self-contained; this is what `skizo guide` prints for agents. It measures 1,182 tokens at v0.2 (tiktoken cl100k_base); keep it near 1.1k, trimming the example first. It lives in [packages/cli/GUIDE.md](../packages/cli/GUIDE.md); Part A links to it.
+- **Part A — Guide.** Self-contained; this is what `skizo guide` prints for agents. It measures 1,180 tokens at v0.2 (tiktoken cl100k_base); keep it near 1.1k, trimming the example first. It lives in [packages/cli/GUIDE.md](../packages/cli/GUIDE.md); Part A links to it.
 - **Part B — Implementation notes.** Parser, AST, validation, Backends. Agents never see this.
 
 ---
@@ -74,7 +74,7 @@ type Document = { screens: Node[] };   // each Screen node has props.id (auto-sl
 
 ### Validation
 
-There is one schema per Element type, in a hand-rolled, dependency-free table (`ELEMENTS` in `packages/core/src/elements.ts`): allowed props and their types, enums (the first value is the default), number ranges, allowed children, parents and slots, and per-type checks. The Guide's Elements table must agree with it both ways; a test enforces that. Rules:
+There is one schema per Element type, in a hand-rolled, dependency-free table (`ELEMENTS` in `packages/core/src/elements.ts`): allowed props and their types, enums (the first value is the default), number ranges, other defaults (Grid `cols=2`, Image `ratio=16:9`), allowed children, parents and slots, the props a parent grants its children (Grid's `span`), and per-type checks. The Guide's Elements table must agree with it both ways, defaults included; a test enforces that. Rules:
 
 - Unknown Element type, prop, flag, enum value, icon or id → error with a nearest-match hint: `Button: unknown prop "varient" — did you mean variant?`
 - A bare word that matches an enum value of some prop → error with a hint: `Badge: unknown flag "secondary" — did you mean variant=secondary?`

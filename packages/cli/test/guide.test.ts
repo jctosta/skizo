@@ -96,6 +96,17 @@ test("every enum check accepts is listed in the Guide with its values, default f
   expect(unlisted).toEqual([]);
 });
 
+test("every non-enum default check fills in is stated in the Guide, as prop=... (default X)", () => {
+  const unstated = Object.entries(ELEMENTS).flatMap(([type, spec]) =>
+    Object.entries(spec.props).flatMap(([prop, p]) => {
+      if (!("default" in p) || p.default === undefined) return [];
+      const stated = new RegExp(`\\b${prop}=\\S+ \\(default ${p.default}\\)`);
+      return ROWS.some((row) => typesIn(row).has(type) && stated.test(row)) ? [] : [`${type} ${prop} (default ${p.default})`];
+    }),
+  );
+  expect(unstated).toEqual([]);
+});
+
 test("the Guide's example passes check", async () => {
   const example = GUIDE.split("## Example")[1]?.split("```")[1]?.replace(/^\n/, "") ?? "";
   const { code, stdout } = await runCli(["check", "example.skz"], withFiles({ "example.skz": example }));
