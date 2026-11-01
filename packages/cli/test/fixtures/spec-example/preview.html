@@ -41,9 +41,9 @@
 <div class="text-base leading-normal font-medium">Pending</div>
 <div class="text-sm text-muted-foreground">Awaiting payment</div>
 <div class="col-start-2 row-span-2 row-start-1 self-start justify-self-end flex items-center gap-2">
-<div data-popup>
-<button type="button" aria-haspopup="menu" aria-expanded="false" data-popup-trigger class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-9"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span class="sr-only">Pending actions</span></button>
-<div role="menu" aria-label="Pending actions" data-popup-content class="absolute z-50 mt-1 w-max min-w-32 rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10" hidden>
+<div data-dropdown>
+<button type="button" aria-haspopup="menu" aria-expanded="false" data-dropdown-trigger class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-9"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg><span class="sr-only">Pending actions</span></button>
+<div role="menu" aria-label="Pending actions" data-dropdown-content class="absolute z-50 mt-1 w-max min-w-32 rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10" hidden>
 <div role="menuitem" class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none hover:bg-accent hover:text-accent-foreground">Send reminders</div>
 <div role="menuitem" class="relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none text-destructive hover:bg-destructive/10">Cancel all</div>
 </div>
@@ -100,11 +100,11 @@
 </div>
 </div>
 </div>
-<div data-overlay="new-order" hidden>
-<div data-overlay-close class="fixed inset-0 isolate z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs"></div>
-<div role="dialog" aria-modal="true" aria-labelledby="overlay-25" class="fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none sm:max-w-md">
+<div data-dialog="new-order" hidden>
+<div data-dialog-close class="fixed inset-0 isolate z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs"></div>
+<div role="dialog" aria-modal="true" aria-labelledby="dialog-25" class="fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none sm:max-w-md">
 <div class="flex flex-col gap-2">
-<h2 id="overlay-25" class="leading-none font-medium">New order</h2>
+<h2 id="dialog-25" class="leading-none font-medium">New order</h2>
 <p class="text-sm text-muted-foreground">Create an order for a customer.</p>
 </div>
 <div class="grid gap-4">
@@ -114,9 +114,9 @@
 </div>
 <div class="grid gap-2">
 <label for="field-27" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Status</label>
-<div data-popup>
-<button type="button" role="combobox" id="field-27" aria-expanded="false" aria-haspopup="listbox" data-popup-trigger class="flex h-9 w-fit items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"><span>Open</span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none size-4 text-muted-foreground" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
-<div role="listbox" data-popup-content class="absolute z-50 mt-1 min-w-36 overflow-hidden rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10" hidden>
+<div data-dropdown>
+<button type="button" role="combobox" id="field-27" aria-expanded="false" aria-haspopup="listbox" data-dropdown-trigger class="flex h-9 w-fit items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"><span>Open</span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none size-4 text-muted-foreground" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<div role="listbox" data-dropdown-content class="absolute z-50 mt-1 min-w-36 overflow-hidden rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10" hidden>
 <div role="option" aria-selected="true" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Open<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
 <div role="option" aria-selected="false" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Paid<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
 </div>
@@ -124,10 +124,10 @@
 </div>
 </div>
 <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-<div data-overlay-close class="contents"><button type="button" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 border-border bg-background shadow-xs hover:bg-muted hover:text-foreground h-9 gap-1.5 px-2.5">Cancel</button></div>
-<div data-overlay-close class="contents"><button type="button" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/80 h-9 gap-1.5 px-2.5">Create order</button></div>
+<div data-dialog-close class="contents"><button type="button" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 border-border bg-background shadow-xs hover:bg-muted hover:text-foreground h-9 gap-1.5 px-2.5">Cancel</button></div>
+<div data-dialog-close class="contents"><button type="button" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/80 h-9 gap-1.5 px-2.5">Create order</button></div>
 </div>
-<button type="button" data-overlay-close class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-8 absolute top-4 right-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg><span class="sr-only">Close</span></button>
+<button type="button" data-dialog-close class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-8 absolute top-4 right-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg><span class="sr-only">Close</span></button>
 </div>
 </div>
 </div>
@@ -160,61 +160,61 @@ document.addEventListener("click", (event) => {
     panels[i].hidden = t !== tab;
   });
 });
-// Popups (Select, Menu): a [data-popup] holds a [data-popup-trigger] and a [data-popup-content].
-// A click on a trigger toggles its popup; any other click closes every open popup.
-// Picking a [role="option"] in a popup also shows it on the trigger.
-// An open popup that would cross the window's right edge shifts left to fit, like shadcn's.
-const fitPopup = (content) => {
+// Dropdowns (Select, Menu): a [data-dropdown] holds a [data-dropdown-trigger] and a [data-dropdown-content].
+// A click on a trigger toggles its dropdown; any other click closes every open dropdown.
+// Picking a [role="option"] in a dropdown also shows it on the trigger.
+// An open dropdown that would cross the window's right edge shifts left to fit, like shadcn's.
+const fitDropdown = (content) => {
   content.style.translate = "";
   const overflow = content.getBoundingClientRect().right + 8 - document.documentElement.clientWidth;
   if (overflow > 0) content.style.translate = -overflow + "px";
 };
-document.querySelectorAll("[data-popup-content]:not([hidden])").forEach(fitPopup);
+document.querySelectorAll("[data-dropdown-content]:not([hidden])").forEach(fitDropdown);
 document.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : null;
-  const popup = target && target.closest("[data-popup]");
-  const toggled = popup && target.closest("[data-popup-trigger]") ? popup : null;
-  const option = popup && target.closest('[role="option"]');
+  const dropdown = target && target.closest("[data-dropdown]");
+  const toggled = dropdown && target.closest("[data-dropdown-trigger]") ? dropdown : null;
+  const option = dropdown && target.closest('[role="option"]');
   if (option) {
-    const shown = popup.querySelector("[data-popup-trigger] > span");
+    const shown = dropdown.querySelector("[data-dropdown-trigger] > span");
     shown.textContent = option.textContent;
     shown.removeAttribute("class");
-    for (const o of popup.querySelectorAll('[role="option"]')) o.setAttribute("aria-selected", String(o === option));
+    for (const o of dropdown.querySelectorAll('[role="option"]')) o.setAttribute("aria-selected", String(o === option));
   }
-  for (const p of document.querySelectorAll("[data-popup]")) {
-    const content = p.querySelector("[data-popup-content]");
+  for (const p of document.querySelectorAll("[data-dropdown]")) {
+    const content = p.querySelector("[data-dropdown-content]");
     const open = p === toggled && content.hidden;
     content.hidden = !open;
-    if (open) fitPopup(content);
-    p.querySelector("[data-popup-trigger]").setAttribute("aria-expanded", String(open));
+    if (open) fitDropdown(content);
+    p.querySelector("[data-dropdown-trigger]").setAttribute("aria-expanded", String(open));
   }
 });
-// Escape closes the open popups, and only them: a Dialog under a popup stays open.
+// Escape closes the open dropdowns, and only them: a Dialog under a dropdown stays open.
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
-  const open = [...document.querySelectorAll("[data-popup-content]")].filter((c) => c.checkVisibility());
+  const open = [...document.querySelectorAll("[data-dropdown-content]")].filter((c) => c.checkVisibility());
   for (const content of open) {
     content.hidden = true;
-    content.closest("[data-popup]").querySelector("[data-popup-trigger]").setAttribute("aria-expanded", "false");
+    content.closest("[data-dropdown]").querySelector("[data-dropdown-trigger]").setAttribute("aria-expanded", "false");
   }
   if (open.length) event.stopImmediatePropagation();
 });
-// Overlays (Dialog, Sheet): a [data-opens] Button shows the [data-overlay] with that id;
-// a click on a [data-overlay-close] (close button, backdrop, footer Button without Behavior) hides its overlay.
+// Dialogs and Sheets: a [data-opens] Button shows the [data-dialog] with that id;
+// a click on a [data-dialog-close] (close button, backdrop, footer Button without Behavior) hides its Dialog or Sheet.
 document.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : null;
   const opener = target && target.closest("[data-opens]");
   if (opener) {
-    for (const o of document.querySelectorAll("[data-overlay]")) if (o.dataset.overlay === opener.dataset.opens) o.hidden = false;
+    for (const o of document.querySelectorAll("[data-dialog]")) if (o.dataset.dialog === opener.dataset.opens) o.hidden = false;
     return;
   }
-  const closer = target && target.closest("[data-overlay-close]");
-  if (closer) closer.closest("[data-overlay]").hidden = true;
+  const closer = target && target.closest("[data-dialog-close]");
+  if (closer) closer.closest("[data-dialog]").hidden = true;
 });
-// Escape closes the topmost shown overlay (the last in the page).
+// Escape closes the topmost shown Dialog or Sheet (the last in the page).
 document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") return;
-  const top = [...document.querySelectorAll("[data-overlay]")].filter((o) => o.checkVisibility()).pop();
+  const top = [...document.querySelectorAll("[data-dialog]")].filter((o) => o.checkVisibility()).pop();
   if (top) top.hidden = true;
 });
 // Screens (to=): one shows at a time. A to= is a link to #<screen id>; the hash picks the Screen,
@@ -225,10 +225,10 @@ const showScreen = () => {
   const shown = screens.find((s) => s.dataset.screen === id) || screens[0];
   for (const s of screens) s.hidden = s !== shown;
 };
-// A Screen shows as it loads, like a remounted page: Overlays opened since close, those flagged open show again.
-const overlays = [...document.querySelectorAll("[data-overlay]")].map((o) => [o, o.hidden]);
+// A Screen shows as it loads, like a remounted page: Dialogs and Sheets opened since close, those flagged open show again.
+const dialogs = [...document.querySelectorAll("[data-dialog]")].map((o) => [o, o.hidden]);
 addEventListener("hashchange", () => {
-  for (const [o, hidden] of overlays) o.hidden = hidden;
+  for (const [o, hidden] of dialogs) o.hidden = hidden;
   showScreen();
   scrollTo(0, 0);
 });

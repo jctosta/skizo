@@ -6,3 +6,4 @@ Screen "Dashboard"
     Card "Customers"
       actions
         Card "Nested" span=2
+  Button "Export" span=2

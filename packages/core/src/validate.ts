@@ -2,7 +2,8 @@ import type { CheckError, Document, Node } from "./ast";
 import { ELEMENTS, type ElementSpec, type PropSpec } from "./elements";
 import { didYouMean } from "./nearest";
 
-const ID: PropSpec = { kind: "string" };
+/** `id=`, which every Element takes without listing it. */
+const ID_PROP: PropSpec = { kind: "string" };
 
 export type CheckOptions = {
   /** Every name `icon=` accepts. Injected by the caller so core ships no icon data; when omitted, any icon name passes. */
@@ -10,15 +11,16 @@ export type CheckOptions = {
 };
 
 /**
- * Checks a parsed document against the ELEMENTS schemas. Generic: per-Element-type rules belong in ELEMENTS.
- * Mutates the AST into what Backends read: coerced prop values, enum defaults, Screen ids.
+ * Checks a parsed document against the ELEMENTS schemas. Generic: per-Element-type rules belong in ELEMENTS; the
+ * only type named here is Screen, the top level of every file.
+ * Mutates the AST into what Backends read: coerced prop values, defaults, inferred props (ELEMENTS `infer`).
  */
 export function validate(document: Document, options: CheckOptions = {}): CheckError[] {
   const errors: CheckError[] = [];
   /** Each id's first Element and the Screen it sits on. */
   const ids = new Map<string, { node: Node; screen: Node }>();
   /** Ref props (opens=, to=) to resolve once every id is known: a Screen may go to one further down the file. */
-  const refs: { node: Node; screen: Node; key: string; to: "overlay" | "screen" }[] = [];
+  const refs: { node: Node; screen: Node; key: string; to: readonly string[] }[] = [];
   /** The Screen being walked. */
   let current: Node;
   const err = (node: Node, message: string) => errors.push({ line: node.line, type: node.type, message });
@@ -44,22 +46,14 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
           const owners = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type]!.slots?.includes(name));
           err(node, `takes no "${name}" slot (allowed in: ${owners.join(", ")})`);
         }
-      props(node, spec, options, err);
+      // A direct child (not in a slot) may also set its parent's childProps: a Grid's span.
+      const host = parent && !inSlot ? ELEMENTS[parent.type] : undefined;
+      props(node, spec, host?.childProps, options, err);
       for (const [key, prop] of Object.entries(spec.props))
         if (prop.kind === "ref" && typeof node.props[key] === "string") refs.push({ node, screen: current, key, to: prop.to });
+      spec.infer?.(node, parent);
       spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }), parent);
-      // `span` (on any Element type whose schema lists it) counts columns of the Grid it sits directly in.
-      const span = node.props.span;
-      if (typeof span === "number") {
-        const cols = parent?.type === "Grid" && !inSlot ? parent.props.cols : undefined;
-        if (cols === undefined) err(node, "span only works directly inside a Grid");
-        else if (typeof cols === "number" && span > cols) err(node, `span=${span} is larger than the Grid's cols=${cols}`);
-      }
-      if (node.type === "Screen" && node.props.id === undefined && node.label !== undefined) {
-        const slug = slugify(node.label);
-        if (slug) node.props.id = slug;
-        else err(node, "cannot derive an id from the Label (add id=name)");
-      }
+      host?.checkChild?.(node, (message) => err(node, message), parent!);
     }
 
     const id = node.props.id;
@@ -85,37 +79,43 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
     walk(s);
   }
 
-  // to= names a Screen; opens= names a Dialog or Sheet on its own Screen.
+  // A ref to a Screen (to=) resolves file-wide; any other (opens=: a Dialog or Sheet) only on its own Screen.
   const screenIds = document.screens.map((screen) => screen.props.id).filter((id) => typeof id === "string");
   const screens = `(expected: ${screenIds.join(", ")})`;
-  const expected = "(expected: a Dialog or Sheet on this Screen)";
   for (const { node, screen, key, to } of refs) {
     const id = node.props[key] as string;
     const target = ids.get(id);
-    if (to === "screen") {
+    const expected = `(expected: a ${to.join(" or ")} on this Screen)`;
+    if (to.includes("Screen")) {
       if (!target) err(node, `${key}=${id} is an unknown Screen id${didYouMean(id, screenIds)} ${screens}`);
       else if (target.node.type !== "Screen")
         err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line}, not a Screen ${screens}`);
     } else if (!target) {
-      const near = [...ids].filter(([, t]) => t.screen === screen && OPENABLE.includes(t.node.type)).map(([name]) => name);
+      const near = [...ids].filter(([, t]) => t.screen === screen && to.includes(t.node.type)).map(([name]) => name);
       err(node, `${key}=${id} is an unknown id${didYouMean(id, near)} ${expected}`);
-    } else if (!OPENABLE.includes(target.node.type)) err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line} ${expected}`);
+    } else if (!to.includes(target.node.type)) err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line} ${expected}`);
     else if (target.screen !== screen)
       err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line}, on another Screen ${expected}`);
   }
   return errors;
 }
 
-/** What opens= can show. */
-const OPENABLE = ["Dialog", "Sheet"];
-
-function props(node: Node, spec: ElementSpec, options: CheckOptions, err: (node: Node, message: string) => void) {
-  const names = ["id", ...Object.keys(spec.props)];
+function props(
+  node: Node,
+  spec: ElementSpec,
+  granted: ElementSpec["childProps"],
+  options: CheckOptions,
+  err: (node: Node, message: string) => void,
+) {
+  const own = { ...granted, ...spec.props };
+  const names = ["id", ...Object.keys(own)];
   for (const [key, raw] of Object.entries(node.props)) {
-    const prop = key === "id" ? ID : spec.props[key];
+    const prop = key === "id" ? ID_PROP : own[key];
     if (!prop) {
       const enumProp = Object.entries(spec.props).find(([, p]) => p.kind === "enum" && p.values.includes(key))?.[0];
-      if (raw !== true) err(node, `unknown prop "${key}"${didYouMean(key, names)}`);
+      const grantors = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type]!.childProps?.[key]);
+      if (grantors.length) err(node, `${key} only works directly inside a ${grantors.join(" or ")}`);
+      else if (raw !== true) err(node, `unknown prop "${key}"${didYouMean(key, names)}`);
       else err(node, `unknown flag "${key}"${enumProp ? ` — did you mean ${enumProp}=${key}?` : didYouMean(key, names)}`);
     } else if (prop.kind === "flag") {
       if (raw !== true) err(node, `${key} is a flag and takes no value (write just ${key})`);
@@ -126,7 +126,7 @@ function props(node: Node, spec: ElementSpec, options: CheckOptions, err: (node:
   for (const [key, prop] of Object.entries(spec.props)) {
     if (node.props[key] !== undefined) continue;
     if (prop.kind === "enum") node.props[key] = prop.values[0]!;
-    if (prop.kind === "number" && prop.default !== undefined) node.props[key] = prop.default;
+    if ((prop.kind === "number" || prop.kind === "ratio") && prop.default !== undefined) node.props[key] = prop.default;
   }
 }
 
@@ -153,6 +153,9 @@ function coerce(
         err(`${key}=${value} is out of range (expected: ${prop.min ?? ""}..${prop.max ?? ""})`);
       return n;
     }
+    case "ratio":
+      if (!/^[1-9]\d*:[1-9]\d*$/.test(value)) err(`${key}=${value} is not a ratio (expected: W:H with whole numbers above 0, e.g. 4:3)`);
+      return value;
     case "list": {
       const items = value.split(/(?<!\\),/).map((item) => item.replaceAll("\\,", ",").trim());
       // An empty option, column or item renders as nothing (and Radix throws on <SelectItem value="">).
@@ -163,12 +166,3 @@ function coerce(
       return value.replaceAll("\\,", ",");
   }
 }
-
-/** "Order list" → "order-list". */
-export const slugify = (label: string) =>
-  label
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");

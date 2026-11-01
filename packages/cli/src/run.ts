@@ -132,8 +132,8 @@ function load(file: string, io: Io) {
   let source;
   try {
     source = readFileSync(resolve(io.cwd, file), "utf8");
-  } catch {
-    io.stderr(`skizo: cannot read ${file}\n`);
+  } catch (e) {
+    io.stderr(`skizo: cannot read ${file} (${(e as NodeJS.ErrnoException).code ?? (e as Error).message})\n`);
     return undefined;
   }
   return check(source, { iconNames: iconNames() });

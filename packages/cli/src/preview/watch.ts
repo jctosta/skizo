@@ -25,8 +25,11 @@ export async function watchPreview(
     let text;
     try {
       text = readFileSync(source, "utf8");
-    } catch {
-      return; // mid atomic save: the rename fires another event
+    } catch (e) {
+      const code = (e as NodeJS.ErrnoException).code;
+      // ENOENT: mid atomic save, and the rename fires another event. Anything else, say so and keep watching.
+      if (code !== "ENOENT") io.stderr(`skizo preview: cannot read ${relative(io.cwd, source)} (${code ?? (e as Error).message})\n`);
+      return;
     }
     if (text === last) return;
     last = text;

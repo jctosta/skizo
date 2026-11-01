@@ -1,5 +1,6 @@
 import { slugify, type Node } from "@skizo/core";
-import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
+import { hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
+import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
 import { initials, listItems, lorem, tableRows } from "../placeholder";
 
@@ -23,12 +24,10 @@ export const text = (s: string) => (/[{}<>&]/.test(s) ? `{${JSON.stringify(s)}}`
 /** A string as a JSX attribute value: quoted, or a string expression when it holds `"` or `&`. */
 export const attr = (s: string) => (/["&]/.test(s) ? `{${JSON.stringify(s)}}` : `"${s}"`);
 
-/** Joins the present lines. */
-export const lines = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
 
-/** `open`, then `body` indented two spaces, then `close`; one line when `body` is empty. */
-export const wrap = (open: string, body: string, close: string) =>
-  body ? `${open}\n${body.replace(/^/gm, "  ")}\n${close}` : `${open}${close}`;
+/** `start`, then `body` indented two spaces, then `end`; one line when `body` is empty. */
+export const wrap = (start: string, body: string, end: string) =>
+  body ? `${start}\n${body.replace(/^/gm, "  ")}\n${end}` : `${start}${end}`;
 
 /** JSX attributes from name → value: strings through `attr`, numbers in braces, true bare; undefined and false skipped. */
 export const jsxAttrs = (pairs: Record<string, unknown>) =>
@@ -72,17 +71,16 @@ export const icon = (ctx: Ctx, name: string, className?: string) => {
 const screenHref = (id: string) => `/${id}`;
 
 /**
- * The useState pair behind opens=, named after the Overlay's id: `new-order` → ["newOrderOpen", "setNewOrderOpen"].
+ * The useState pair behind opens=, named after the id of the Dialog or Sheet: `new-order` → ["newOrderOpen", "setNewOrderOpen"].
  * ponytail: ids that differ only in punctuation (new-order, new_order) collide; dedupe per Screen if it bites.
  */
 export const openState = (id: string) => {
-  const words = id.split(/[^A-Za-z0-9]+/).filter(Boolean);
-  const name = /^[A-Za-z]/.test(words[0] ?? "") ? words.map((w) => w[0]!.toUpperCase() + w.slice(1)).join("") : `Overlay${words.join("")}`;
+  const name = pascalCase(id, "Overlay");
   return [`${name[0]!.toLowerCase()}${name.slice(1)}Open`, `set${name}Open`] as const;
 };
 
 /** Dialog and Sheet: Content > Header(Title, Description) + body + Footer, with useState when an id lets opens= show it. */
-function overlay(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string) {
+function dialog(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string) {
   /** Imports a part and returns its name. */
   const ui = (part: string) => (ctx.use(`@/components/ui/${kind.toLowerCase()}`, `${kind}${part}`), `${kind}${part}`);
   const id = node.props.id as string | undefined;
@@ -94,9 +92,9 @@ function overlay(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string
     ctx.hook(`const [${value}, ${set}] = useState(${node.props.open === true})`);
     state = ` open={${value}} onOpenChange={${set}}`;
   }
-  // A footer Button without Behavior closes the Overlay, as in the Preview.
+  // A footer Button without Behavior closes the Dialog or Sheet, as in the Preview.
   const footer = node.slots?.footer?.map((n) =>
-    n.type === "Button" && n.props.opens === undefined && n.props.to === undefined
+    n.type === "Button" && !hasBehavior(n)
       ? wrap(`<${ui("Close")} asChild>`, ctx.render([n]), `</${kind}Close>`)
       : ctx.render([n]),
   );
@@ -138,7 +136,7 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
-    const sidebar = node.children[0]?.type === "Sidebar" ? node.children[0] : undefined;
+    const { sidebar, body } = screenParts(node);
     const header = lines(
       `<h1 className="${c.title}">${text(node.label!)}</h1>`,
       subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
@@ -148,7 +146,7 @@ export const EMITTERS: Record<string, Emit> = {
       `<main className="${sidebar ? c.main : c.root}">`,
       lines(
         wrap(`<header className="${cx(c.header, actions && c.headerWithActions)}">`, header, "</header>"),
-        wrap(`<div className="${c.body}">`, ctx.render(sidebar ? node.children.slice(1) : node.children), "</div>"),
+        wrap(`<div className="${c.body}">`, ctx.render(body), "</div>"),
       ),
       "</main>",
     );
@@ -162,9 +160,9 @@ export const EMITTERS: Record<string, Emit> = {
   Link: (node, ctx) => {
     const { to, active } = node.props as { to?: string; active?: true };
     const href = to === undefined ? undefined : screenHref(to);
-    const open = `<a${jsxAttrs({ href, "aria-current": active && "page" })} className="${CLASSES.Link.root}">`;
-    if (node.props.icon === undefined) return `${open}${text(node.label!)}</a>`;
-    return wrap(open, lines(icon(ctx, node.props.icon as string, CLASSES.Link.icon), text(node.label!)), "</a>");
+    const tag = `<a${jsxAttrs({ href, "aria-current": active && "page" })} className="${CLASSES.Link.root}">`;
+    if (node.props.icon === undefined) return `${tag}${text(node.label!)}</a>`;
+    return wrap(tag, lines(icon(ctx, node.props.icon as string, CLASSES.Link.icon), text(node.label!)), "</a>");
   },
   Heading: (node) => {
     const level = node.props.level as keyof typeof CLASSES.Heading;
@@ -172,15 +170,15 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Text: (node, ctx) => {
     const c = CLASSES.Text;
-    const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
+    const classes = cx(c[node.props.size as keyof typeof c], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p className="${classes}">${text(node.label ?? lorem(ctx.path, node.props.lorem as number))}</p>`;
   },
   // No shadcn Stat: plain markup (title, value, hint).
   Stat: (node) => {
     const c = CLASSES.Stat;
-    const trend = node.props.trend as "none" | "up" | "down";
+    const trend = node.props.trend as keyof typeof c;
     const title = node.props.title as string | undefined;
-    const hint = [{ none: "", up: "↑", down: "↓" }[trend], node.props.hint].filter(Boolean).join(" ");
+    const hint = statHint(node);
     return wrap(
       `<div className="${c.root}">`,
       lines(
@@ -208,9 +206,9 @@ export const EMITTERS: Record<string, Emit> = {
   },
   // No shadcn Image: a placeholder box to swap for an <img>.
   Image: (node) => {
-    const c = CLASSES.Image;
-    const classes = cx(c.root, c[node.props.ratio as "16:9" | "4:3" | "3:2" | "1:1"]);
-    return `<div role="img" aria-label=${attr(node.label!)} className="${classes}">${text(node.label!)}</div>`;
+    const ratio = (node.props.ratio as string).replace(":", " / ");
+    const style = `style={{ aspectRatio: "${ratio}" }}`;
+    return `<div role="img" aria-label=${attr(node.label!)} className="${CLASSES.Image.root}" ${style}>${text(node.label!)}</div>`;
   },
   Alert: (node, ctx) => {
     const description = node.props.text as string | undefined;
@@ -231,7 +229,14 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Stack: (node, ctx) => wrap(`<div className="${flexClasses(node)}">`, ctx.render(node.children), "</div>"),
   Row: (node, ctx) => wrap(`<div className="${flexClasses(node)}">`, ctx.render(node.children), "</div>"),
-  Grid: (node, ctx) => wrap(`<div className="${gridClasses(node)}">`, ctx.render(node.children), "</div>"),
+  /** Wraps each child with span=N in a cell spanning N columns, so no other emitter handles span. */
+  Grid: (node, ctx) => {
+    const cells = node.children.map((child) => {
+      const span = spanClasses(child);
+      return span ? wrap(`<div className="${span}">`, ctx.render([child]), "</div>") : ctx.render([child]);
+    });
+    return wrap(`<div className="${gridClasses(node)}">`, lines(...cells), "</div>");
+  },
   Separator: (_node, ctx) => {
     ctx.use("@/components/ui/separator", "Separator");
     return "<Separator />";
@@ -242,14 +247,13 @@ export const EMITTERS: Record<string, Emit> = {
     const ui = (name: string) => (ctx.use("@/components/ui/card", name), name);
     const desc = node.props.desc as string | undefined;
     const { actions, footer } = node.slots ?? {};
-    const span = c.span[node.props.span as keyof typeof c.span];
     const header = lines(
       node.label !== undefined && `<${ui("CardTitle")}>${text(node.label)}</CardTitle>`,
       desc !== undefined && `<${ui("CardDescription")}>${text(desc)}</CardDescription>`,
       actions && wrap(`<${ui("CardAction")} className="${c.actions}">`, ctx.render(actions), "</CardAction>"),
     );
     return wrap(
-      `<${ui("Card")}${span ? ` className="${span}"` : ""}>`,
+      `<${ui("Card")}>`,
       lines(
         header && wrap(`<${ui("CardHeader")}>`, header, "</CardHeader>"),
         node.children.length > 0 && wrap(`<${ui("CardContent")}>`, ctx.render(node.children), "</CardContent>"),
@@ -272,8 +276,8 @@ export const EMITTERS: Record<string, Emit> = {
     );
   },
   List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
-  Dialog: (node, ctx) => overlay(node, ctx, "Dialog", ""),
-  Sheet: (node, ctx) => overlay(node, ctx, "Sheet", node.props.side === "right" ? "" : ` side="${node.props.side}"`),
+  Dialog: (node, ctx) => dialog(node, ctx, "Dialog", ""),
+  Sheet: (node, ctx) => dialog(node, ctx, "Sheet", node.props.side === "right" ? "" : ` side="${node.props.side}"`),
   /** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
   Tabs: (node, ctx) => {
     ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");
@@ -313,14 +317,15 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Button: (node, ctx) => {
     const c = CLASSES.Button;
-    const { variant, size } = node.props as { variant: string; size: "sm" | "md" | "lg" };
+    const { variant, size } = node.props as { variant: string; size: keyof typeof BUTTON_SIZE };
     const iconOnly = node.props["icon-only"] === true;
     const loading = node.props.loading === true;
     const shadcnSize = (iconOnly ? ICON_BUTTON_SIZE : BUTTON_SIZE)[size];
     const disabled = node.props.disabled === true || loading;
-    const to = node.props.to as string | undefined;
+    // Disabled wins over to=: a link cannot be disabled, so it renders as a disabled Button.
+    const to = disabled ? undefined : (node.props.to as string | undefined);
     const opens = node.props.opens === undefined ? "" : ` onClick={() => ${openState(node.props.opens as string)[1]}(true)}`;
-    const open = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled, asChild: to !== undefined })}${opens}>`;
+    const tag = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled, asChild: to !== undefined })}${opens}>`;
     ctx.use("@/components/ui/button", "Button");
     const glyph = loading ? icon(ctx, "loader-circle", c.spinner) : node.props.icon !== undefined && icon(ctx, node.props.icon as string);
     const label = iconOnly ? `<span className="${c.hiddenLabel}">${text(node.label!)}</span>` : text(node.label!);
@@ -328,9 +333,9 @@ export const EMITTERS: Record<string, Emit> = {
     // to=: the Button renders a plain anchor (asChild), like a Link.
     if (to !== undefined) {
       const anchor = `<a href=${attr(screenHref(to))}>`;
-      return wrap(open, glyph ? wrap(anchor, content, "</a>") : `${anchor}${content}</a>`, "</Button>");
+      return wrap(tag, glyph ? wrap(anchor, content, "</a>") : `${anchor}${content}</a>`, "</Button>");
     }
-    return glyph ? wrap(open, content, "</Button>") : `${open}${content}</Button>`;
+    return glyph ? wrap(tag, content, "</Button>") : `${tag}${content}</Button>`;
   },
   Input: (node, ctx) => {
     const { type, placeholder, value, disabled, error } = node.props;

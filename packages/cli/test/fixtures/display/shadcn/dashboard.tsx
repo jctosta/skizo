@@ -37,10 +37,10 @@ export function DashboardScreen() {
         <Avatar size="lg" role="img" aria-label="Carla Maria Dias">
           <AvatarFallback>CD</AvatarFallback>
         </Avatar>
-        <div role="img" aria-label="Team photo" className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground aspect-video">Team photo</div>
-        <div role="img" aria-label="Chart" className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground aspect-4/3">Chart</div>
-        <div role="img" aria-label="Banner" className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground aspect-3/2">Banner</div>
-        <div role="img" aria-label={"The \"team\" & friends"} className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground aspect-square">{"The \"team\" & friends"}</div>
+        <div role="img" aria-label="Team photo" className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground" style={{ aspectRatio: "16 / 9" }}>Team photo</div>
+        <div role="img" aria-label="Chart" className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground" style={{ aspectRatio: "4 / 3" }}>Chart</div>
+        <div role="img" aria-label="Banner" className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground" style={{ aspectRatio: "3 / 2" }}>Banner</div>
+        <div role="img" aria-label={"The \"team\" & friends"} className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground" style={{ aspectRatio: "1 / 1" }}>{"The \"team\" & friends"}</div>
         <Alert>
           <AlertTitle>Heads up</AlertTitle>
           <AlertDescription>Exports run every hour.</AlertDescription>
@@ -53,6 +53,7 @@ export function DashboardScreen() {
         <Progress />
         <p className="text-sm">Anim aute consectetur amet eiusmod amet aliquip occaecat anim ut. Incididunt qui et deserunt ad fugiat exercitation et lorem esse. Irure esse qui duis.</p>
         <p className="text-xs text-muted-foreground">Do non sunt ipsum excepteur esse.</p>
+        <div role="img" aria-label="Cinema" className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground" style={{ aspectRatio: "21 / 9" }}>Cinema</div>
       </div>
     </main>
   )

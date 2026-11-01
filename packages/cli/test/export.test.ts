@@ -35,11 +35,23 @@ test("each exported file exports a component named <PascalCaseId>Screen", async 
   expect(readFileSync(join(cwd, "order-details.tsx"), "utf8")).toContain("export function OrderDetailsScreen() {");
 });
 
+test("a Screen id that starts with a digit still names a valid component, prefixed with Screen", async () => {
+  const cwd = withFiles({ "report.skz": `Screen "2026 Report"\n  Heading "Totals"\n` });
+  await runCli(["export", "report.skz", "--target", "shadcn"], cwd);
+  expect(readFileSync(join(cwd, "2026-report.tsx"), "utf8")).toContain("export function Screen2026ReportScreen() {");
+});
+
 test("an Overlay without desc tells Radix it has no description, so the exported app logs no warning", async () => {
   const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  Dialog "Confirm"\n  Sheet "Filters" desc="Narrow the list"\n` });
   await runCli(["export", "orders.skz", "--target", "shadcn"], cwd);
   const contents = readFileSync(join(cwd, "orders.tsx"), "utf8").match(/<(Dialog|Sheet)Content[^>]*>/g);
   expect(contents).toEqual(["<DialogContent aria-describedby={undefined}>", "<SheetContent>"]);
+});
+
+test("a disabled Button with to= exports as a disabled Button with no link", async () => {
+  const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  Button "Next page" disabled to=orders\n` });
+  await runCli(["export", "orders.skz", "--target", "shadcn"], cwd);
+  expect(readFileSync(join(cwd, "orders.tsx"), "utf8")).toContain("<Button disabled>Next page</Button>");
 });
 
 test("export refuses a file that fails check and prints the same errors", async () => {

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { get } from "node:http";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
@@ -79,6 +79,18 @@ test("a save that fails check prints its errors and keeps serving the last good 
     stderr: checked.stdout,
     served: expect.stringContaining("Recent orders"),
     written: expect.stringContaining("Recent orders"),
+  });
+});
+
+test("a source that turns unreadable is reported, and the last good Preview stays served", async () => {
+  const cwd = withFiles({ "orders.skz": VALID });
+  const { cli, url } = await watchPreview(cwd);
+  rmSync(join(cwd, "orders.skz"));
+  mkdirSync(join(cwd, "orders.skz"));
+  await vi.waitUntil(() => cli.out.stderr);
+  expect({ stderr: cli.out.stderr, served: await page(url) }).toEqual({
+    stderr: "skizo preview: cannot read orders.skz (EISDIR)\n",
+    served: expect.stringContaining("Recent orders"),
   });
 });
 

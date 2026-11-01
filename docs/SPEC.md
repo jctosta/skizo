@@ -12,7 +12,7 @@ Terms in this document (Element, Element type, Label, Screen, Overlay, Behavior,
 
 The document has two parts:
 
-- **Part A — Guide.** Self-contained; this is what `skizo guide` prints for agents. It measures 1,182 tokens at v0.2 (tiktoken cl100k_base); keep it near 1.1k, trimming the example first. It lives in [packages/cli/GUIDE.md](../packages/cli/GUIDE.md); Part A links to it.
+- **Part A — Guide.** Self-contained; this is what `skizo guide` prints for agents. It measures 1,180 tokens at v0.2 (tiktoken cl100k_base); keep it near 1.1k, trimming the example first. It lives in [packages/cli/GUIDE.md](../packages/cli/GUIDE.md); Part A links to it.
 - **Part B — Implementation notes.** Parser, AST, validation, Backends. Agents never see this.
 
 ---
@@ -74,14 +74,15 @@ type Document = { screens: Node[] };   // each Screen node has props.id (auto-sl
 
 ### Validation
 
-There is one schema per Element type, in a hand-rolled, dependency-free table (`ELEMENTS` in `packages/core/src/elements.ts`): allowed props and their types, enums (the first value is the default), number ranges, allowed children, parents and slots, and per-type checks. The Guide's Elements table must agree with it both ways; a test enforces that. Rules:
+There is one schema per Element type, in a hand-rolled, dependency-free table (`ELEMENTS` in `packages/core/src/elements.ts`): allowed props and their types, enums (the first value is the default), number ranges, other defaults (Grid `cols=2`, Image `ratio=16:9`), allowed children, parents and slots, the props a parent grants its children (Grid's `span`), and per-type checks. The Guide's Elements table must agree with it both ways, defaults included; a test enforces that. Rules:
 
 - Unknown Element type, prop, flag, enum value, icon or id → error with a nearest-match hint: `Button: unknown prop "varient" — did you mean variant?`
 - A bare word that matches an enum value of some prop → error with a hint: `Badge: unknown flag "secondary" — did you mean variant=secondary?`
 - `opens` must resolve to a `Dialog` or `Sheet` on the same Screen. `to` must resolve to a `Screen`.
 - Duplicate ids → error. Only one `active` per `Tabs` or `Sidebar`. `Tabs` default to the first `Tab` if none is active. A Sidebar `Link` whose `to` is its own Screen is active.
-- Structural rules: `Tab` only under `Tabs`, `Item` only under `Menu`, `Link` only under `Sidebar`, row lines only under `Table`, `Sidebar` only as the first child of `Screen`, `Dialog` and `Sheet` only as direct children of `Screen`, `span` only directly inside a `Grid` and at most its `cols`, and a Table needs `cols`.
+- Structural rules: `Tab` only under `Tabs`, `Item` only under `Menu`, `Link` only under `Sidebar`, row lines only under `Table`, `Sidebar` only as the first child of `Screen`, `Dialog` and `Sheet` only as direct children of `Screen`, `span` (on any Element) only directly inside a `Grid` and at most its `cols`, and a Table needs `cols`.
 - A Table row must have exactly one cell per `cols` entry.
+- `Image` `ratio` must be `W:H` with whole numbers above 0.
 - One content source per Element: Label or `lorem`, `|` rows or `rows`, `items` or `rows`. Both → error.
 - A list prop (`options`, `cols`, `items`) may not hold an empty item. A Select or Radio `value` must be one of its `options`.
 - `Button` and `Menu` need a Label, including with `icon-only`, and `icon-only` needs `icon`. A Button has one Behavior: `opens` or `to`, not both.
@@ -98,8 +99,10 @@ The CLI exits non-zero on errors, and `--json` emits machine-readable output.
 Each Backend is a map `Element type → emitter`. Shared rules:
 
 - Sizes and gaps (`sm|md|lg`) map to Backend tokens (Tailwind: gap-2/4/6).
+- A `Grid` wraps each child that sets `span=N` in a cell spanning N columns, so no other emitter handles `span`.
+- `Image` `ratio=W:H` becomes an inline `aspect-ratio` style, so any ratio works without a precompiled class.
 - Placeholder content (`rows=N`, `lorem=N`, `Image`) is **deterministic**, seeded by node path, so re-exports diff cleanly. Generated table cells are guessed from the column name (Name, Email, Date, Status, Amount, otherwise "Item n").
-- Overlays with the `open` flag render visibly in the Preview, and as `open` / `defaultOpen` in exported code.
+- Overlays and Selects with the `open` flag render visibly in the Preview, and as `open` / `defaultOpen` in exported code.
 - `icon-only` renders the icon alone and keeps the Label as the accessible name (`aria-label` or `sr-only` text).
 
 **shadcn Export target.** It imports from `@/components/ui/*`, so the export uses the project's own components and theme. Compound expansions:
@@ -117,9 +120,9 @@ Each Backend is a map `Element type → emitter`. Shared rules:
 | `Stat` | `div > p.text-sm (title) + div.text-2xl.font-bold + p.text-xs.text-muted-foreground` (no shadcn equivalent) |
 | `Screen` + `Sidebar` | Page shell: sidebar column (plain `aside > nav > a`, not shadcn's Sidebar) + main with a header row (title, subtitle, actions) |
 
-Each `Screen` becomes one `.tsx` file in `--out`, named after the Screen id (`orders.tsx` exporting `OrdersScreen`). `opens` turns into `useState` wiring between the trigger and the Overlay. `to` becomes a plain `<a href="/<screenId>">` (Buttons via `asChild`); swapping in a router's link component is left to the user.
+Each `Screen` becomes one `.tsx` file in `--out`, named after the Screen id (`orders.tsx` exporting `OrdersScreen`; an id starting with a digit gets a `Screen` prefix, `Screen2026ReportScreen`). `opens` turns into `useState` wiring between the trigger and the Dialog or Sheet. `to` becomes a plain `<a href="/<screenId>">` (Buttons via `asChild`); swapping in a router's link component is left to the user. A `disabled` (or `loading`) Button with `to` renders as a disabled Button with no link, in the export and the Preview.
 
-**Preview.** It emits one self-contained HTML file that works offline. CSS for the fixed class set the Backend emits is precompiled at package build time and inlined; only the Lucide icons the file uses are inlined as SVG. All Screens go in one file. When the file has `to` links, one Screen shows at a time, picked by the URL hash (`#<screen id>`, the first Screen without one), and showing a Screen resets its Overlays to how they load; without `to` links every Screen shows, stacked. A few lines of vanilla JS handle Behavior (`to`, `opens`) and built-in interactions: switching Tabs, opening Menus and Selects, closing Overlays (close button, backdrop, a footer Button without Behavior) and Escape (the open popup, else the topmost Overlay). Form controls are plain, inert HTML. No build step for the user.
+**Preview.** It emits one self-contained HTML file that works offline. CSS for the fixed class set the Backend emits is precompiled at package build time and inlined; only the Lucide icons the file uses are inlined as SVG. All Screens go in one file. When the file has `to` links, one Screen shows at a time, picked by the URL hash (`#<screen id>`, the first Screen without one), and showing a Screen resets its Dialogs and Sheets to how they load; without `to` links every Screen shows, stacked. A few lines of vanilla JS handle Behavior (`to`, `opens`) and built-in interactions: switching Tabs, opening Menus and Selects, closing Dialogs and Sheets (close button, backdrop, a footer Button without Behavior) and Escape (an open Menu or Select, else the topmost Dialog or Sheet). Form controls are plain, inert HTML. No build step for the user.
 
 ### CLI
 

@@ -1,3 +1,4 @@
 input.skz:2  Card  span only works directly inside a Grid
 input.skz:5  Card  span only works directly inside a Grid
 input.skz:8  Card  span only works directly inside a Grid
+input.skz:9  Button  span only works directly inside a Grid

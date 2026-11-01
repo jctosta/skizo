@@ -20,3 +20,4 @@ Screen "Dashboard" subtitle="Display Elements"
   Progress
   Text lorem=24
   Text lorem=6 size=sm muted
+  Image "Cinema" ratio=21:9

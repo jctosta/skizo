@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2026 Report</title>
+<style>/* preview.css */</style>
+</head>
+<body>
+<section data-screen="2026-report" class="min-h-screen p-6">
+<header class="mb-6 grid gap-1">
+<h1 class="text-2xl font-semibold tracking-tight">2026 Report</h1>
+</header>
+<div class="flex flex-col gap-4">
+<a href="#3rd-quarter" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/80 h-9 gap-1.5 px-2.5">Q3</a>
+</div>
+</section>
+<section hidden data-screen="3rd-quarter" class="min-h-screen p-6">
+<header class="mb-6 grid gap-1">
+<h1 class="text-2xl font-semibold tracking-tight">Third quarter</h1>
+</header>
+<div class="flex flex-col gap-4">
+<a href="#2026-report" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/80 h-9 gap-1.5 px-2.5">Back</a>
+</div>
+</section>
+<script>
+// Screens (to=): one shows at a time. A to= is a link to #<screen id>; the hash picks the Screen,
+// so the back button works and a preview --watch reload stays on it. No hash: the first Screen.
+const showScreen = () => {
+  const screens = [...document.querySelectorAll("[data-screen]")];
+  const id = decodeURIComponent(location.hash.slice(1));
+  const shown = screens.find((s) => s.dataset.screen === id) || screens[0];
+  for (const s of screens) s.hidden = s !== shown;
+};
+// A Screen shows as it loads, like a remounted page: Dialogs and Sheets opened since close, those flagged open show again.
+const dialogs = [...document.querySelectorAll("[data-dialog]")].map((o) => [o, o.hidden]);
+addEventListener("hashchange", () => {
+  for (const [o, hidden] of dialogs) o.hidden = hidden;
+  showScreen();
+  scrollTo(0, 0);
+});
+showScreen();
+</script>
+</body>
+</html>

@@ -11,13 +11,15 @@ export type PropSpec =
   | { kind: "enum"; values: readonly string[] }
   /** `default` is filled in when the prop is missing. */
   | { kind: "number"; min?: number; max?: number; default?: number }
+  /** `W:H`, two whole numbers above 0. `default` is filled in when the prop is missing. */
+  | { kind: "ratio"; default?: string }
   /** Comma-separated; `\,` is a literal comma. */
   | { kind: "list" }
   /**
-   * An Element's id, resolved once the whole file is read. `overlay`: a Dialog or Sheet on the same Screen (opens=);
-   * `screen`: a Screen (to=).
+   * The id of an Element of one of the `to` types, resolved once the whole file is read. A Screen resolves file-wide
+   * (to=); any other type only on the referring Element's own Screen (opens=).
    */
-  | { kind: "ref"; to: "overlay" | "screen" };
+  | { kind: "ref"; to: readonly string[] };
 
 export type ElementSpec = {
   label: "required" | "optional" | "none";
@@ -29,12 +31,21 @@ export type ElementSpec = {
   parents?: readonly string[];
   slots?: readonly ("actions" | "footer")[];
   /**
-   * Rules the generic checks can't express. Runs after the Element's own props are coerced, before its children
-   * are walked; `line` defaults to the Element's.
+   * Sets props the source implies but does not write: a Screen's id, a Sidebar's active Link. Runs after the
+   * Element's own props are coerced, before `check` and before its children are walked.
+   */
+  infer?: (node: Node, parent?: Node) => void;
+  /**
+   * Rules the generic checks can't express; reports only, never changes the AST. Runs after `infer`, before the
+   * children are walked; `line` defaults to the Element's.
    */
   check?: (node: Node, err: (message: string, line?: number) => void, parent?: Node) => void;
   /** A flag at most one child may set; with `firstByDefault`, the first child gets it when none does. */
   exclusive?: { flag: string; firstByDefault?: true };
+  /** Props any direct child (not in a slot) may set, whatever its type: Grid's span. Anywhere else they are an error. */
+  childProps?: Record<string, PropSpec>;
+  /** Runs on each direct child once its props are coerced: the childProps rules that need this Element's props. */
+  checkChild?: (child: Node, err: (message: string) => void, parent: Node) => void;
 };
 
 const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
@@ -53,7 +64,7 @@ const valueInOptions: ElementSpec["check"] = (node, err) => {
   else err(`unknown value "${value}"${didYouMean(value, options)} (expected: ${options.join(", ")})`);
 };
 /** Dialog and Sheet. */
-const overlay = { desc: { kind: "string" }, open: { kind: "flag" } } as const;
+const dialog = { desc: { kind: "string" }, open: { kind: "flag" } } as const;
 /** Stack and Row. */
 const flex = {
   gap: sizes,
@@ -67,11 +78,19 @@ const flex = {
  * Screens go only at the top level; that rule lives in validate.ts.
  */
 export const ELEMENTS: Record<string, ElementSpec> = {
+  /** Every Screen gets an id: the slug of its Label when it has no id=. */
   Screen: {
     label: "required",
     props: { id: { kind: "string" }, subtitle: { kind: "string" } },
     children: "any",
     slots: ["actions"],
+    infer(node) {
+      const slug = slugify(node.label ?? "");
+      if (node.props.id === undefined && slug) node.props.id = slug;
+    },
+    check(node, err) {
+      if (node.props.id === undefined && node.label !== undefined) err("cannot derive an id from the Label (add id=name)");
+    },
   },
   /** A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default). */
   Sidebar: {
@@ -80,18 +99,19 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     children: ["Link"],
     parents: ["Screen"],
     exclusive: { flag: "active" },
-    check(node, err, parent) {
-      if (parent?.type !== "Screen") return;
-      // In a slot (index -1) the generic `parents` rule already reports it.
-      if (parent.children.indexOf(node) > 0) err("must be the first child of its Screen");
-      // Set before the Links are walked, so `exclusive` counts inferred and written `active` alike.
+    infer(node, parent) {
+      // Before the Links are walked, so `exclusive` counts inferred and written `active` alike.
       for (const link of node.children)
-        if (link.props.to === parent.props.id && link.props.active === undefined) link.props.active = true;
+        if (parent?.type === "Screen" && link.props.to === parent.props.id && link.props.active === undefined) link.props.active = true;
+    },
+    check(node, err, parent) {
+      // In a slot (index -1) the generic `parents` rule already reports it.
+      if (parent?.type === "Screen" && parent.children.indexOf(node) > 0) err("must be the first child of its Screen");
     },
   },
   Link: {
     label: "required",
-    props: { icon: { kind: "icon" }, active: { kind: "flag" }, to: { kind: "ref", to: "screen" } },
+    props: { icon: { kind: "icon" }, active: { kind: "flag" }, to: { kind: "ref", to: ["Screen"] } },
     parents: ["Sidebar"],
   },
   Heading: { label: "required", props: { level: { kind: "enum", values: ["2", "1", "3", "4"] } } },
@@ -112,17 +132,27 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   /** The Label is a name; the Avatar shows its initials. */
   Avatar: { label: "required", props: { size: sizes } },
   /** The Label is the alt text of a placeholder box. */
-  Image: { label: "required", props: { ratio: { kind: "enum", values: ["16:9", "4:3", "3:2", "1:1"] } } },
+  Image: { label: "required", props: { ratio: { kind: "ratio", default: "16:9" } } },
   /** The Label is the title. */
   Alert: { label: "required", props: { text: { kind: "string" }, variant: { kind: "enum", values: ["default", "destructive"] } } },
   Progress: { label: "none", props: { value: { kind: "number", min: 0, max: 100 } } },
   Stack: { label: "none", props: flex, children: "any" },
   Row: { label: "none", props: flex, children: "any" },
-  Grid: { label: "none", props: { cols: { kind: "number", min: 2, max: 6, default: 2 }, gap: sizes }, children: "any" },
+  Grid: {
+    label: "none",
+    props: { cols: { kind: "number", min: 2, max: 6, default: 2 }, gap: sizes },
+    children: "any",
+    childProps: { span: { kind: "number", min: 1 } },
+    checkChild(child, err, grid) {
+      const { span } = child.props;
+      const { cols } = grid.props;
+      if (typeof span === "number" && typeof cols === "number" && span > cols) err(`span=${span} is larger than the Grid's cols=${cols}`);
+    },
+  },
   Separator: { label: "none", props: {} },
   Card: {
     label: "optional",
-    props: { desc: { kind: "string" }, span: { kind: "number", min: 1 } },
+    props: { desc: { kind: "string" } },
     children: "any",
     slots: ["actions", "footer"],
   },
@@ -147,10 +177,10 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     },
   },
   /** The Label is the title. Shown by a Button's opens=, or on load with `open`. */
-  Dialog: { label: "required", props: overlay, children: "any", parents: ["Screen"], slots: ["footer"] },
+  Dialog: { label: "required", props: dialog, children: "any", parents: ["Screen"], slots: ["footer"] },
   Sheet: {
     label: "required",
-    props: { ...overlay, side: { kind: "enum", values: ["right", "left"] } },
+    props: { ...dialog, side: { kind: "enum", values: ["right", "left"] } },
     children: "any",
     parents: ["Screen"],
     slots: ["footer"],
@@ -179,8 +209,8 @@ export const ELEMENTS: Record<string, ElementSpec> = {
       "icon-only": { kind: "flag" },
       disabled: { kind: "flag" },
       loading: { kind: "flag" },
-      opens: { kind: "ref", to: "overlay" },
-      to: { kind: "ref", to: "screen" },
+      opens: { kind: "ref", to: ["Dialog", "Sheet"] },
+      to: { kind: "ref", to: ["Screen"] },
     },
     check(node, err, parent) {
       iconOnly(node, err, parent);
@@ -210,3 +240,12 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Switch: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
   Radio: { label: "required", props: { options: { kind: "list" }, value: { kind: "string" } }, check: valueInOptions },
 };
+
+/** "Order list" → "order-list". */
+export const slugify = (label: string) =>
+  label
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
