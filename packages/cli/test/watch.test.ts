@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { get } from "node:http";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
 import { runCli, startCli, withFiles } from "./helpers/run-cli";
@@ -69,6 +70,14 @@ test("preview --watch refuses to start on a file that fails check", async () => 
   const cwd = withFiles({ "orders.skz": `Headng "x"\n` });
   const { code, stderr } = await runCli(["preview", "orders.skz", "--watch"], cwd);
   expect({ code, stderr }).toEqual({ code: 1, stderr: expect.stringContaining("Headng") });
+});
+
+test("a request with a foreign Host gets 403, so a DNS-rebinding page cannot read the Preview", async () => {
+  const { url } = await watchPreview(withFiles({ "orders.skz": VALID }));
+  const status = await new Promise((done, failed) =>
+    get(url, { headers: { host: "evil.example" } }, (res) => (res.resume(), done(res.statusCode))).on("error", failed),
+  );
+  expect(status).toBe(403);
 });
 
 test("Ctrl-C stops the server and exits 0", async () => {

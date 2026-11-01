@@ -45,7 +45,13 @@ export async function watchPreview(
     timer = setTimeout(changed, 50);
   });
 
+  let hosts: string[] = []; // set once listening, when the port is known
   const server = createServer((req, res) => {
+    // DNS rebinding: a foreign page whose name resolves to 127.0.0.1 still sends its own Host.
+    if (!hosts.includes(req.headers.host ?? "")) {
+      res.writeHead(403).end();
+      return;
+    }
     if (req.url === EVENTS) {
       res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
       res.write(": connected\n\n");
@@ -57,7 +63,9 @@ export async function watchPreview(
     res.end(html.replace("</body>", `${RELOAD}\n</body>`));
   });
   await new Promise<void>((listening) => server.listen(0, "127.0.0.1", listening)); // port 0: never clashes
-  io.stdout(`Preview: http://127.0.0.1:${(server.address() as AddressInfo).port}/\n`);
+  const { port } = server.address() as AddressInfo;
+  hosts = [`127.0.0.1:${port}`, `localhost:${port}`];
+  io.stdout(`Preview: http://127.0.0.1:${port}/\n`);
 
   if (!io.signal?.aborted) await new Promise((stop) => io.signal?.addEventListener("abort", stop, { once: true }));
   watcher.close();
