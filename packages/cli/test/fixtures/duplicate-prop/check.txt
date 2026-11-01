@@ -1,0 +1,1 @@
+input.skz:2  Heading  duplicate "level"

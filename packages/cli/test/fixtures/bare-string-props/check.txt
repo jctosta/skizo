@@ -1,0 +1,1 @@
+input.skz:2  Text  a bare string line takes no flags or props (write Text "..." with them instead)
