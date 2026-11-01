@@ -18,6 +18,8 @@ export const CLASSES = {
   Screen: {
     root: "min-h-screen p-6",
     header: "mb-6 grid gap-1",
+    headerWithActions: "grid-cols-[1fr_auto] gap-x-4",
+    actions: "col-start-2 row-span-2 row-start-1 flex items-center gap-2 self-start justify-self-end",
     title: "text-2xl font-semibold tracking-tight",
     subtitle: "text-sm text-muted-foreground",
     body: "flex flex-col gap-4",

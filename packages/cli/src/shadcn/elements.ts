@@ -27,14 +27,16 @@ export const EMITTERS: Record<string, Emit> = {
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
+    const actions = node.slots?.actions;
     const header = lines(
       `<h1 className="${c.title}">${text(node.label!)}</h1>`,
       subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
+      actions && wrap(`<div className="${c.actions}">`, ctx.render(actions), "</div>"),
     );
     return wrap(
       `<main className="${c.root}">`,
       lines(
-        wrap(`<header className="${c.header}">`, header, "</header>"),
+        wrap(`<header className="${cx(c.header, actions && c.headerWithActions)}">`, header, "</header>"),
         wrap(`<div className="${c.body}">`, ctx.render(node.children), "</div>"),
       ),
       "</main>",

@@ -34,7 +34,12 @@ const flex = {
  * Screens go only at the top level; that rule lives in validate.ts.
  */
 export const ELEMENTS: Record<string, ElementSpec> = {
-  Screen: { label: "required", props: { id: { kind: "string" }, subtitle: { kind: "string" } }, children: "any" },
+  Screen: {
+    label: "required",
+    props: { id: { kind: "string" }, subtitle: { kind: "string" } },
+    children: "any",
+    slots: ["actions"],
+  },
   Heading: { label: "required", props: { level: { kind: "enum", values: ["2", "1", "3", "4"] } } },
   Text: { label: "required", props: { size: sizes, muted: { kind: "flag" }, bold: { kind: "flag" } } },
   Stack: { label: "none", props: flex, children: "any" },
