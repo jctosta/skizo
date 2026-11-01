@@ -1,5 +1,5 @@
-import type { Document, Node } from "@skizo/core";
-import { emitterFor, lines, pascalCase } from "../backend";
+import { pascalCase, type Document, type Node } from "@skizo/core";
+import { emitterFor, lines } from "../backend";
 import { nodePaths } from "../placeholder";
 import { EMITTERS, wrap, type Ctx, type Import, type Router } from "./elements";
 

@@ -1,5 +1,5 @@
-import { slugify, type Node } from "@skizo/core";
-import { chartColor, chartHasLegend, customProps, hasBehavior, lines, pascalCase, screenParts, statHint, type ChartType } from "../backend";
+import { pascalCase, slugify, type Node } from "@skizo/core";
+import { chartColor, chartHasLegend, customProps, hasBehavior, lines, screenParts, statHint, type ChartType } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
 import { chartRows, initials, listItems, lorem, tableRows } from "../placeholder";
