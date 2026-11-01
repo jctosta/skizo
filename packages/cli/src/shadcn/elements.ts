@@ -1,6 +1,6 @@
 import type { Node } from "@skizo/core";
 import { CLASSES, cx } from "../classes";
-import { tableRows } from "../placeholder";
+import { listItems, tableRows } from "../placeholder";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
 export type Ctx = {
@@ -65,4 +65,5 @@ export const EMITTERS: Record<string, Emit> = {
       "</Table>",
     );
   },
+  List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
 };

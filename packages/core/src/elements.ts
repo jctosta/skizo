@@ -38,12 +38,20 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     label: "none",
     props: { cols: { kind: "list" }, rows: { kind: "number", min: 1 } },
     check(node, err) {
+      if (node.rows && node.props.rows !== undefined) err("has both | rows and rows= (keep one)");
       const cols = node.props.cols as string[] | undefined;
       if (!cols) return err('needs cols (Table cols="A,B,C")');
       node.rows?.forEach((cells, i) => {
         if (cells.length !== cols.length)
           err(`row has ${cells.length} cells, expected ${cols.length} (cols: ${cols.join(", ")})`, node.rowLines![i]);
       });
+    },
+  },
+  List: {
+    label: "none",
+    props: { items: { kind: "list" }, rows: { kind: "number", min: 1 } },
+    check(node, err) {
+      if (node.props.items !== undefined && node.props.rows !== undefined) err("has both items= and rows= (keep one)");
     },
   },
 };

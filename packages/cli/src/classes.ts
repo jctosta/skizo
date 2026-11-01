@@ -33,6 +33,7 @@ export const CLASSES = {
     head: "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground",
     cell: "p-2 align-middle whitespace-nowrap",
   },
+  List: { root: "ml-6 list-disc text-sm [&>li]:mt-1" },
 } as const;
 
 /** Joins the truthy class strings. */

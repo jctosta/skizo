@@ -28,6 +28,10 @@ export function tableRows(node: Node, path: string): string[][] {
   });
 }
 
+/** A List's items: `items`, or `rows=N` placeholders "Item 1" to "Item N". */
+export const listItems = (node: Node) =>
+  (node.props.items as string[] | undefined) ?? Array.from({ length: (node.props.rows as number | undefined) ?? 0 }, (_, i) => `Item ${i + 1}`);
+
 /** mulberry32 seeded with an FNV-1a hash of `seed`: the same floats in [0, 1) on every run. */
 function seeded(seed: string): () => number {
   let h = 2166136261;
