@@ -268,6 +268,7 @@ const page = `<!doctype html>
   h4 { font-size: 15px; margin: 24px 0 4px; }
   .lede { font-size: 18px; color: #404040; max-width: 720px; margin: 0 0 24px; }
   .note { color: #525252; font-size: 14px; }
+  .prose img { max-width: 100%; height: auto; }
   ul { padding-left: 20px; } li { margin: 4px 0; }
   pre.code { margin: 12px 0; padding: 14px 16px; border-radius: 10px; background: #0a0a0a; color: #e5e5e5; font: 12.5px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; overflow: auto; tab-size: 2; }
   pre.code code { background: none; padding: 0; font: inherit; }
@@ -326,6 +327,7 @@ const page = `<!doctype html>
       <li><b>One way to write each thing.</b> Skizo has ${Object.keys(ELEMENTS).length} Element types. <code>skizo check</code> rejects all other types.</li>
       <li><b>All errors in one run.</b> <code>skizo check</code> shows each error with a hint.</li>
       <li><b>Code that you keep.</b> The export uses the shadcn components of your project.</li>
+      <li><b>Phones and tablets.</b> One sketch fits each screen size. The Preview shows each width.</li>
     </ul>
   </div>
 </section>
@@ -347,6 +349,8 @@ ${sections.map((s) => `<section class="prose" id="${s.id}"><h2><a href="#${s.id}
     <li>Tabs, Menus and Selects open when you click them.</li>
   </ul>
   <p class="prose">The other tabs above the source show the output of <code>skizo export --target shadcn</code>.</p>
+  <p class="prose">Each Preview opens at desktop width and is smaller to fit this page. To see the sketch at
+  tablet or phone width, click Tablet or Phone in the toolbar of the Preview.</p>
   ${examplesHtml}
 </section>
 </main>

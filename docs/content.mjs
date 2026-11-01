@@ -99,7 +99,7 @@ node packages/cli/dist/cli.mjs --help`)}`,
     html: `
 <p>Coding agents such as Claude Code, Codex and Cursor write Skizo. You look at the Preview and tell the agent
 what to change.</p>
-<p>The command <code>skizo guide</code> prints the Guide. The Guide holds the full language in about 1,200
+<p>The command <code>skizo guide</code> prints the Guide. The Guide holds the full language in about 1,300
 tokens. An agent needs no other document.</p>
 <p>Add these lines to the instructions for your agent, for example in <code>AGENTS.md</code> or
 <code>CLAUDE.md</code>:</p>
@@ -226,6 +226,8 @@ of two columns. A Row puts the children that do not fit on a new line. A Table s
 has less padding on a phone. On a phone, the Sidebar is hidden, and a button with the <code>menu</code> icon opens
 it from the left. The Preview and the export use the same Tailwind classes: <code>md:</code> for tablets and
 <code>lg:</code> for desktops.</p>
+<p>This image shows the Orders example at desktop width and at phone width:</p>
+<img src="assets/preview-orders.png" width="1778" height="802" alt="The Preview of the Orders Screen at desktop width and at phone width. On the desktop, a Sidebar is on the left and three cards are in one row. On the phone, a menu button replaces the Sidebar and the cards are in one column.">
 <p>The toolbar at the top of the Preview sets the width of the sketch: Desktop (1280 px), Tablet (768 px) or
 Phone (390 px). If the window is narrower than the width, the Preview makes the sketch smaller to fit the
 window. To open the Preview at a width, use <code>--viewport</code>:</p>
