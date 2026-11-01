@@ -1,0 +1,22 @@
+// The same Sidebar on every Screen: the Link going to its own Screen is active. to= on Links and Buttons.
+Screen "Orders" subtitle="Manage orders"
+  Sidebar
+    Link "Dashboard" icon=home to=dashboard
+    Link "Orders" icon=package to=orders
+    Link "Help"
+  actions
+    Button "View dashboard" variant=outline to=dashboard
+  Button "Open dashboard" icon=arrow-right to=dashboard
+
+Screen "Dashboard"
+  Sidebar
+    Link "Dashboard" icon=home to=dashboard
+    Link "Orders" icon=package to=orders
+    Link "Help"
+  "Welcome back"
+
+// No Link goes to this Screen, so none is active: there is no first-child default.
+Screen "Settings"
+  Sidebar
+    Link "Dashboard" to=dashboard
+    Link "Orders" to=orders

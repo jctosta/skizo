@@ -66,6 +66,9 @@ export const icon = (ctx: Ctx, name: string, className?: string) => {
   return `<${component}${className ? ` className="${className}"` : ""} />`;
 };
 
+/** Where `to=` goes: the Screen's route. A plain path, so swapping in a router's link component is left to the user. */
+const screenHref = (id: string) => `/${id}`;
+
 /** Skizo `size` → shadcn Button `size`, for text Buttons and for icon-only ones. md is shadcn's default. */
 const BUTTON_SIZE = { sm: "sm", md: undefined, lg: "lg" } as const;
 const ICON_BUTTON_SIZE = { sm: "icon-sm", md: "icon", lg: "icon-lg" } as const;
@@ -75,23 +78,38 @@ const ICON_BUTTON_SIZE = { sm: "icon-sm", md: "icon", lg: "icon-lg" } as const;
  * Props arrive checked, coerced and with enum defaults filled in.
  */
 export const EMITTERS: Record<string, Emit> = {
+  /** With a Sidebar first: a page shell, the sidebar column beside <main>. */
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
+    const sidebar = node.children[0]?.type === "Sidebar" ? node.children[0] : undefined;
     const header = lines(
       `<h1 className="${c.title}">${text(node.label!)}</h1>`,
       subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
       actions && wrap(`<div className="${c.actions}">`, ctx.render(actions), "</div>"),
     );
-    return wrap(
-      `<main className="${c.root}">`,
+    const main = wrap(
+      `<main className="${sidebar ? c.main : c.root}">`,
       lines(
         wrap(`<header className="${cx(c.header, actions && c.headerWithActions)}">`, header, "</header>"),
-        wrap(`<div className="${c.body}">`, ctx.render(node.children), "</div>"),
+        wrap(`<div className="${c.body}">`, ctx.render(sidebar ? node.children.slice(1) : node.children), "</div>"),
       ),
       "</main>",
     );
+    return sidebar ? wrap(`<div className="${c.shell}">`, lines(ctx.render([sidebar]), main), "</div>") : main;
+  },
+  Sidebar: (node, ctx) => {
+    const c = CLASSES.Sidebar;
+    return wrap(`<aside className="${c.root}">`, wrap(`<nav className="${c.nav}">`, ctx.render(node.children), "</nav>"), "</aside>");
+  },
+  /** A plain anchor, like every to=; a Link without to= goes nowhere yet: no href. */
+  Link: (node, ctx) => {
+    const { to, active } = node.props as { to?: string; active?: true };
+    const href = to === undefined ? undefined : screenHref(to);
+    const open = `<a${jsxAttrs({ href, "aria-current": active && "page" })} className="${CLASSES.Link.root}">`;
+    if (node.props.icon === undefined) return `${open}${text(node.label!)}</a>`;
+    return wrap(open, lines(icon(ctx, node.props.icon as string, CLASSES.Link.icon), text(node.label!)), "</a>");
   },
   Heading: (node) => {
     const level = node.props.level as keyof typeof CLASSES.Heading;
@@ -226,12 +244,18 @@ export const EMITTERS: Record<string, Emit> = {
     const loading = node.props.loading === true;
     const shadcnSize = (iconOnly ? ICON_BUTTON_SIZE : BUTTON_SIZE)[size];
     const disabled = node.props.disabled === true || loading;
-    const open = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled })}>`;
+    const to = node.props.to as string | undefined;
+    const open = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled, asChild: to !== undefined })}>`;
     ctx.use("@/components/ui/button", "Button");
     const glyph = loading ? icon(ctx, "loader-circle", c.spinner) : node.props.icon !== undefined && icon(ctx, node.props.icon as string);
-    if (!glyph) return `${open}${text(node.label!)}</Button>`;
     const label = iconOnly ? `<span className="${c.hiddenLabel}">${text(node.label!)}</span>` : text(node.label!);
-    return wrap(open, lines(glyph, label), "</Button>");
+    const content = glyph ? lines(glyph, label) : label;
+    // to=: the Button renders a plain anchor (asChild), like a Link.
+    if (to !== undefined) {
+      const anchor = `<a href=${attr(screenHref(to))}>`;
+      return wrap(open, glyph ? wrap(anchor, content, "</a>") : `${anchor}${content}</a>`, "</Button>");
+    }
+    return glyph ? wrap(open, content, "</Button>") : `${open}${content}</Button>`;
   },
   Input: (node, ctx) => {
     const { type, placeholder, value, disabled, error } = node.props;

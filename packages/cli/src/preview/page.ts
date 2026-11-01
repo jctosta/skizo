@@ -9,7 +9,10 @@ export function renderPreview(document: Document): string {
   const scripts = new Set<Script>();
   const paths = nodePaths(document);
   const ctx = (node: Node): Ctx => ({ path: paths.get(node)!, render: (nodes) => render(nodes, ctx), script: (name) => scripts.add(name) });
-  const body = render(document.screens, ctx);
+  // Only the first Screen shows on load; a to= link shows another (SCRIPTS.to).
+  const body = document.screens
+    .map((screen, i) => (i === 0 ? render([screen], ctx) : render([screen], ctx).replace(/^<section/, "<section hidden")))
+    .join("\n");
   const handlers = (Object.keys(SCRIPTS) as Script[]).filter((name) => scripts.has(name)).map((name) => SCRIPTS[name]);
   return [
     "<!doctype html>",

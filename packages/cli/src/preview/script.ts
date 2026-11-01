@@ -35,6 +35,16 @@ document.addEventListener("click", (event) => {
     p.querySelector("[data-popup-trigger]").setAttribute("aria-expanded", String(open));
   }
 });`,
+  to: `// Screens (to=): one shows at a time. A to= is a link to #<screen id>; the hash picks the Screen,
+// so the back button works and a preview --watch reload stays on it. No hash: the first Screen.
+const showScreen = () => {
+  const screens = [...document.querySelectorAll("[data-screen]")];
+  const id = decodeURIComponent(location.hash.slice(1));
+  const shown = screens.find((s) => s.dataset.screen === id) || screens[0];
+  for (const s of screens) s.hidden = s !== shown;
+};
+addEventListener("hashchange", () => (showScreen(), scrollTo(0, 0)));
+showScreen();`,
 };
 
 export type Script = keyof typeof SCRIPTS;
