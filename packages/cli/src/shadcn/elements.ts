@@ -55,10 +55,13 @@ export const jsxAttrs = (pairs: Record<string, unknown>) =>
     })
     .join("");
 
-/** Slugs of `labels`, which read as hand-written; `<fallback>-1`, `<fallback>-2`... for all when one is empty or two collide. */
-const slugs = (labels: string[], fallback: string) => {
+/**
+ * Slugs of `labels`, which read as hand-written; `<fallback>-1`, `<fallback>-2`... for all when one is empty, two
+ * collide or one is `taken` (a key the export writes beside them).
+ */
+const slugs = (labels: string[], fallback: string, taken: readonly string[] = []) => {
   const s = labels.map(slugify);
-  return s.every(Boolean) && new Set(s).size === s.length ? s : s.map((_, i) => `${fallback}-${i + 1}`);
+  return s.every((k) => k && !taken.includes(k)) && new Set(s).size === s.length ? s : s.map((_, i) => `${fallback}-${i + 1}`);
 };
 
 /** An object literal key: bare when it is an identifier, else quoted. */
@@ -333,13 +336,12 @@ export const EMITTERS: Record<string, Emit> = {
   Chart: (node, ctx) => {
     const type = node.props.type as "line" | "bar" | "area" | "pie";
     const cols = node.props.cols as string[];
-    const [x, ...series] = slugs(cols, "col");
+    // A pie's data rows also hold fill; config keys are the series and the slices, so a slice key differs from the series key.
+    const [x, ...series] = slugs(cols, "col", type === "pie" ? ["fill"] : []);
     const pascal = pascalCase(ctx.id(slugify(node.label!) || "chart"), "Chart");
     const name = `${pascal[0]!.toLowerCase()}${pascal.slice(1)}`;
     const data = chartRows(node, ctx.path);
-    // A slice key that equals the series key would repeat a config key.
-    const sliceKeys = slugs(data.map(([slice]) => slice!), "slice");
-    const slices = type !== "pie" ? [] : sliceKeys.includes(series[0]!) ? data.map((_, r) => `slice-${r + 1}`) : sliceKeys;
+    const slices = type === "pie" ? slugs(data.map(([slice]) => slice!), "slice", series) : [];
     const rows = data.map(([first, ...values], r) => {
       const fields = [`${key(x!)}: ${JSON.stringify(slices[r] ?? first)}`, ...values.map((v, i) => `${key(series[i]!)}: ${Number(v)}`)];
       return `{ ${[...fields, slices[r] && `fill: "var(--color-${slices[r]})"`].filter(Boolean).join(", ")} },`;

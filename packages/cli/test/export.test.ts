@@ -202,8 +202,8 @@ test("--router without --target is a usage error", async () => {
 });
 
 /** Exports one pie Chart: its data and config declarations and its legend line. */
-async function pieExport(rows: string) {
-  const cwd = withFiles({ "plans.skz": `Screen "Plans"\n  Chart "Plans" type=pie cols="Plan,Users"\n${rows}` });
+async function pieExport(rows: string, cols = "Plan,Users") {
+  const cwd = withFiles({ "plans.skz": `Screen "Plans"\n  Chart "Plans" type=pie cols="${cols}"\n${rows}` });
   await runCli(["export", "plans.skz", "--target", "shadcn"], cwd);
   const file = readFileSync(join(cwd, "plans.tsx"), "utf8");
   return [/const plansData = [\s\S]*?\n\]/, /const plansConfig = [\s\S]*?satisfies ChartConfig/, /<ChartLegend .*\/>/].map(
@@ -224,4 +224,9 @@ test("a pie slice named like the series still gets a config entry of its own", a
   expect(data).toBe(
     'const plansData = [\n  { plan: "slice-1", users: 620, fill: "var(--color-slice-1)" },\n  { plan: "slice-2", users: 240, fill: "var(--color-slice-2)" },\n]',
   );
+});
+
+test("a pie column that slugs to fill keeps its value: data keys never repeat the fill key the export adds", async () => {
+  const [data] = await pieExport("    | Free | 1\n", "Plan,Fill");
+  expect(data).toBe('const plansData = [\n  { "col-1": "free", "col-2": 1, fill: "var(--color-free)" },\n]');
 });
