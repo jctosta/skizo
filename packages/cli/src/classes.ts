@@ -42,6 +42,8 @@ export const CLASSES = {
     gap,
     cols: { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5", 6: "grid-cols-6" },
   },
+  /** The shadcn look, for the Preview; the export gets it from the project's own Separator. */
+  Separator: { root: "h-px w-full shrink-0 bg-border" },
 } as const;
 
 /** Joins the truthy class strings. */

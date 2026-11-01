@@ -40,4 +40,5 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Stack: { label: "none", props: flex, children: "any" },
   Row: { label: "none", props: flex, children: "any" },
   Grid: { label: "none", props: { cols: { kind: "number", min: 2, max: 6, default: 2 }, gap: sizes }, children: "any" },
+  Separator: { label: "none", props: {} },
 };

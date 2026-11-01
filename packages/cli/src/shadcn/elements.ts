@@ -52,4 +52,8 @@ export const EMITTERS: Record<string, Emit> = {
   Stack: (node, ctx) => wrap(`<div className="${flexClasses(node)}">`, ctx.render(node.children), "</div>"),
   Row: (node, ctx) => wrap(`<div className="${flexClasses(node)}">`, ctx.render(node.children), "</div>"),
   Grid: (node, ctx) => wrap(`<div className="${gridClasses(node)}">`, ctx.render(node.children), "</div>"),
+  Separator: (_node, ctx) => {
+    ctx.use("@/components/ui/separator", "Separator");
+    return "<Separator />";
+  },
 };

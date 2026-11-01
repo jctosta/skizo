@@ -43,6 +43,7 @@ export const EMITTERS: Record<string, Emit> = {
   Stack: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
   Row: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
   Grid: (node, ctx) => div(gridClasses(node), ctx.render(node.children)),
+  Separator: () => `<div role="none" class="${CLASSES.Separator.root}"></div>`,
 };
 
 /** A `<div>` holding `body`, which may be empty. */

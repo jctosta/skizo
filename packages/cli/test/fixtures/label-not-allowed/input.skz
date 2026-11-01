@@ -1,0 +1,4 @@
+Screen "Settings"
+  Separator "Billing"
+  Stack "Profile"
+    Text "Name"

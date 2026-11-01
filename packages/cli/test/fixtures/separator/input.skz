@@ -1,0 +1,4 @@
+Screen "Settings"
+  Heading "Profile"
+  Separator
+  Heading "Billing"
