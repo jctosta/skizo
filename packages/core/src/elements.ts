@@ -58,4 +58,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     label: "required",
     props: { placeholder: { kind: "string" }, value: { kind: "string" }, rows: { kind: "number", min: 1 } },
   },
+  Checkbox: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
+  Switch: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
+  Radio: { label: "required", props: { options: { kind: "list" }, value: { kind: "string" } } },
 };

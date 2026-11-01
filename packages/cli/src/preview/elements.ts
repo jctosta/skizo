@@ -31,6 +31,10 @@ const field = (node: Node, control: string, error?: unknown) =>
     .filter(Boolean)
     .join("\n");
 
+/** A small control (Checkbox, Switch, Radio option) with its Label beside it. */
+const choice = (id: string, label: string, control: string) =>
+  `<div class="${CLASSES.Field.choice}">${control}<label for="${id}" class="${CLASSES.Field.label}">${esc(label)}</label></div>`;
+
 /**
  * The Preview Backend: one emitter per Element type, returning HTML.
  * Props arrive checked, coerced and with enum defaults filled in.
@@ -82,5 +86,34 @@ export const EMITTERS: Record<string, Emit> = {
     const { placeholder, value = "", rows } = node.props;
     const a = attrs({ id: fieldId(node), placeholder, rows });
     return field(node, `<textarea${a} class="${CLASSES.Textarea.control}">${esc(String(value))}</textarea>`);
+  },
+  Checkbox: (node) => {
+    const { checked, disabled } = node.props;
+    const control = `<input type="checkbox"${attrs({ id: fieldId(node), checked, disabled })} class="${CLASSES.Checkbox.control}">`;
+    return choice(fieldId(node), node.label!, control);
+  },
+  Switch: (node) => {
+    const c = CLASSES.Switch;
+    const on = node.props.checked === true;
+    const a = attrs({ id: fieldId(node), "aria-checked": String(on), disabled: node.props.disabled });
+    const thumb = `<span class="${cx(c.thumb, on ? c.thumbOn : c.thumbOff)}"></span>`;
+    const control = `<button type="button" role="switch"${a} class="${cx(c.track, on ? c.trackOn : c.trackOff)}">${thumb}</button>`;
+    return choice(fieldId(node), node.label!, control);
+  },
+  Radio: (node) => {
+    const group = fieldId(node);
+    const options = (node.props.options ?? []) as string[];
+    const items = options.map((option, i) => {
+      const a = attrs({ id: `${group}-${i + 1}`, name: group, value: option, checked: option === node.props.value });
+      return choice(`${group}-${i + 1}`, option, `<input type="radio"${a} class="${CLASSES.Radio.control}">`);
+    });
+    return [
+      `<div class="${CLASSES.Field.root}">`,
+      `<span id="${group}" class="${CLASSES.Field.label}">${esc(node.label!)}</span>`,
+      `<div role="radiogroup" aria-labelledby="${group}" class="${CLASSES.Radio.group}">`,
+      ...items,
+      `</div>`,
+      `</div>`,
+    ].join("\n");
   },
 };

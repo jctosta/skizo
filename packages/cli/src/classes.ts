@@ -48,6 +48,8 @@ export const CLASSES = {
     /** shadcn Label look-alike for the Preview (exports use <Label>). */
     label: "flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
     error: "text-sm text-destructive",
+    /** A small control beside its Label (Checkbox, Switch, a Radio option). */
+    choice: "flex items-center gap-2",
   },
   Input: {
     control: "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-2.5 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm",
@@ -56,6 +58,17 @@ export const CLASSES = {
     /** shadcn's minus field-sizing-content, so the Preview honors rows=. */
     control: "flex min-h-16 w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
   },
+  /** The Preview uses native inputs tinted with the primary color (exports use <Checkbox>, <RadioGroupItem>). */
+  Checkbox: { control: "peer size-4 shrink-0 accent-primary disabled:cursor-not-allowed disabled:opacity-50" },
+  Switch: {
+    track: "peer inline-flex h-[18.4px] w-[32px] shrink-0 items-center rounded-full border border-transparent shadow-xs disabled:cursor-not-allowed disabled:opacity-50",
+    trackOn: "bg-primary",
+    trackOff: "bg-input",
+    thumb: "pointer-events-none block size-4 rounded-full bg-background",
+    thumbOn: "translate-x-[calc(100%-2px)]",
+    thumbOff: "translate-x-0",
+  },
+  Radio: { group: "grid gap-3", control: "peer size-4 shrink-0 accent-primary disabled:cursor-not-allowed disabled:opacity-50" },
 } as const;
 
 /** Joins the truthy class strings. */

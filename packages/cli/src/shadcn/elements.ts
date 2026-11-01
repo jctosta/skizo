@@ -55,6 +55,12 @@ const field = (node: Node, ctx: Ctx, id: string, control: string, error?: unknow
   );
 };
 
+/** A small control (Checkbox, Switch, RadioGroupItem) with its Label beside it. */
+const choice = (ctx: Ctx, id: string, label: string, control: string) => {
+  ctx.use("@/components/ui/label", "Label");
+  return wrap(`<div className="${CLASSES.Field.choice}">`, lines(control, `<Label${jsxAttrs({ htmlFor: id })}>${text(label)}</Label>`), "</div>");
+};
+
 /** A readable DOM id for a form control: its `id=`, else a slug of its Label. */
 const fieldId = (node: Node, ctx: Ctx) => ctx.id(typeof node.props.id === "string" ? node.props.id : slugify(node.label!) || "field");
 
@@ -125,5 +131,28 @@ export const EMITTERS: Record<string, Emit> = {
     const id = fieldId(node, ctx);
     ctx.use("@/components/ui/textarea", "Textarea");
     return field(node, ctx, id, `<Textarea${jsxAttrs({ id, placeholder, defaultValue: value, rows })} />`);
+  },
+  Checkbox: (node, ctx) => {
+    const id = fieldId(node, ctx);
+    ctx.use("@/components/ui/checkbox", "Checkbox");
+    const { checked, disabled } = node.props;
+    return choice(ctx, id, node.label!, `<Checkbox${jsxAttrs({ id, defaultChecked: checked, disabled })} />`);
+  },
+  Switch: (node, ctx) => {
+    const id = fieldId(node, ctx);
+    ctx.use("@/components/ui/switch", "Switch");
+    const { checked, disabled } = node.props;
+    return choice(ctx, id, node.label!, `<Switch${jsxAttrs({ id, defaultChecked: checked, disabled })} />`);
+  },
+  Radio: (node, ctx) => {
+    const group = fieldId(node, ctx);
+    ctx.use("@/components/ui/label", "Label");
+    ctx.use("@/components/ui/radio-group", "RadioGroup", "RadioGroupItem");
+    const items = ((node.props.options ?? []) as string[]).map((option) => {
+      const id = ctx.id(`${group}-${slugify(option) || "option"}`);
+      return choice(ctx, id, option, `<RadioGroupItem${jsxAttrs({ value: option, id })} />`);
+    });
+    const radios = wrap(`<RadioGroup${jsxAttrs({ "aria-labelledby": group, defaultValue: node.props.value })}>`, lines(...items), "</RadioGroup>");
+    return wrap(`<div className="${CLASSES.Field.root}">`, lines(`<Label${jsxAttrs({ id: group })}>${text(node.label!)}</Label>`, radios), "</div>");
   },
 };

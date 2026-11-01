@@ -1,0 +1,6 @@
+Screen "Preferences"
+  Checkbox "Accept terms" checked
+  Checkbox "Subscribe" disabled
+  Switch "Email me updates" checked disabled
+  Switch "Dark mode"
+  Radio "Billing" options="Monthly,Yearly,Every 2 years\, prepaid" value=Yearly
