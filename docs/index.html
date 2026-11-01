@@ -43,6 +43,7 @@
   h4 { font-size: 15px; margin: 24px 0 4px; }
   .lede { font-size: 18px; color: #404040; max-width: 720px; margin: 0 0 24px; }
   .note { color: #525252; font-size: 14px; }
+  .prose img { max-width: 100%; height: auto; }
   ul { padding-left: 20px; } li { margin: 4px 0; }
   pre.code { margin: 12px 0; padding: 14px 16px; border-radius: 10px; background: #0a0a0a; color: #e5e5e5; font: 12.5px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; overflow: auto; tab-size: 2; }
   pre.code code { background: none; padding: 0; font: inherit; }
@@ -102,6 +103,7 @@
       <li><b>One way to write each thing.</b> Skizo has 33 Element types. <code>skizo check</code> rejects all other types.</li>
       <li><b>All errors in one run.</b> <code>skizo check</code> shows each error with a hint.</li>
       <li><b>Code that you keep.</b> The export uses the shadcn components of your project.</li>
+      <li><b>Phones and tablets.</b> One sketch fits each screen size. The Preview shows each width.</li>
     </ul>
   </div>
 </section>
@@ -156,7 +158,7 @@ It has no build scripts and no dependencies. Thus the install runs no code from 
 <section class="prose" id="agents"><h2><a href="#agents">Use Skizo with agents</a></h2>
 <p>Coding agents such as Claude Code, Codex and Cursor write Skizo. You look at the Preview and tell the agent
 what to change.</p>
-<p>The command <code>skizo guide</code> prints the Guide. The Guide holds the full language in about 1,200
+<p>The command <code>skizo guide</code> prints the Guide. The Guide holds the full language in about 1,300
 tokens. An agent needs no other document.</p>
 <p>Add these lines to the instructions for your agent, for example in <code>AGENTS.md</code> or
 <code>CLAUDE.md</code>:</p>
@@ -243,6 +245,8 @@ of two columns. A Row puts the children that do not fit on a new line. A Table s
 has less padding on a phone. On a phone, the Sidebar is hidden, and a button with the <code>menu</code> icon opens
 it from the left. The Preview and the export use the same Tailwind classes: <code>md:</code> for tablets and
 <code>lg:</code> for desktops.</p>
+<p>This image shows the Orders example at desktop width and at phone width:</p>
+<img src="assets/preview-orders.png" width="1778" height="802" alt="The Preview of the Orders Screen at desktop width and at phone width. On the desktop, a Sidebar is on the left and three cards are in one row. On the phone, a menu button replaces the Sidebar and the cards are in one column.">
 <p>The toolbar at the top of the Preview sets the width of the sketch: Desktop (1280 px), Tablet (768 px) or
 Phone (390 px). If the window is narrower than the width, the Preview makes the sketch smaller to fit the
 window. To open the Preview at a width, use <code>--viewport</code>:</p>
@@ -631,6 +635,8 @@ Screen becomes one file with the name of its id. For example, <code>orders.tsx</
     <li>Tabs, Menus and Selects open when you click them.</li>
   </ul>
   <p class="prose">The other tabs above the source show the output of <code>skizo export --target shadcn</code>.</p>
+  <p class="prose">Each Preview opens at desktop width and is smaller to fit this page. To see the sketch at
+  tablet or phone width, click Tablet or Phone in the toolbar of the Preview.</p>
   
 <div class="example" id="example-orders">
   <h3><a href="#example-orders">orders.skz</a></h3>
