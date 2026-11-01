@@ -118,3 +118,12 @@ test("on a phone the Sidebar hides behind the Sidebar toggle that opens it in a 
     tablet: { navigation: 1, toggle: 0 },
   });
 });
+
+test("on a phone a Link in the Sidebar Sheet closes it, also the Link of the Screen already shown", async () => {
+  const { sketch } = await openPreview(browser, SHARED_SIDEBAR, { args: ["--viewport", "phone"] });
+  const sheet = sketch.getByRole("dialog", { name: "Menu" }).filter({ visible: true });
+  await sketch.getByRole("button", { name: "Menu" }).filter({ visible: true }).click();
+  const opened = await sheet.count();
+  await sheet.getByRole("link", { name: "Orders" }).click();
+  expect({ opened, open: await sheet.count() }).toEqual({ opened: 1, open: 0 });
+});

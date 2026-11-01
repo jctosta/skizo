@@ -170,7 +170,8 @@
 </section>
 <script>
 // Dialogs and Sheets: a [data-opens] Button shows the [data-dialog] with that id;
-// a click on a [data-dialog-close] (close button, backdrop, footer Button without Behavior) hides its Dialog or Sheet.
+// a click on a [data-dialog-close] (close button, backdrop, footer Button without Behavior) or on a link (a Link,
+// a Button with to=) hides its Dialog or Sheet, also a link to the Screen already shown.
 document.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : null;
   const opener = target && target.closest("[data-opens]");
@@ -178,7 +179,7 @@ document.addEventListener("click", (event) => {
     for (const o of document.querySelectorAll("[data-dialog]")) if (o.dataset.dialog === opener.dataset.opens) o.hidden = false;
     return;
   }
-  const closer = target && target.closest("[data-dialog-close]");
+  const closer = target && target.closest("[data-dialog-close], [data-dialog] a");
   if (closer) closer.closest("[data-dialog]").hidden = true;
 });
 // Escape closes the topmost shown Dialog or Sheet (the last in the page).
