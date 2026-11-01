@@ -47,6 +47,35 @@ export function tableRows(node: Node, path: string): string[][] {
 export const listItems = (node: Node) =>
   (node.props.items as string[] | undefined) ?? Array.from({ length: (node.props.rows as number | undefined) ?? 0 }, (_, i) => `Item ${i + 1}`);
 
+const WORDS = (
+  "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna " +
+  "aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute " +
+  "irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non " +
+  "proident sunt culpa qui officia deserunt mollit anim id est laborum"
+).split(" ");
+
+/** Text lorem=N: `count` words of lorem ipsum, in sentences of 4 to 12 words. */
+export function lorem(path: string, count: number): string {
+  const random = seeded(path);
+  const sentences: string[] = [];
+  for (let left = count; left > 0; ) {
+    const length = Math.min(left, 4 + Math.floor(random() * 9));
+    const words = Array.from({ length }, () => WORDS[Math.floor(random() * WORDS.length)]!).join(" ");
+    sentences.push(`${words.charAt(0).toUpperCase()}${words.slice(1)}.`);
+    left -= length;
+  }
+  return sentences.join(" ");
+}
+
+/** Avatar initials: "Ana Souza" → "AS", "Carla Maria Dias" → "CD", "bruno" → "B". */
+export function initials(name: string): string {
+  const words = name.split(/\s+/).filter(Boolean);
+  return words
+    .filter((_, i) => i === 0 || i === words.length - 1)
+    .map((word) => [...word][0]!.toUpperCase())
+    .join("");
+}
+
 /** mulberry32 seeded with an FNV-1a hash of `seed`: the same floats in [0, 1) on every run. */
 function seeded(seed: string): () => number {
   let h = 2166136261;

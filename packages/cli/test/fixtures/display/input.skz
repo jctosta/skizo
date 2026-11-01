@@ -1,0 +1,22 @@
+// Every display Element type and option, plus placeholder text.
+Screen "Dashboard" subtitle="Display Elements"
+  Stat "$12,450" title=Revenue hint="+12% vs last month" trend=up
+  Stat "18" title="Open orders" trend=down
+  Stat "$86.20"
+  Badge "Paid"
+  Badge "18 orders" variant=secondary
+  Badge "Draft" variant=outline
+  Badge "Overdue" variant=destructive
+  Avatar "Ana Souza" size=sm
+  Avatar "bruno"
+  Avatar "Carla Maria Dias" size=lg
+  Image "Team photo"
+  Image "Chart" ratio=4:3
+  Image "Banner" ratio=3:2
+  Image "The \"team\" & friends" ratio=1:1
+  Alert "Heads up" text="Exports run every hour."
+  Alert "Payment {failed}" text="Card <declined> & retried" variant=destructive
+  Progress value=40
+  Progress
+  Text lorem=24
+  Text lorem=6 size=sm muted

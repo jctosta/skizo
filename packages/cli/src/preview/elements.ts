@@ -1,9 +1,9 @@
 import type { Node } from "@skizo/core";
 import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
-import { listItems, tableRows } from "../placeholder";
+import { initials, listItems, lorem, tableRows } from "../placeholder";
 import type { Script } from "./script";
 
-/** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
+/** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
   /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
@@ -45,10 +45,58 @@ export const EMITTERS: Record<string, Emit> = {
     const level = node.props.level as keyof typeof CLASSES.Heading;
     return `<h${level} class="${CLASSES.Heading[level]}">${esc(node.label!)}</h${level}>`;
   },
-  Text: (node) => {
+  Text: (node, ctx) => {
     const c = CLASSES.Text;
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
-    return `<p class="${classes}">${esc(node.label!)}</p>`;
+    return `<p class="${classes}">${esc(node.label ?? lorem(ctx.path, node.props.lorem as number))}</p>`;
+  },
+  Stat: (node) => {
+    const c = CLASSES.Stat;
+    const trend = node.props.trend as "none" | "up" | "down";
+    const title = node.props.title as string | undefined;
+    const hint = [{ none: "", up: "↑", down: "↓" }[trend], node.props.hint].filter(Boolean).join(" ");
+    return [
+      `<div class="${c.root}">`,
+      title !== undefined && `<p class="${c.title}">${esc(title)}</p>`,
+      `<div class="${c.value}">${esc(node.label!)}</div>`,
+      hint && `<p class="${c[trend]}">${esc(hint)}</p>`,
+      `</div>`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  },
+  Badge: (node) => {
+    const c = CLASSES.Badge;
+    return `<span class="${cx(c.root, c[node.props.variant as "default" | "secondary" | "outline" | "destructive"])}">${esc(node.label!)}</span>`;
+  },
+  Avatar: (node) => {
+    const c = CLASSES.Avatar;
+    const size = c[node.props.size as "sm" | "md" | "lg"];
+    // Only the initials show, so the full name is the accessible name.
+    return `<span role="img" aria-label="${esc(node.label!)}" class="${cx(c.root, size)}">${esc(initials(node.label!))}</span>`;
+  },
+  Image: (node) => {
+    const c = CLASSES.Image;
+    const alt = esc(node.label!);
+    return `<div role="img" aria-label="${alt}" class="${cx(c.root, c[node.props.ratio as "16:9" | "4:3" | "3:2" | "1:1"])}">${alt}</div>`;
+  },
+  Alert: (node) => {
+    const c = CLASSES.Alert;
+    const variant = node.props.variant as "default" | "destructive";
+    const text = node.props.text as string | undefined;
+    return [
+      `<div role="alert" class="${cx(c.root, c[variant])}">`,
+      `<div class="${c.title}">${esc(node.label!)}</div>`,
+      text !== undefined && `<div class="${c.text[variant]}">${esc(text)}</div>`,
+      `</div>`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  },
+  Progress: (node) => {
+    const c = CLASSES.Progress;
+    const value = (node.props.value as number | undefined) ?? 0;
+    return `<div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}" class="${c.root}"><div class="${c.indicator}" style="width: ${value}%"></div></div>`;
   },
   Stack: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
   Row: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),

@@ -47,7 +47,27 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     slots: ["actions"],
   },
   Heading: { label: "required", props: { level: { kind: "enum", values: ["2", "1", "3", "4"] } } },
-  Text: { label: "required", props: { size: sizes, muted: { kind: "flag" }, bold: { kind: "flag" } } },
+  Text: {
+    label: "optional",
+    props: { size: sizes, muted: { kind: "flag" }, bold: { kind: "flag" }, lorem: { kind: "number", min: 1 } },
+    check(node, err) {
+      if (node.label !== undefined && node.props.lorem !== undefined) err("has both a Label and lorem= (keep one)");
+      if (node.label === undefined && node.props.lorem === undefined) err('needs a Label (Text "...") or lorem=N');
+    },
+  },
+  /** The Label is the value. trend colors the hint and adds an arrow. */
+  Stat: {
+    label: "required",
+    props: { title: { kind: "string" }, hint: { kind: "string" }, trend: { kind: "enum", values: ["none", "up", "down"] } },
+  },
+  Badge: { label: "required", props: { variant: { kind: "enum", values: ["default", "secondary", "outline", "destructive"] } } },
+  /** The Label is a name; the Avatar shows its initials. */
+  Avatar: { label: "required", props: { size: sizes } },
+  /** The Label is the alt text of a placeholder box. */
+  Image: { label: "required", props: { ratio: { kind: "enum", values: ["16:9", "4:3", "3:2", "1:1"] } } },
+  /** The Label is the title. */
+  Alert: { label: "required", props: { text: { kind: "string" }, variant: { kind: "enum", values: ["default", "destructive"] } } },
+  Progress: { label: "none", props: { value: { kind: "number", min: 0, max: 100 } } },
   Stack: { label: "none", props: flex, children: "any" },
   Row: { label: "none", props: flex, children: "any" },
   Grid: { label: "none", props: { cols: { kind: "number", min: 2, max: 6, default: 2 }, gap: sizes }, children: "any" },

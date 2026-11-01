@@ -2,3 +2,4 @@ Screen "Settings"
   Separator "Billing"
   Stack "Profile"
     Text "Name"
+  Progress "Uploading" value=40
