@@ -3,8 +3,8 @@ import { parse } from "./parse";
 import { validate, type CheckOptions } from "./validate";
 
 export type { CheckError, Document, Node } from "./ast";
-export { ELEMENTS, type ElementSpec, type PropSpec } from "./elements";
-export { didYouMean, nearest } from "./nearest";
+export { ELEMENTS } from "./elements";
+export { didYouMean } from "./nearest";
 export { slugify, type CheckOptions } from "./validate";
 
 /**
