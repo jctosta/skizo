@@ -1,5 +1,5 @@
+import { pascalCase } from "@skizo/core";
 import { readAsset } from "./assets";
-import { pascalCase } from "./backend";
 
 /**
  * Lucide icons, from assets/icons.json (built from lucide-static by scripts/build-icons.mjs).

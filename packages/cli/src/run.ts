@@ -6,8 +6,7 @@ import { readAsset } from "./assets";
 import { iconNames } from "./icons";
 import { renderPreview } from "./preview/page";
 import { watchPreview } from "./preview/watch";
-import { ROUTERS, type Router } from "./shadcn/elements";
-import { exportShadcn } from "./shadcn/export";
+import { exportShadcn, RESERVED_SCREEN_IDS, ROUTER_NAMES, type Router } from "./shadcn/export";
 
 export type Io = { stdout(s: string): void; stderr(s: string): void; cwd: string; signal?: AbortSignal };
 
@@ -62,17 +61,20 @@ const COMMANDS: Record<string, Command> = {
     options: { target: { type: "string" }, out: { type: "string" }, router: { type: "string" } },
     run(file, flags, io) {
       const target = flags.target as string | undefined;
+      const router = flags.router as string | undefined;
+      if (target === undefined && router !== undefined) {
+        io.stderr("skizo export: --router needs --target shadcn\n");
+        return 2;
+      }
       const exportTarget = TARGETS.get(target ?? "");
       if (!exportTarget) {
         const problem = target === undefined ? "--target is required" : `unknown target "${target}"${didYouMean(target, TARGETS.keys())}`;
         io.stderr(`skizo export: ${problem} (expected: ${[...TARGETS.keys()].join(", ")})\n`);
         return 2;
       }
-      // --router only works with --target shadcn, the only target so far: the check above covers that.
-      const router = flags.router as string | undefined;
-      if (router !== undefined && !Object.hasOwn(ROUTERS, router)) {
-        const expected = Object.keys(ROUTERS);
-        io.stderr(`skizo export: unknown router "${router}"${didYouMean(router, expected)} (expected: ${expected.join(", ")})\n`);
+      // ponytail: shadcn is the only target, so a known target takes --router; a second one must refuse it here.
+      if (router !== undefined && !ROUTER_NAMES.includes(router as Router)) {
+        io.stderr(`skizo export: unknown router "${router}"${didYouMean(router, ROUTER_NAMES)} (expected: ${ROUTER_NAMES.join(", ")})\n`);
         return 2;
       }
       const document = loadChecked(file, io);
@@ -145,7 +147,7 @@ function load(file: string, io: Io) {
     io.stderr(`skizo: cannot read ${file} (${(e as NodeJS.ErrnoException).code ?? (e as Error).message})\n`);
     return undefined;
   }
-  return check(source, { iconNames: iconNames() });
+  return check(source, { iconNames: iconNames(), reservedScreenIds: RESERVED_SCREEN_IDS });
 }
 
 /**

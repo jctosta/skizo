@@ -1,17 +1,20 @@
-import { slugify, type Node } from "@skizo/core";
-import { chartColor, customProps, hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
+import { pascalCase, slugify, type Node } from "@skizo/core";
+import { chartColor, chartHasLegend, customProps, hasBehavior, lines, screenParts, statHint, type ChartType } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
 import { chartRows, initials, listItems, lorem, tableRows } from "../placeholder";
 
+/**
+ * One name an import declares: `"Card"`, or an object for a name under an alias (`{ name: "Label", as: "CustomLabel" }`),
+ * a type (`{ name: "ChartConfig", type: true }`) or the default export (`{ name: "default", as: "Link" }`).
+ */
+export type Import = string | { name: string; as?: string; type?: true };
+
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
-  /**
-   * Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`.
-   * `default as Link` imports the default export: `import Link from ...`.
-   */
-  use(from: string, ...names: string[]): void;
+  /** Adds imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
+  use(from: string, ...names: Import[]): void;
   /** The `--router` whose Link the export writes links with; undefined for plain anchors. Read it through `screenLink`. */
   router?: Router;
   /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
@@ -35,7 +38,6 @@ export const text = (s: string) => (/[{}<>&]/.test(s) ? `{${JSON.stringify(s)}}`
 /** A string as a JSX attribute value: quoted, or a string expression when it holds `"` or `&`. */
 export const attr = (s: string) => (/["&]/.test(s) ? `{${JSON.stringify(s)}}` : `"${s}"`);
 
-
 /** `start`, then `body` indented two spaces, then `end`; one line when `body` is empty. */
 export const wrap = (start: string, body: string, end: string) =>
   body ? `${start}\n${body.replace(/^/gm, "  ")}\n${end}` : `${start}${end}`;
@@ -55,10 +57,13 @@ export const jsxAttrs = (pairs: Record<string, unknown>) =>
     })
     .join("");
 
-/** Slugs of `labels`, which read as hand-written; `<fallback>-1`, `<fallback>-2`... for all when one is empty or two collide. */
-const slugs = (labels: string[], fallback: string) => {
+/**
+ * Slugs of `labels`, which read as hand-written; `<fallback>-1`, `<fallback>-2`... for all when one is empty, two
+ * collide or one is `taken` (a key the export writes beside them).
+ */
+const slugs = (labels: string[], fallback: string, taken: readonly string[] = []) => {
   const s = labels.map(slugify);
-  return s.every(Boolean) && new Set(s).size === s.length ? s : s.map((_, i) => `${fallback}-${i + 1}`);
+  return s.every((k) => k && !taken.includes(k)) && new Set(s).size === s.length ? s : s.map((_, i) => `${fallback}-${i + 1}`);
 };
 
 /** An object literal key: bare when it is an identifier, else quoted. */
@@ -99,8 +104,8 @@ export const icon = (ctx: Ctx, name: string, className?: string) => {
 
 /** `--router`: each router's Link component, as `ctx.use` imports it, and the prop that takes the path. */
 export const ROUTERS = {
-  next: { from: "next/link", name: "default as Link", prop: "href" },
-  "react-router": { from: "react-router", name: "Link", prop: "to" },
+  next: { from: "next/link", link: { name: "default", as: "Link" }, prop: "href" },
+  "react-router": { from: "react-router", link: "Link", prop: "to" },
 };
 export type Router = keyof typeof ROUTERS;
 
@@ -110,7 +115,7 @@ export type Router = keyof typeof ROUTERS;
  */
 export function screenLink(ctx: Ctx, to: string | undefined, attrs: Record<string, unknown>, body: string) {
   const router = to === undefined || ctx.router === undefined ? undefined : ROUTERS[ctx.router];
-  if (router) ctx.use(router.from, router.name);
+  if (router) ctx.use(router.from, router.link);
   const tag = router ? "Link" : "a";
   const open = `<${tag}${jsxAttrs({ [router?.prop ?? "href"]: to === undefined ? undefined : `/${to}`, ...attrs })}>`;
   return body.includes("\n") ? wrap(open, body, `</${tag}>`) : `${open}${body}</${tag}>`;
@@ -331,15 +336,14 @@ export const EMITTERS: Record<string, Emit> = {
    * key (the slug of its name) that labels and colors it, so its legend and tooltip read the config.
    */
   Chart: (node, ctx) => {
-    const type = node.props.type as "line" | "bar" | "area" | "pie";
+    const type = node.props.type as ChartType;
     const cols = node.props.cols as string[];
-    const [x, ...series] = slugs(cols, "col");
+    // A pie's data rows also hold fill; config keys are the series and the slices, so a slice key differs from the series key.
+    const [x, ...series] = slugs(cols, "col", type === "pie" ? ["fill"] : []);
     const pascal = pascalCase(ctx.id(slugify(node.label!) || "chart"), "Chart");
     const name = `${pascal[0]!.toLowerCase()}${pascal.slice(1)}`;
     const data = chartRows(node, ctx.path);
-    // A slice key that equals the series key would repeat a config key.
-    const sliceKeys = slugs(data.map(([slice]) => slice!), "slice");
-    const slices = type !== "pie" ? [] : sliceKeys.includes(series[0]!) ? data.map((_, r) => `slice-${r + 1}`) : sliceKeys;
+    const slices = type === "pie" ? slugs(data.map(([slice]) => slice!), "slice", series) : [];
     const rows = data.map(([first, ...values], r) => {
       const fields = [`${key(x!)}: ${JSON.stringify(slices[r] ?? first)}`, ...values.map((v, i) => `${key(series[i]!)}: ${Number(v)}`)];
       return `{ ${[...fields, slices[r] && `fill: "var(--color-${slices[r]})"`].filter(Boolean).join(", ")} },`;
@@ -350,9 +354,8 @@ export const EMITTERS: Record<string, Emit> = {
     ];
     ctx.declare(wrap(`const ${name}Data = [`, lines(...rows), "]"));
     ctx.declare(wrap(`const ${name}Config = {`, lines(...config), "} satisfies ChartConfig"));
-    // As in the Preview: a pie's legend names its slices; any other Chart has one for two or more series.
-    const legend = series.length > 1 || type === "pie";
-    ctx.use("@/components/ui/chart", "ChartContainer", "ChartTooltip", "ChartTooltipContent", "type ChartConfig");
+    const legend = chartHasLegend(node);
+    ctx.use("@/components/ui/chart", "ChartContainer", "ChartTooltip", "ChartTooltipContent", { name: "ChartConfig", type: true });
     if (legend) ctx.use("@/components/ui/chart", "ChartLegend", "ChartLegendContent");
     const title = ` title=${attr(node.label!)}`;
     if (type === "pie") {
@@ -514,7 +517,7 @@ export const EMITTERS: Record<string, Emit> = {
     const tag = ctx.clashes.has(name) ? `Custom${name}` : name;
     // ChatBubble → chat-bubble, KPICard → kpi-card.
     const file = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").toLowerCase();
-    ctx.use(`@/components/${file}`, tag === name ? name : `${name} as ${tag}`);
+    ctx.use(`@/components/${file}`, tag === name ? name : { name, as: tag });
     const camel = (key: string) => key.replace(/-(\w)/g, (_, c: string) => c.toUpperCase());
     const props = jsxAttrs(Object.fromEntries(customProps(node).map(([key, v]) => [camel(key), v])));
     return node.children.length ? wrap(`<${tag}${props}>`, ctx.render(node.children), `</${tag}>`) : `<${tag}${props} />`;

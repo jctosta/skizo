@@ -32,6 +32,8 @@ export type ElementSpec = {
   /** Element types this one may sit directly under (not in their slots); omitted for anywhere. */
   parents?: readonly string[];
   slots?: readonly ("actions" | "footer")[];
+  /** Takes `| a | b` lines under it as its data (Node.rows); any other Element type refuses them. */
+  rows?: true;
   /**
    * Sets props the source implies but does not write: a Screen's id, a Sidebar's active Link. Runs after the
    * Element's own props are coerced, before `check` and before its children are walked.
@@ -57,7 +59,7 @@ const variants = { kind: "enum", values: ["default", "secondary", "outline", "gh
 const iconOnly: ElementSpec["check"] = (node, err) => {
   if (node.props["icon-only"] === true && node.props.icon === undefined) err("icon-only needs icon=... too");
 };
-/** Select and Radio: value= picks one of options=, or it would show nothing once exported. */
+/** Select and Radio: value= is one of options=. */
 const valueInOptions: ElementSpec["check"] = (node, err) => {
   const value = node.props.value;
   const options = (node.props.options ?? []) as string[];
@@ -78,7 +80,7 @@ const tabular = (node: Node, err: (message: string, line?: number) => void, exam
   });
   return cols;
 };
-/** A Chart value: what the export can write as a JS number literal. */
+/** A Chart value: digits, with an optional minus sign and decimal part (1200, -3, 12.5). */
 const NUMBER = /^-?\d+(\.\d+)?$/;
 /** Dialog and Sheet. */
 const dialog = { desc: { kind: "string" }, open: { kind: "flag" } } as const;
@@ -180,6 +182,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Table: {
     label: "none",
     props: { cols: { kind: "list" }, rows: { kind: "number", min: 1 } },
+    rows: true,
     check(node, err) {
       tabular(node, err, 'Table cols="A,B,C"');
     },
@@ -195,6 +198,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Chart: {
     label: "required",
     props: { type: { kind: "enum", values: ["line", "bar", "area", "pie"] }, cols: { kind: "list" }, rows: { kind: "number", min: 1 } },
+    rows: true,
     check(node, err) {
       const cols = tabular(node, err, 'Chart "Label" cols="X,Series"');
       if (!node.rows && node.props.rows === undefined) err("needs | rows or rows=N (a Chart without data draws nothing)");
@@ -279,7 +283,8 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     children: "any",
     check(node, err) {
       const name = node.label;
-      // Its export would also clash with the Element's own import (Button from @/components/ui/button).
+      if (name === "Custom") return err('"Custom" is not the name of a component (write the name of your component, e.g. Custom "ChatBubble")');
+      // One way to write each thing: an Element type is written as itself, never through Custom.
       if (name !== undefined && Object.hasOwn(ELEMENTS, name)) return err(`"${name}" is an Element type (use ${name} instead of Custom)`);
       if (name === undefined || /^[A-Z][A-Za-z0-9]*$/.test(name)) return;
       const fixed = pascalCase(name);

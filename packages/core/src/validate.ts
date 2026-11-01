@@ -8,6 +8,8 @@ const ID_PROP: PropSpec = { kind: "string" };
 export type CheckOptions = {
   /** Every name `icon=` accepts. Injected by the caller so core ships no icon data; when omitted, any icon name passes. */
   iconNames?: ReadonlySet<string>;
+  /** Screen ids no Screen may take, each with what it is reserved for ("for the shared Sidebar"). Injected like iconNames. */
+  reservedScreenIds?: ReadonlyMap<string, string>;
 };
 
 /**
@@ -90,10 +92,10 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
     current = s;
     walk(s);
   }
-  // Each Screen exports as <id>.tsx and the shared Sidebar as app-sidebar.tsx: one file name each.
-  if (document.sidebar)
-    for (const screen of document.screens)
-      if (screen.props.id === "app-sidebar") err(screen, 'id "app-sidebar" is reserved for the shared Sidebar (set another id=)');
+  for (const screen of document.screens) {
+    const reason = options.reservedScreenIds?.get(screen.props.id as string);
+    if (reason !== undefined) err(screen, `id "${screen.props.id}" is reserved ${reason} (set another id=)`);
+  }
 
   // A ref to a Screen (to=) resolves file-wide; any other (opens=: a Dialog or Sheet) only on its own Screen.
   const screenIds = document.screens.map((screen) => screen.props.id).filter((id) => typeof id === "string");
@@ -175,7 +177,7 @@ function coerce(
       return value;
     case "list": {
       const items = value.split(/(?<!\\),/).map((item) => item.replaceAll("\\,", ",").trim());
-      // An empty option, column or item renders as nothing (and Radix throws on <SelectItem value="">).
+      // An empty option, column or item names nothing.
       if (items.includes("")) err(`${key} has an empty item (remove the extra comma)`);
       return items;
     }

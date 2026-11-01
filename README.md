@@ -26,7 +26,7 @@ When you ask a coding agent for a UI mockup, it usually writes full React or HTM
 - A Sidebar written one time, before the first Screen, goes on all Screens.
 - There is one way to write each thing. Skizo has 33 Element types, and `skizo check` rejects all other types. For a component that Skizo does not have, write `Custom "Name"`.
 - `skizo check` shows all errors in one run, each with a hint. An agent can fix the file in one pass.
-- The Preview is one HTML file that works offline. Links switch Screens, Buttons open Dialogs and Sheets, Tabs, Menus and Selects work, and Charts show as SVG images.
+- The Preview is one HTML file that works offline. Links switch Screens. Buttons open Dialogs and Sheets. Tabs, Menus and Selects work. Charts show as SVG images.
 - The export is code that you keep. It imports the shadcn components and the Custom components of your own project. With `--router`, the links use the `Link` component of Next.js or React Router.
 
 ## Example
