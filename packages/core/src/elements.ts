@@ -32,6 +32,8 @@ export type ElementSpec = {
   /** Element types this one may sit directly under (not in their slots); omitted for anywhere. */
   parents?: readonly string[];
   slots?: readonly ("actions" | "footer")[];
+  /** Takes `| a | b` lines under it as its data (Node.rows); any other Element type refuses them. */
+  rows?: true;
   /**
    * Sets props the source implies but does not write: a Screen's id, a Sidebar's active Link. Runs after the
    * Element's own props are coerced, before `check` and before its children are walked.
@@ -180,6 +182,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Table: {
     label: "none",
     props: { cols: { kind: "list" }, rows: { kind: "number", min: 1 } },
+    rows: true,
     check(node, err) {
       tabular(node, err, 'Table cols="A,B,C"');
     },
@@ -195,6 +198,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Chart: {
     label: "required",
     props: { type: { kind: "enum", values: ["line", "bar", "area", "pie"] }, cols: { kind: "list" }, rows: { kind: "number", min: 1 } },
+    rows: true,
     check(node, err) {
       const cols = tabular(node, err, 'Chart "Label" cols="X,Series"');
       if (!node.rows && node.props.rows === undefined) err("needs | rows or rows=N (a Chart without data draws nothing)");

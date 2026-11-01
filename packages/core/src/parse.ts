@@ -1,4 +1,5 @@
 import type { CheckError, Document, Node } from "./ast";
+import { ELEMENTS } from "./elements";
 
 /** Where the children of a line go: an Element's children, a slot of it, or nowhere (row lines). */
 type Frame = { node?: Node; into: Node[] | null };
@@ -8,8 +9,8 @@ const STRING = /"((?:[^"\\]|\\.)*)"/y;
 const WORD = /([^\s="]+)(=?)/y;
 const BARE = /[^\s"]*/y;
 const FLAG = /^[a-z][a-z0-9-]*$/;
-/** Element types that take `| a | b` row lines as their data. */
-const ROWS = ["Table", "Chart"];
+/** Element types that take `| a | b` row lines as their data (ElementSpec.rows). */
+const ROWS = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type]!.rows);
 
 /**
  * Line-based parser for the Skizo line grammar (the Syntax section of packages/cli/GUIDE.md). Builds the AST and reports syntax errors.
