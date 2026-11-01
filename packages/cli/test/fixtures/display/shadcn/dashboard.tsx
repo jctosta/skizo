@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress"
 
 export function DashboardScreen() {
   return (
-    <main className="min-h-screen p-6">
+    <main className="min-h-screen p-4 md:p-6">
       <header className="mb-6 grid gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground">Display Elements</p>

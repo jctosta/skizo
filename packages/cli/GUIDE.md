@@ -60,6 +60,8 @@ Custom "ChatBubble" any props, flags and children    a component of the app; onl
 
 Write a `Sidebar` at the top level, before the first Screen, to share it with every Screen. A Screen with its own Sidebar shows that one; a `plain` Screen shows none.
 
+Sketches fit phones and tablets on their own: a Grid shows 1 column on phones and at most 2 on tablets, Rows wrap and Tables scroll sideways. Write one layout, for desktop.
+
 ## Behavior (the only kind)
 
 - `opens=id` on a `Button` shows a `Dialog` or `Sheet` on the same Screen.

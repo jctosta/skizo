@@ -217,6 +217,16 @@ Screen "Settings" id=settings
 the browser works. If the file has no <code>to=</code>, the Preview shows all Screens, one below the other.</p>`,
   },
   {
+    id: "responsive",
+    title: "Phones and tablets",
+    html: `
+<p>Each sketch fits phones, tablets and desktops. Write one layout, and Skizo changes it for each width. On a
+phone (narrower than 768 px), a Grid shows one column. On a tablet (768 px to 1023 px), a Grid shows a maximum
+of two columns. A Row puts the children that do not fit on a new line. A Table scrolls horizontally. A Screen
+has less padding on a phone. The Preview and the export use the same Tailwind classes: <code>md:</code> for
+tablets and <code>lg:</code> for desktops.</p>`,
+  },
+  {
     id: "cli",
     title: "CLI reference",
     html: `

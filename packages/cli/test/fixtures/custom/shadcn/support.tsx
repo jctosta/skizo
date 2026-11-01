@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function SupportScreen() {
   return (
-    <main className="min-h-screen p-6">
+    <main className="min-h-screen p-4 md:p-6">
       <header className="mb-6 grid gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Support</h1>
       </header>
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-3 gap-4">
-          <div className="grid col-span-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid md:col-span-2">
             <Conversation channel="email" unread>
               <ChatBubble author="Ana Souza" sentAt="9:41" mine>
                 <p className="text-sm">Where is my order?</p>

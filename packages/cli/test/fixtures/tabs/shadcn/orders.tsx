@@ -2,7 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export function OrdersScreen() {
   return (
-    <main className="min-h-screen p-6">
+    <main className="min-h-screen p-4 md:p-6">
       <header className="mb-6 grid gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
       </header>
