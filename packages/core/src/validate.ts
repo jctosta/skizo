@@ -29,7 +29,10 @@ export function validate(document: Document): CheckError[] {
       if (spec.label === "required" && node.label === undefined) err(node, `needs a Label (${node.type} "...")`);
       if (spec.label === "none" && node.label !== undefined) err(node, "takes no Label");
       for (const name of Object.keys(node.slots ?? {}) as (keyof NonNullable<Node["slots"]>)[])
-        if (!spec.slots?.includes(name)) err(node, `takes no "${name}" slot`);
+        if (!spec.slots?.includes(name)) {
+          const owners = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type]!.slots?.includes(name));
+          err(node, `takes no "${name}" slot (allowed in: ${owners.join(", ")})`);
+        }
       props(node, spec, err);
       if (node.type === "Screen" && node.props.id === undefined && node.label !== undefined) {
         const slug = slugify(node.label);
