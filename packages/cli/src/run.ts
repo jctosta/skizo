@@ -6,8 +6,7 @@ import { readAsset } from "./assets";
 import { iconNames } from "./icons";
 import { renderPreview } from "./preview/page";
 import { watchPreview } from "./preview/watch";
-import { ROUTERS, type Router } from "./shadcn/elements";
-import { exportShadcn, RESERVED_SCREEN_IDS } from "./shadcn/export";
+import { exportShadcn, RESERVED_SCREEN_IDS, ROUTER_NAMES, type Router } from "./shadcn/export";
 
 export type Io = { stdout(s: string): void; stderr(s: string): void; cwd: string; signal?: AbortSignal };
 
@@ -74,9 +73,8 @@ const COMMANDS: Record<string, Command> = {
         return 2;
       }
       // ponytail: shadcn is the only target, so a known target takes --router; a second one must refuse it here.
-      if (router !== undefined && !Object.hasOwn(ROUTERS, router)) {
-        const expected = Object.keys(ROUTERS);
-        io.stderr(`skizo export: unknown router "${router}"${didYouMean(router, expected)} (expected: ${expected.join(", ")})\n`);
+      if (router !== undefined && !ROUTER_NAMES.includes(router as Router)) {
+        io.stderr(`skizo export: unknown router "${router}"${didYouMean(router, ROUTER_NAMES)} (expected: ${ROUTER_NAMES.join(", ")})\n`);
         return 2;
       }
       const document = loadChecked(file, io);

@@ -1,7 +1,11 @@
 import { pascalCase, type Document, type Node } from "@skizo/core";
 import { emitterFor, lines } from "../backend";
 import { nodePaths } from "../placeholder";
-import { EMITTERS, wrap, type Ctx, type Import, type Router } from "./elements";
+import { EMITTERS, ROUTERS, wrap, type Ctx, type Import, type Router } from "./elements";
+
+export type { Router };
+/** The names `--router` takes. */
+export const ROUTER_NAMES = Object.keys(ROUTERS) as Router[];
 
 /** Screen ids the export needs for its own files, with what for: `check` refuses them (CheckOptions). */
 export const RESERVED_SCREEN_IDS: ReadonlyMap<string, string> = new Map([["app-sidebar", "for the shared Sidebar"]]);
