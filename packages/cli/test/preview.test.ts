@@ -52,8 +52,8 @@ test("a Preview of Screens that no to= links shows them all, since nothing could
   const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  "First"\n\nScreen "Invoices"\n  "Second"\n` });
   await runCli(["preview", "orders.skz"], cwd);
   expect(readFileSync(join(cwd, "orders.html"), "utf8").match(/<section[^>]*>/g)).toEqual([
-    '<section data-screen="orders" class="min-h-screen p-6">',
-    '<section data-screen="invoices" class="min-h-screen p-6">',
+    '<section data-screen="orders" class="min-h-screen p-4 md:p-6">',
+    '<section data-screen="invoices" class="min-h-screen p-4 md:p-6">',
   ]);
 });
 

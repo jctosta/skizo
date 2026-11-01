@@ -5,7 +5,7 @@ import { DownloadIcon, EllipsisIcon } from "lucide-react"
 
 export function OrdersScreen() {
   return (
-    <main className="min-h-screen p-6">
+    <main className="min-h-screen p-4 md:p-6">
       <header className="mb-6 grid gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Orders</h1>
       </header>
@@ -29,7 +29,7 @@ export function OrdersScreen() {
             </CardAction>
           </CardHeader>
         </Card>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <DropdownMenu defaultOpen>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
