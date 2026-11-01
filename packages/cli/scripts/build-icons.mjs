@@ -1,6 +1,7 @@
 // Writes assets/icons.json from lucide-static: {"icons": {name: inner SVG markup}, "aliases": {alias: name}}.
-// lucide-static is a build-time devDependency only (55MB unpacked); the package ships just this JSON.
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+// lucide-static is a build-time devDependency only (55MB unpacked); the package ships just this JSON, plus Lucide's
+// license as assets/LICENSE-lucide.txt, which its ISC and MIT terms require in every copy of the icons.
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 
@@ -32,3 +33,4 @@ for (const file of readdirSync(svgs).sort()) {
 const out = new URL("../assets/icons.json", import.meta.url);
 mkdirSync(new URL(".", out), { recursive: true });
 writeFileSync(out, JSON.stringify({ icons, aliases }));
+copyFileSync(join(root, "LICENSE"), new URL("../assets/LICENSE-lucide.txt", import.meta.url));

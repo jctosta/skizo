@@ -12,7 +12,8 @@
     "test": "pnpm -F @jctosta/skizo assets && vitest run --project fast",
     "test:slow": "pnpm -F @jctosta/skizo assets && vitest run --project slow",
     "test:all": "pnpm -F @jctosta/skizo assets && vitest run",
-    "build:docs": "pnpm build && node scripts/docs.mjs"
+    "build:docs": "pnpm build && node scripts/docs.mjs",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

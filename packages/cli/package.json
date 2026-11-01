@@ -1,6 +1,12 @@
 {
   "name": "@jctosta/skizo",
-  "version": "0.0.0",
+  "version": "0.2.0-alpha.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jctosta/skizo.git",
+    "directory": "packages/cli"
+  },
   "type": "module",
   "bin": {
     "skizo": "dist/cli.mjs",
