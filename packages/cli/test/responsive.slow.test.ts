@@ -2,6 +2,7 @@
 import { chromium, type Browser } from "playwright";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import { openPreview } from "./helpers/preview-page";
+import { runCli } from "./helpers/run-cli";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -67,6 +68,16 @@ test("--viewport phone opens at phone width and the toolbar switches to tablet a
     pressed: ["Desktop"],
     external: [],
   });
+});
+
+test("a reload after preview runs again with another --viewport opens at the new width, not the saved one", async () => {
+  const { page, sketch, cwd } = await openPreview(browser, SKETCH, { args: ["--viewport", "phone"] });
+  await runCli(["preview", "sketch.skz", "--viewport", "tablet"], cwd);
+  await page.reload();
+  expect({
+    pressed: await page.getByRole("button", { pressed: true }).allTextContents(),
+    width: await sketch.locator("html").evaluate(() => innerWidth),
+  }).toEqual({ pressed: ["Tablet"], width: 768 });
 });
 
 test("a window narrower than the picked width shows the whole sketch scaled down to fit, and it still takes clicks", async () => {
