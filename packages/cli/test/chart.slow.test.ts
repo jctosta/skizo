@@ -49,9 +49,9 @@ test("a Chart previews offline as an SVG in the chart colors, named by its Label
     external,
   }).toEqual({
     bars: 4,
-    fills: ["oklch(0.87 0 0)", "oklch(0.556 0 0)"],
+    fills: ["oklch(0.646 0.222 41.116)", "oklch(0.6 0.118 184.704)"],
     drawn: true,
-    stroke: "oklch(0.87 0 0)",
+    stroke: "oklch(0.646 0.222 41.116)",
     lineSpansThePlot: true,
     xLabels: ["Jan", "Feb"],
     legend: ["Revenue", "Costs"],
