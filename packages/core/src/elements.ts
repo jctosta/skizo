@@ -1,3 +1,5 @@
+import type { Node } from "./ast";
+
 /** How `check` reads one prop. Raw values are strings (or true for a bare flag); `check` coerces them. */
 export type PropSpec =
   | { kind: "flag" }
@@ -17,11 +19,8 @@ export type ElementSpec = {
   /** Element types this one may sit directly under; omitted for anywhere. */
   parents?: readonly string[];
   slots?: readonly ("actions" | "footer")[];
-  /**
-   * Props that give the Element its content instead of the Label (Text lorem=N).
-   * One content source only: the Label or one of these. A required Label is satisfied by any of them.
-   */
-  content?: readonly string[];
+  /** Rules the generic checks can't express. Runs after props are coerced; `line` defaults to the Element's. */
+  check?: (node: Node, err: (message: string, line?: number) => void) => void;
   /** A flag at most one child may set; with `firstByDefault`, the first child gets it when none does. */
   exclusive?: { flag: string; firstByDefault?: true };
 };
@@ -37,9 +36,12 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Screen: { label: "required", props: { id: { kind: "string" }, subtitle: { kind: "string" } }, children: "any" },
   Heading: { label: "required", props: { level: { kind: "enum", values: ["2", "1", "3", "4"] } } },
   Text: {
-    label: "required",
+    label: "optional",
     props: { size: sizes, muted: { kind: "flag" }, bold: { kind: "flag" }, lorem: { kind: "number", min: 1 } },
-    content: ["lorem"],
+    check(node, err) {
+      if (node.label !== undefined && node.props.lorem !== undefined) err("has both a Label and lorem= (keep one)");
+      if (node.label === undefined && node.props.lorem === undefined) err('needs a Label (Text "...") or lorem=N');
+    },
   },
   /** The Label is the value. trend colors the hint and adds an arrow. */
   Stat: {
@@ -54,6 +56,26 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   /** The Label is the title. */
   Alert: { label: "required", props: { text: { kind: "string" }, variant: { kind: "enum", values: ["default", "destructive"] } } },
   Progress: { label: "none", props: { value: { kind: "number", min: 0, max: 100 } } },
+  Table: {
+    label: "none",
+    props: { cols: { kind: "list" }, rows: { kind: "number", min: 1 } },
+    check(node, err) {
+      if (node.rows && node.props.rows !== undefined) err("has both | rows and rows= (keep one)");
+      const cols = node.props.cols as string[] | undefined;
+      if (!cols) return err('needs cols (Table cols="A,B,C")');
+      node.rows?.forEach((cells, i) => {
+        if (cells.length !== cols.length)
+          err(`row has ${cells.length} cells, expected ${cols.length} (cols: ${cols.join(", ")})`, node.rowLines![i]);
+      });
+    },
+  },
+  List: {
+    label: "none",
+    props: { items: { kind: "list" }, rows: { kind: "number", min: 1 } },
+    check(node, err) {
+      if (node.props.items !== undefined && node.props.rows !== undefined) err("has both items= and rows= (keep one)");
+    },
+  },
   Tabs: { label: "none", props: {}, children: ["Tab"], exclusive: { flag: "active", firstByDefault: true } },
   Tab: { label: "required", props: { active: { kind: "flag" } }, children: "any", parents: ["Tabs"] },
 };

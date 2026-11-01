@@ -1,0 +1,1 @@
+input.skz:2  Table  needs cols (Table cols="A,B,C")

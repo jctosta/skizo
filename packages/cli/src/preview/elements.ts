@@ -1,13 +1,13 @@
 import type { Node } from "@skizo/core";
 import { CLASSES, cx } from "../classes";
-import { initials, lorem } from "../placeholder";
+import { initials, listItems, lorem, tableRows } from "../placeholder";
 import type { Script } from "./script";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
-  /** The node's path: the seed for its placeholder content (see placeholder.ts). */
-  path(node: Node): string;
+  /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
+  path: string;
   /** Adds one of the SCRIPTS handlers to the page. */
   script(name: Script): void;
 };
@@ -46,7 +46,7 @@ export const EMITTERS: Record<string, Emit> = {
   Text: (node, ctx) => {
     const c = CLASSES.Text;
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
-    return `<p class="${classes}">${esc(node.label ?? lorem(ctx.path(node), node.props.lorem as number))}</p>`;
+    return `<p class="${classes}">${esc(node.label ?? lorem(ctx.path, node.props.lorem as number))}</p>`;
   },
   Stat: (node) => {
     const c = CLASSES.Stat;
@@ -69,7 +69,9 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Avatar: (node) => {
     const c = CLASSES.Avatar;
-    return `<span class="${cx(c.root, c[node.props.size as "sm" | "md" | "lg"])}">${esc(initials(node.label!))}</span>`;
+    const size = c[node.props.size as "sm" | "md" | "lg"];
+    // Only the initials show, so the full name is the accessible name.
+    return `<span role="img" aria-label="${esc(node.label!)}" class="${cx(c.root, size)}">${esc(initials(node.label!))}</span>`;
   },
   Image: (node) => {
     const c = CLASSES.Image;
@@ -94,6 +96,24 @@ export const EMITTERS: Record<string, Emit> = {
     const value = (node.props.value as number | undefined) ?? 0;
     return `<div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}" class="${c.root}"><div class="${c.indicator}" style="width: ${value}%"></div></div>`;
   },
+  Table: (node, ctx) => {
+    const c = CLASSES.Table;
+    const row = (tag: "th" | "td", cells: string[]) =>
+      `<tr class="${c.row}">${cells.map((s) => `<${tag} class="${tag === "th" ? c.head : c.cell}">${esc(s)}</${tag}>`).join("")}</tr>`;
+    return [
+      `<div class="${c.container}">`,
+      `<table class="${c.table}">`,
+      `<thead class="${c.header}">`,
+      row("th", node.props.cols as string[]),
+      "</thead>",
+      `<tbody class="${c.body}">`,
+      ...tableRows(node, ctx.path).map((cells) => row("td", cells)),
+      "</tbody>",
+      "</table>",
+      "</div>",
+    ].join("\n");
+  },
+  List: (node) => [`<ul class="${CLASSES.List.root}">`, ...listItems(node).map((item) => `<li>${esc(item)}</li>`), "</ul>"].join("\n"),
   /** Renders its Tabs too: triggers and panels pair up by position. */
   Tabs: (node, ctx) => {
     const c = CLASSES.Tabs;

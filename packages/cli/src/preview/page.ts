@@ -6,13 +6,9 @@ import { SCRIPTS, type Script } from "./script";
 
 /** The Preview: one self-contained HTML page holding every Screen. No network: CSS and JS are inlined. */
 export function renderPreview(document: Document): string {
-  const paths = nodePaths(document.screens);
   const scripts = new Set<Script>();
-  const ctx: Ctx = {
-    render: (nodes) => render(nodes, ctx),
-    path: (node) => paths.get(node)!,
-    script: (name) => scripts.add(name),
-  };
+  const paths = nodePaths(document);
+  const ctx = (node: Node): Ctx => ({ path: paths.get(node)!, render: (nodes) => render(nodes, ctx), script: (name) => scripts.add(name) });
   const body = render(document.screens, ctx);
   const handlers = (Object.keys(SCRIPTS) as Script[]).filter((name) => scripts.has(name)).map((name) => SCRIPTS[name]);
   return [
@@ -34,12 +30,12 @@ export function renderPreview(document: Document): string {
   ].join("\n");
 }
 
-function render(nodes: Node[], ctx: Ctx): string {
+function render(nodes: Node[], ctx: (node: Node) => Ctx): string {
   return nodes
     .map((node) => {
       const emit = EMITTERS[node.type];
       if (!emit) throw new Error(`Preview has no emitter for Element type ${node.type}`);
-      return emit(node, ctx);
+      return emit(node, ctx(node));
     })
     .join("\n");
 }

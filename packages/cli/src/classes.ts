@@ -65,6 +65,17 @@ export const CLASSES = {
     root: "relative flex h-1.5 w-full items-center overflow-hidden rounded-full bg-muted",
     indicator: "h-full bg-primary",
   },
+  /** The Preview's copy of shadcn's table.tsx; the export gets these from the project's own Table components. */
+  Table: {
+    container: "relative w-full overflow-x-auto",
+    table: "w-full caption-bottom text-sm",
+    header: "[&_tr]:border-b",
+    body: "[&_tr:last-child]:border-0",
+    row: "border-b transition-colors hover:bg-muted/50",
+    head: "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground",
+    cell: "p-2 align-middle whitespace-nowrap",
+  },
+  List: { root: "ml-6 list-disc text-sm [&>li]:mt-1" },
   /** shadcn's TabsList and TabsTrigger looks; the Preview marks the active Tab with aria-selected. */
   Tabs: {
     root: "flex flex-col gap-2",

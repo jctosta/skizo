@@ -1,0 +1,4 @@
+// items= splits on commas (\, is a literal comma); rows=N gives placeholder items.
+Screen "Launch checklist" id=checklist
+  List items="Write the brief, Review\, then approve ,<b>Ship</b> & {celebrate}"
+  List rows=3

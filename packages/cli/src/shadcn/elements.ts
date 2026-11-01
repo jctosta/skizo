@@ -1,14 +1,14 @@
 import { slugify, type Node } from "@skizo/core";
 import { CLASSES, cx } from "../classes";
-import { initials, lorem } from "../placeholder";
+import { initials, listItems, lorem, tableRows } from "../placeholder";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
-  /** The node's path: the seed for its placeholder content (see placeholder.ts). */
-  path(node: Node): string;
   /** Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
   use(from: string, ...names: string[]): void;
+  /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
+  path: string;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -53,7 +53,7 @@ export const EMITTERS: Record<string, Emit> = {
   Text: (node, ctx) => {
     const c = CLASSES.Text;
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
-    return `<p className="${classes}">${text(node.label ?? lorem(ctx.path(node), node.props.lorem as number))}</p>`;
+    return `<p className="${classes}">${text(node.label ?? lorem(ctx.path, node.props.lorem as number))}</p>`;
   },
   // No shadcn Stat: plain markup (title, value, hint).
   Stat: (node) => {
@@ -79,7 +79,12 @@ export const EMITTERS: Record<string, Emit> = {
   Avatar: (node, ctx) => {
     ctx.use("@/components/ui/avatar", "Avatar", "AvatarFallback");
     const size = node.props.size === "md" ? "" : ` size="${node.props.size}"`;
-    return wrap(`<Avatar${size}>`, `<AvatarFallback>${text(initials(node.label!))}</AvatarFallback>`, "</Avatar>");
+    // Only the initials show, so the full name is the accessible name.
+    return wrap(
+      `<Avatar${size} role="img" aria-label=${attr(node.label!)}>`,
+      `<AvatarFallback>${text(initials(node.label!))}</AvatarFallback>`,
+      "</Avatar>",
+    );
   },
   // No shadcn Image: a placeholder box to swap for an <img>.
   Image: (node) => {
@@ -104,6 +109,20 @@ export const EMITTERS: Record<string, Emit> = {
     ctx.use("@/components/ui/progress", "Progress");
     return `<Progress${node.props.value === undefined ? "" : ` value={${node.props.value}}`} />`;
   },
+  Table: (node, ctx) => {
+    ctx.use("@/components/ui/table", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow");
+    const row = (tag: "TableHead" | "TableCell", cells: string[]) =>
+      wrap("<TableRow>", lines(...cells.map((s) => `<${tag}>${text(s)}</${tag}>`)), "</TableRow>");
+    return wrap(
+      "<Table>",
+      lines(
+        wrap("<TableHeader>", row("TableHead", node.props.cols as string[]), "</TableHeader>"),
+        wrap("<TableBody>", lines(...tableRows(node, ctx.path).map((cells) => row("TableCell", cells))), "</TableBody>"),
+      ),
+      "</Table>",
+    );
+  },
+  List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
   /** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
   Tabs: (node, ctx) => {
     ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");

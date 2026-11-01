@@ -26,14 +26,12 @@ export function validate(document: Document): CheckError[] {
       else if (allowed !== "any" && !allowed.includes(node.type))
         err(node, `cannot go inside ${parent!.type} (allowed: ${allowed.join(", ")})`);
       if (spec.parents && !spec.parents.includes(parent?.type ?? "")) err(node, `only goes inside ${spec.parents.join(" or ")}`);
-      const sources = [...(node.label === undefined ? [] : ["Label"]), ...(spec.content ?? []).filter((p) => p in node.props)];
-      if (sources.length > 1) err(node, `has more than one content source (${sources.join(" and ")}); keep one`);
-      if (spec.label === "required" && !sources.length)
-        err(node, `needs a Label (${node.type} "...")${spec.content ? ` or ${spec.content.join(" or ")}` : ""}`);
+      if (spec.label === "required" && node.label === undefined) err(node, `needs a Label (${node.type} "...")`);
       if (spec.label === "none" && node.label !== undefined) err(node, "takes no Label");
       for (const name of Object.keys(node.slots ?? {}) as (keyof NonNullable<Node["slots"]>)[])
         if (!spec.slots?.includes(name)) err(node, `takes no "${name}" slot`);
       props(node, spec, err);
+      spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }));
       if (node.type === "Screen" && node.props.id === undefined && node.label !== undefined) {
         const slug = slugify(node.label);
         if (slug) node.props.id = slug;

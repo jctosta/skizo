@@ -1,1 +1,1 @@
-input.skz:2  Text  has more than one content source (Label and lorem); keep one
+input.skz:2  Text  has both a Label and lorem= (keep one)

@@ -28,13 +28,13 @@ export function DashboardScreen() {
         <Badge variant="secondary">18 orders</Badge>
         <Badge variant="outline">Draft</Badge>
         <Badge variant="destructive">Overdue</Badge>
-        <Avatar size="sm">
+        <Avatar size="sm" role="img" aria-label="Ana Souza">
           <AvatarFallback>AS</AvatarFallback>
         </Avatar>
-        <Avatar>
+        <Avatar role="img" aria-label="bruno">
           <AvatarFallback>B</AvatarFallback>
         </Avatar>
-        <Avatar size="lg">
+        <Avatar size="lg" role="img" aria-label="Carla Maria Dias">
           <AvatarFallback>CD</AvatarFallback>
         </Avatar>
         <div role="img" aria-label="Team photo" className="flex w-full items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground aspect-video">Team photo</div>
