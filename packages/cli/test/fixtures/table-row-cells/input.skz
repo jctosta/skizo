@@ -1,0 +1,6 @@
+Screen "Orders"
+  Table cols="Order,Customer,Amount"
+    | #1042 | Ana Souza | $120.00
+    | #1041 | Bruno Lima
+
+    | #1040 | Carla Dias | $9.00 | late

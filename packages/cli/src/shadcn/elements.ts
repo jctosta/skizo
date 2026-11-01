@@ -1,11 +1,14 @@
 import { slugify, type Node } from "@skizo/core";
 import { CLASSES, cx } from "../classes";
+import { listItems, tableRows } from "../placeholder";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
   /** Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
   use(from: string, ...names: string[]): void;
+  /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
+  path: string;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -49,6 +52,20 @@ export const EMITTERS: Record<string, Emit> = {
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p className="${classes}">${text(node.label!)}</p>`;
   },
+  Table: (node, ctx) => {
+    ctx.use("@/components/ui/table", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow");
+    const row = (tag: "TableHead" | "TableCell", cells: string[]) =>
+      wrap("<TableRow>", lines(...cells.map((s) => `<${tag}>${text(s)}</${tag}>`)), "</TableRow>");
+    return wrap(
+      "<Table>",
+      lines(
+        wrap("<TableHeader>", row("TableHead", node.props.cols as string[]), "</TableHeader>"),
+        wrap("<TableBody>", lines(...tableRows(node, ctx.path).map((cells) => row("TableCell", cells))), "</TableBody>"),
+      ),
+      "</Table>",
+    );
+  },
+  List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
   /** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
   Tabs: (node, ctx) => {
     ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");
