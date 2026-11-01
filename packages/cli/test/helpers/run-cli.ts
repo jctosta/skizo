@@ -1,7 +1,7 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { onTestFinished } from "vitest";
+import { onTestFinished, vi } from "vitest";
 import { run } from "../../src/run";
 
 export const tempDir = () => mkdtempSync(join(tmpdir(), "skizo-"));
@@ -28,6 +28,13 @@ export function startCli(argv: string[], cwd: string) {
     await stop();
   });
   return { out, stop };
+}
+
+/** Starts `preview orders.skz --watch ...args` in `cwd` and waits for the URL it prints. Stopped when the test ends. */
+export async function watchPreview(cwd: string, ...args: string[]) {
+  const cli = startCli(["preview", "orders.skz", "--watch", ...args], cwd);
+  const url = await vi.waitUntil(() => cli.out.stdout.match(/^Preview: (http:\S+)$/m)?.[1]);
+  return { cli, url };
 }
 
 /** Writes `files` (name → content) into a fresh temp dir and returns its path. */

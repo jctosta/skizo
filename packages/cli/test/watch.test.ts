@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync 
 import { get } from "node:http";
 import { join } from "node:path";
 import { expect, test, vi } from "vitest";
-import { runCli, startCli, withFiles } from "./helpers/run-cli";
+import { runCli, watchPreview, withFiles } from "./helpers/run-cli";
 
 const VALID = `Screen "Orders"\n  Heading "Recent orders"\n`;
 
@@ -21,13 +21,6 @@ vi.mock("node:fs", async (importOriginal) => {
   }) as typeof fs.watch;
   return { ...fs, watch, default: { ...fs, watch } };
 });
-
-/** Starts `preview orders.skz --watch ...args` in `cwd` and waits for the URL it prints. Stopped when the test ends. */
-async function watchPreview(cwd: string, ...args: string[]) {
-  const cli = startCli(["preview", "orders.skz", "--watch", ...args], cwd);
-  const url = await vi.waitUntil(() => cli.out.stdout.match(/^Preview: (http:\S+)$/m)?.[1]);
-  return { cli, url };
-}
 
 const page = async (url: string) => (await fetch(url)).text();
 

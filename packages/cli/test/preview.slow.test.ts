@@ -1,8 +1,6 @@
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { chromium, type Browser } from "playwright";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { runCli, withFiles } from "./helpers/run-cli";
+import { openPreview } from "./helpers/preview-page";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -13,39 +11,17 @@ afterAll(async () => {
 });
 
 test("a Preview opened with the network blocked shows its content styled", async () => {
-  const cwd = withFiles({ "orders.skz": `Screen "Orders" subtitle="Manage orders"\n  Heading "Recent orders"\n` });
-  await runCli(["preview", "orders.skz"], cwd);
-
-  const context = await browser.newContext({ viewport: { width: 640, height: 480 } });
-  const external: string[] = [];
-  await context.route("**/*", (route) => {
-    const url = route.request().url();
-    if (url.startsWith("file:")) return route.continue();
-    external.push(url);
-    return route.abort();
-  });
-  const page = await context.newPage();
-  await page.goto(pathToFileURL(join(cwd, "orders.html")).href);
-
-  const title = page.frameLocator("iframe").getByRole("heading", { name: "Orders", level: 1 });
+  const { sketch, external } = await openPreview(browser, `Screen "Orders" subtitle="Manage orders"\n  Heading "Recent orders"\n`, { window: 640 });
+  const title = sketch.getByRole("heading", { name: "Orders", level: 1 });
   expect({
     visible: await title.isVisible(),
     fontWeight: await title.evaluate((el) => getComputedStyle(el).fontWeight),
     external,
   }).toEqual({ visible: true, fontWeight: "600", external: [] });
-  await context.close();
 });
 
 test("clicking a Tab shows its panel and hides the others", async () => {
-  const cwd = withFiles({
-    "orders.skz": `Screen "Orders"\n  Tabs\n    Tab "All"\n      "Every order"\n    Tab "Open"\n      "Open orders"\n`,
-  });
-  await runCli(["preview", "orders.skz"], cwd);
-
-  // 1280 px shows the desktop sketch unscaled: Playwright's click checks miss in a scaled frame.
-  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-  await page.goto(pathToFileURL(join(cwd, "orders.html")).href);
-  const sketch = page.frameLocator("iframe");
+  const { sketch } = await openPreview(browser, `Screen "Orders"\n  Tabs\n    Tab "All"\n      "Every order"\n    Tab "Open"\n      "Open orders"\n`);
   await sketch.getByRole("tab", { name: "Open" }).click();
 
   expect({
@@ -53,5 +29,4 @@ test("clicking a Tab shows its panel and hides the others", async () => {
     openPanel: await sketch.getByText("Open orders").isVisible(),
     allPanel: await sketch.getByText("Every order").isVisible(),
   }).toEqual({ selected: "Open", openPanel: true, allPanel: false });
-  await page.close();
 });

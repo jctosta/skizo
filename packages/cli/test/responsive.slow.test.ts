@@ -1,9 +1,7 @@
 // Responsive layout at real widths: the breakpoint classes only respond in a browser.
-import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { chromium, type Browser } from "playwright";
 import { afterAll, beforeAll, expect, test } from "vitest";
-import { runCli, withFiles } from "./helpers/run-cli";
+import { openPreview } from "./helpers/preview-page";
 
 let browser: Browser;
 beforeAll(async () => {
@@ -37,25 +35,8 @@ const SKETCH = `Screen "Orders" subtitle="Track customer orders"
       "Open orders"
 `;
 
-/** Opens the Preview at `window` px with the network blocked; `external` collects any request that left the file. */
-async function openPreview(args: string[], window: number) {
-  const cwd = withFiles({ "orders.skz": SKETCH });
-  await runCli(["preview", "orders.skz", ...args], cwd);
-  const context = await browser.newContext({ viewport: { width: window, height: 800 } });
-  const external: string[] = [];
-  await context.route("**/*", (route) => {
-    const url = route.request().url();
-    if (url.startsWith("file:")) return route.continue();
-    external.push(url);
-    return route.abort();
-  });
-  const page = await context.newPage();
-  await page.goto(pathToFileURL(join(cwd, "orders.html")).href);
-  return { page, sketch: page.frameLocator("iframe"), external };
-}
-
 test("--viewport phone opens at phone width and the toolbar switches to tablet and desktop: a 3-column Grid shows 1, 2 and 3 columns, and nothing overflows", async () => {
-  const { page, sketch, external } = await openPreview(["--viewport", "phone"], 1440);
+  const { page, sketch, external } = await openPreview(browser, SKETCH, { args: ["--viewport", "phone"], window: 1440 });
   const layout = () =>
     sketch.locator("html").evaluate(() => {
       const grid = document.querySelector<HTMLElement>(".grid.gap-4")!;
@@ -86,11 +67,10 @@ test("--viewport phone opens at phone width and the toolbar switches to tablet a
     pressed: ["Desktop"],
     external: [],
   });
-  await page.context().close();
 });
 
 test("a window narrower than the picked width shows the whole sketch scaled down to fit, and it still takes clicks", async () => {
-  const { page, sketch } = await openPreview([], 640);
+  const { page, sketch } = await openPreview(browser, SKETCH, { window: 640 });
   const frame = (await page.locator("iframe").boundingBox())!;
   // A real click at the scaled spot: Playwright's own click checks miss in a scaled frame.
   const tab = (await sketch.getByRole("tab", { name: "Open" }).boundingBox())!;
@@ -101,7 +81,6 @@ test("a window narrower than the picked width shows the whole sketch scaled down
     pageOverflows: await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
     selected: await sketch.getByRole("tab", { selected: true }).textContent(),
   }).toEqual({ width: 1280, shown: { left: 0, right: 640 }, pageOverflows: false, selected: "Open" });
-  await page.context().close();
 });
 
 const SHARED_SIDEBAR = `Sidebar
@@ -116,12 +95,7 @@ Screen "Dashboard"
 `;
 
 test("on a phone the Sidebar hides behind a menu Button that opens it in a left Sheet, where a Link shows its Screen", async () => {
-  const cwd = withFiles({ "app.skz": SHARED_SIDEBAR });
-  await runCli(["preview", "app.skz", "--viewport", "phone"], cwd);
-  // 1280 px shows the phone sketch unscaled: Playwright's click checks miss in a scaled frame.
-  const page = await browser.newPage({ viewport: { width: 1280, height: 844 } });
-  await page.goto(pathToFileURL(join(cwd, "app.html")).href);
-  const sketch = page.frameLocator("iframe");
+  const { page, sketch } = await openPreview(browser, SHARED_SIDEBAR, { args: ["--viewport", "phone"] });
   const shown = (role: "navigation" | "dialog" | "heading") => sketch.getByRole(role).filter({ visible: true });
   const menu = sketch.getByRole("button", { name: "Menu" }).filter({ visible: true });
 
@@ -143,5 +117,4 @@ test("on a phone the Sidebar hides behind a menu Button that opens it in a left 
     after: { dialogs: 0, menu: 1 },
     tablet: { navigation: 1, menu: 0 },
   });
-  await page.close();
 });
