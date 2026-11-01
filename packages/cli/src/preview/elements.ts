@@ -1,12 +1,15 @@
 import type { Node } from "@skizo/core";
 import { CLASSES, cx } from "../classes";
 import { initials, lorem } from "../placeholder";
+import type { Script } from "./script";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
   /** The node's path: the seed for its placeholder content (see placeholder.ts). */
   path(node: Node): string;
+  /** Adds one of the SCRIPTS handlers to the page. */
+  script(name: Script): void;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -90,5 +93,25 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Progress;
     const value = (node.props.value as number | undefined) ?? 0;
     return `<div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}" class="${c.root}"><div class="${c.indicator}" style="width: ${value}%"></div></div>`;
+  },
+  /** Renders its Tabs too: triggers and panels pair up by position. */
+  Tabs: (node, ctx) => {
+    const c = CLASSES.Tabs;
+    ctx.script("tabs");
+    const active = (tab: Node) => tab.props.active === true;
+    return [
+      `<div class="${c.root}">`,
+      `<div role="tablist" class="${c.list}">`,
+      ...node.children.map(
+        (tab) => `<button type="button" role="tab" aria-selected="${active(tab)}" class="${c.trigger}">${esc(tab.label!)}</button>`,
+      ),
+      `</div>`,
+      ...node.children.map((tab) =>
+        [`<div role="tabpanel" class="${c.panel}"${active(tab) ? "" : " hidden"}>`, ctx.render(tab.children), `</div>`]
+          .filter(Boolean)
+          .join("\n"),
+      ),
+      `</div>`,
+    ].join("\n");
   },
 };

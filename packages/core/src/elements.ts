@@ -22,6 +22,8 @@ export type ElementSpec = {
    * One content source only: the Label or one of these. A required Label is satisfied by any of them.
    */
   content?: readonly string[];
+  /** A flag at most one child may set; with `firstByDefault`, the first child gets it when none does. */
+  exclusive?: { flag: string; firstByDefault?: true };
 };
 
 const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
@@ -52,4 +54,6 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   /** The Label is the title. */
   Alert: { label: "required", props: { text: { kind: "string" }, variant: { kind: "enum", values: ["default", "destructive"] } } },
   Progress: { label: "none", props: { value: { kind: "number", min: 0, max: 100 } } },
+  Tabs: { label: "none", props: {}, children: ["Tab"], exclusive: { flag: "active", firstByDefault: true } },
+  Tab: { label: "required", props: { active: { kind: "flag" } }, children: "any", parents: ["Tabs"] },
 };

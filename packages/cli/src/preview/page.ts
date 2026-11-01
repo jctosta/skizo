@@ -2,11 +2,19 @@ import type { Document, Node } from "@skizo/core";
 import { readAsset } from "../assets";
 import { nodePaths } from "../placeholder";
 import { EMITTERS, esc, type Ctx } from "./elements";
+import { SCRIPTS, type Script } from "./script";
 
-/** The Preview: one self-contained HTML page holding every Screen. No network: CSS is inlined. */
+/** The Preview: one self-contained HTML page holding every Screen. No network: CSS and JS are inlined. */
 export function renderPreview(document: Document): string {
   const paths = nodePaths(document.screens);
-  const ctx: Ctx = { render: (nodes) => render(nodes, ctx), path: (node) => paths.get(node)! };
+  const scripts = new Set<Script>();
+  const ctx: Ctx = {
+    render: (nodes) => render(nodes, ctx),
+    path: (node) => paths.get(node)!,
+    script: (name) => scripts.add(name),
+  };
+  const body = render(document.screens, ctx);
+  const handlers = (Object.keys(SCRIPTS) as Script[]).filter((name) => scripts.has(name)).map((name) => SCRIPTS[name]);
   return [
     "<!doctype html>",
     '<html lang="en">',
@@ -17,7 +25,9 @@ export function renderPreview(document: Document): string {
     `<style>${readAsset("assets/preview.css")}</style>`,
     "</head>",
     "<body>",
-    render(document.screens, ctx),
+    body,
+    ...(handlers.length ? ["<script>", ...handlers, "</script>"] : []),
+    // Keep a literal </body>: preview --watch splices its reload script in before it.
     "</body>",
     "</html>",
     "",
