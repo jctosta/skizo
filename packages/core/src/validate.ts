@@ -2,7 +2,8 @@ import type { CheckError, Document, Node } from "./ast";
 import { ELEMENTS, type ElementSpec, type PropSpec } from "./elements";
 import { didYouMean } from "./nearest";
 
-const ID: PropSpec = { kind: "string" };
+/** `id=`, which every Element takes without listing it. */
+const ID_PROP: PropSpec = { kind: "string" };
 
 export type CheckOptions = {
   /** Every name `icon=` accepts. Injected by the caller so core ships no icon data; when omitted, any icon name passes. */
@@ -10,15 +11,16 @@ export type CheckOptions = {
 };
 
 /**
- * Checks a parsed document against the ELEMENTS schemas. Generic: per-Element-type rules belong in ELEMENTS.
- * Mutates the AST into what Backends read: coerced prop values, enum defaults, Screen ids.
+ * Checks a parsed document against the ELEMENTS schemas. Generic: per-Element-type rules belong in ELEMENTS; the
+ * only type named here is Screen, the top level of every file.
+ * Mutates the AST into what Backends read: coerced prop values, defaults, inferred props (ELEMENTS `infer`).
  */
 export function validate(document: Document, options: CheckOptions = {}): CheckError[] {
   const errors: CheckError[] = [];
   /** Each id's first Element and the Screen it sits on. */
   const ids = new Map<string, { node: Node; screen: Node }>();
   /** Ref props (opens=, to=) to resolve once every id is known: a Screen may go to one further down the file. */
-  const refs: { node: Node; screen: Node; key: string; to: "overlay" | "screen" }[] = [];
+  const refs: { node: Node; screen: Node; key: string; to: readonly string[] }[] = [];
   /** The Screen being walked. */
   let current: Node;
   const err = (node: Node, message: string) => errors.push({ line: node.line, type: node.type, message });
@@ -49,13 +51,9 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
       props(node, spec, host?.childProps, options, err);
       for (const [key, prop] of Object.entries(spec.props))
         if (prop.kind === "ref" && typeof node.props[key] === "string") refs.push({ node, screen: current, key, to: prop.to });
+      spec.infer?.(node, parent);
       spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }), parent);
       host?.checkChild?.(node, (message) => err(node, message), parent!);
-      if (node.type === "Screen" && node.props.id === undefined && node.label !== undefined) {
-        const slug = slugify(node.label);
-        if (slug) node.props.id = slug;
-        else err(node, "cannot derive an id from the Label (add id=name)");
-      }
     }
 
     const id = node.props.id;
@@ -81,29 +79,26 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
     walk(s);
   }
 
-  // to= names a Screen; opens= names a Dialog or Sheet on its own Screen.
+  // A ref to a Screen (to=) resolves file-wide; any other (opens=: a Dialog or Sheet) only on its own Screen.
   const screenIds = document.screens.map((screen) => screen.props.id).filter((id) => typeof id === "string");
   const screens = `(expected: ${screenIds.join(", ")})`;
-  const expected = "(expected: a Dialog or Sheet on this Screen)";
   for (const { node, screen, key, to } of refs) {
     const id = node.props[key] as string;
     const target = ids.get(id);
-    if (to === "screen") {
+    const expected = `(expected: a ${to.join(" or ")} on this Screen)`;
+    if (to.includes("Screen")) {
       if (!target) err(node, `${key}=${id} is an unknown Screen id${didYouMean(id, screenIds)} ${screens}`);
       else if (target.node.type !== "Screen")
         err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line}, not a Screen ${screens}`);
     } else if (!target) {
-      const near = [...ids].filter(([, t]) => t.screen === screen && OPENABLE.includes(t.node.type)).map(([name]) => name);
+      const near = [...ids].filter(([, t]) => t.screen === screen && to.includes(t.node.type)).map(([name]) => name);
       err(node, `${key}=${id} is an unknown id${didYouMean(id, near)} ${expected}`);
-    } else if (!OPENABLE.includes(target.node.type)) err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line} ${expected}`);
+    } else if (!to.includes(target.node.type)) err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line} ${expected}`);
     else if (target.screen !== screen)
       err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line}, on another Screen ${expected}`);
   }
   return errors;
 }
-
-/** What opens= can show. */
-const OPENABLE = ["Dialog", "Sheet"];
 
 function props(
   node: Node,
@@ -115,7 +110,7 @@ function props(
   const own = { ...granted, ...spec.props };
   const names = ["id", ...Object.keys(own)];
   for (const [key, raw] of Object.entries(node.props)) {
-    const prop = key === "id" ? ID : own[key];
+    const prop = key === "id" ? ID_PROP : own[key];
     if (!prop) {
       const enumProp = Object.entries(spec.props).find(([, p]) => p.kind === "enum" && p.values.includes(key))?.[0];
       const grantors = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type]!.childProps?.[key]);
@@ -171,12 +166,3 @@ function coerce(
       return value.replaceAll("\\,", ",");
   }
 }
-
-/** "Order list" → "order-list". */
-export const slugify = (label: string) =>
-  label
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");

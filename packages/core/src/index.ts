@@ -3,9 +3,9 @@ import { parse } from "./parse";
 import { validate, type CheckOptions } from "./validate";
 
 export type { CheckError, Document, Node } from "./ast";
-export { ELEMENTS } from "./elements";
+export { ELEMENTS, slugify } from "./elements";
 export { didYouMean } from "./nearest";
-export { slugify, type CheckOptions } from "./validate";
+export type { CheckOptions } from "./validate";
 
 /**
  * Parses and validates a Skizo source, returning every error sorted by line.
