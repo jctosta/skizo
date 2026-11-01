@@ -1,0 +1,2 @@
+Screen "Upload"
+  Progress "Uploading" value=40

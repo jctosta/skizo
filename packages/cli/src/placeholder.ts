@@ -47,3 +47,12 @@ export function lorem(seed: string, count: number): string {
   }
   return sentences.join(" ");
 }
+
+/** "Ana Souza" → "AS", "Carla Maria Dias" → "CD", "bruno" → "B". */
+export function initials(name: string): string {
+  const words = name.split(/\s+/).filter(Boolean);
+  return words
+    .filter((_, i) => i === 0 || i === words.length - 1)
+    .map((word) => [...word][0]!.toUpperCase())
+    .join("");
+}

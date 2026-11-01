@@ -32,10 +32,10 @@ Grid                cols=2..6 gap                    children may set span=N
 Separator
 Heading "Text"      level=2|1|3|4
 Text "Text"         size=md|sm|lg muted bold lorem=N
-Stat "$12,450"      title hint trend=up|down
+Stat "$12,450"      title hint trend=none|up|down
 Badge "Text"        variant=default|secondary|outline|destructive
 Avatar "Name"       size
-Image "Alt"         ratio=16:9                       placeholder box
+Image "Alt"         ratio=16:9|4:3|3:2|1:1           placeholder box
 Alert "Title"       text variant=default|destructive
 Progress            value=0..100
 Card "Title"        desc span; slots: actions footer

@@ -39,4 +39,17 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     props: { size: sizes, muted: { kind: "flag" }, bold: { kind: "flag" }, lorem: { kind: "number", min: 1 } },
     content: ["lorem"],
   },
+  /** The Label is the value. trend colors the hint and adds an arrow. */
+  Stat: {
+    label: "required",
+    props: { title: { kind: "string" }, hint: { kind: "string" }, trend: { kind: "enum", values: ["none", "up", "down"] } },
+  },
+  Badge: { label: "required", props: { variant: { kind: "enum", values: ["default", "secondary", "outline", "destructive"] } } },
+  /** The Label is a name; the Avatar shows its initials. */
+  Avatar: { label: "required", props: { size: sizes } },
+  /** The Label is the alt text of a placeholder box. */
+  Image: { label: "required", props: { ratio: { kind: "enum", values: ["16:9", "4:3", "3:2", "1:1"] } } },
+  /** The Label is the title. */
+  Alert: { label: "required", props: { text: { kind: "string" }, variant: { kind: "enum", values: ["default", "destructive"] } } },
+  Progress: { label: "none", props: { value: { kind: "number", min: 0, max: 100 } } },
 };

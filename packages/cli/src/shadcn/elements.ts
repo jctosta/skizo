@@ -1,6 +1,6 @@
 import type { Node } from "@skizo/core";
 import { CLASSES, cx } from "../classes";
-import { lorem } from "../placeholder";
+import { initials, lorem } from "../placeholder";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
@@ -14,6 +14,9 @@ export type Emit = (node: Node, ctx: Ctx) => string;
 
 /** Text as JSX children: verbatim, or as a string expression when it holds characters JSX reads as markup. */
 export const text = (s: string) => (/[{}<>&]/.test(s) ? `{${JSON.stringify(s)}}` : s);
+
+/** A string as a JSX attribute value: quoted, or a string expression when it holds `"` or `&`. */
+export const attr = (s: string) => (/["&]/.test(s) ? `{${JSON.stringify(s)}}` : `"${s}"`);
 
 /** Joins the present lines. */
 export const lines = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
@@ -51,5 +54,54 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Text;
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p className="${classes}">${text(node.label ?? lorem(ctx.path(node), node.props.lorem as number))}</p>`;
+  },
+  // No shadcn Stat: plain markup (title, value, hint).
+  Stat: (node) => {
+    const c = CLASSES.Stat;
+    const trend = node.props.trend as "none" | "up" | "down";
+    const title = node.props.title as string | undefined;
+    const hint = [{ none: "", up: "↑", down: "↓" }[trend], node.props.hint].filter(Boolean).join(" ");
+    return wrap(
+      `<div className="${c.root}">`,
+      lines(
+        title !== undefined && `<p className="${c.title}">${text(title)}</p>`,
+        `<div className="${c.value}">${text(node.label!)}</div>`,
+        hint && `<p className="${c[trend]}">${text(hint)}</p>`,
+      ),
+      "</div>",
+    );
+  },
+  Badge: (node, ctx) => {
+    ctx.use("@/components/ui/badge", "Badge");
+    const variant = node.props.variant === "default" ? "" : ` variant="${node.props.variant}"`;
+    return `<Badge${variant}>${text(node.label!)}</Badge>`;
+  },
+  Avatar: (node, ctx) => {
+    ctx.use("@/components/ui/avatar", "Avatar", "AvatarFallback");
+    const size = node.props.size === "md" ? "" : ` size="${node.props.size}"`;
+    return wrap(`<Avatar${size}>`, `<AvatarFallback>${text(initials(node.label!))}</AvatarFallback>`, "</Avatar>");
+  },
+  // No shadcn Image: a placeholder box to swap for an <img>.
+  Image: (node) => {
+    const c = CLASSES.Image;
+    const classes = cx(c.root, c[node.props.ratio as "16:9" | "4:3" | "3:2" | "1:1"]);
+    return `<div role="img" aria-label=${attr(node.label!)} className="${classes}">${text(node.label!)}</div>`;
+  },
+  Alert: (node, ctx) => {
+    const description = node.props.text as string | undefined;
+    ctx.use("@/components/ui/alert", "Alert", "AlertTitle", ...(description === undefined ? [] : ["AlertDescription"]));
+    const variant = node.props.variant === "default" ? "" : ` variant="${node.props.variant}"`;
+    return wrap(
+      `<Alert${variant}>`,
+      lines(
+        `<AlertTitle>${text(node.label!)}</AlertTitle>`,
+        description !== undefined && `<AlertDescription>${text(description)}</AlertDescription>`,
+      ),
+      "</Alert>",
+    );
+  },
+  Progress: (node, ctx) => {
+    ctx.use("@/components/ui/progress", "Progress");
+    return `<Progress${node.props.value === undefined ? "" : ` value={${node.props.value}}`} />`;
   },
 };

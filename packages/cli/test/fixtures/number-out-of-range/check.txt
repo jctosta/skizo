@@ -1,0 +1,2 @@
+input.skz:2  Progress  value=150 is out of range (expected: 0..100)
+input.skz:3  Progress  value=-5 is out of range (expected: 0..100)
