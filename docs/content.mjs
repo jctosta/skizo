@@ -304,7 +304,7 @@ Screen becomes one file with the name of its id. For example, <code>orders.tsx</
 
 /**
  * The Element reference. `example` is Skizo source: wrapped in a Screen unless it starts with one or with a shared
- * Sidebar (then the Screen header is shown). `about[Type].position` replaces the Position fact from the schema. `height` fixes the demo height in px, for Overlays that render out of flow.
+ * Sidebar (then the Screen header is shown). `about[Type].position` replaces the Position fact from the schema. `height` fixes the demo height in sketch px (before the demo scales to fit), for Overlays that render out of flow.
  * `about[Type]` holds the Label's meaning and per-prop descriptions.
  */
 export const GROUPS = [
