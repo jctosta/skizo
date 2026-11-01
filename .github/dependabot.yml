@@ -1,0 +1,8 @@
+# Keeps the SHA-pinned actions in .github/workflows current. npm dependencies get Dependabot security updates
+# (a repository setting), not version updates.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
