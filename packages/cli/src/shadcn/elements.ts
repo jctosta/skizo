@@ -170,13 +170,13 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Text: (node, ctx) => {
     const c = CLASSES.Text;
-    const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
+    const classes = cx(c[node.props.size as keyof typeof c], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p className="${classes}">${text(node.label ?? lorem(ctx.path, node.props.lorem as number))}</p>`;
   },
   // No shadcn Stat: plain markup (title, value, hint).
   Stat: (node) => {
     const c = CLASSES.Stat;
-    const trend = node.props.trend as "none" | "up" | "down";
+    const trend = node.props.trend as keyof typeof c;
     const title = node.props.title as string | undefined;
     const hint = statHint(node);
     return wrap(
@@ -317,7 +317,7 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Button: (node, ctx) => {
     const c = CLASSES.Button;
-    const { variant, size } = node.props as { variant: string; size: "sm" | "md" | "lg" };
+    const { variant, size } = node.props as { variant: string; size: keyof typeof BUTTON_SIZE };
     const iconOnly = node.props["icon-only"] === true;
     const loading = node.props.loading === true;
     const shadcnSize = (iconOnly ? ICON_BUTTON_SIZE : BUTTON_SIZE)[size];

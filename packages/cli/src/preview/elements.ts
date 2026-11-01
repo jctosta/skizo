@@ -88,12 +88,12 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Text: (node, ctx) => {
     const c = CLASSES.Text;
-    const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
+    const classes = cx(c[node.props.size as keyof typeof c], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p class="${classes}">${esc(node.label ?? lorem(ctx.path, node.props.lorem as number))}</p>`;
   },
   Stat: (node) => {
     const c = CLASSES.Stat;
-    const trend = node.props.trend as "none" | "up" | "down";
+    const trend = node.props.trend as keyof typeof c;
     const title = node.props.title as string | undefined;
     const hint = statHint(node);
     return lines(
@@ -106,11 +106,11 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Badge: (node) => {
     const c = CLASSES.Badge;
-    return `<span class="${cx(c.root, c[node.props.variant as "default" | "secondary" | "outline" | "destructive"])}">${esc(node.label!)}</span>`;
+    return `<span class="${cx(c.root, c[node.props.variant as keyof typeof c])}">${esc(node.label!)}</span>`;
   },
   Avatar: (node) => {
     const c = CLASSES.Avatar;
-    const size = c[node.props.size as "sm" | "md" | "lg"];
+    const size = c[node.props.size as keyof typeof c];
     // Only the initials show, so the full name is the accessible name.
     return `<span role="img" aria-label="${esc(node.label!)}" class="${cx(c.root, size)}">${esc(initials(node.label!))}</span>`;
   },
@@ -121,7 +121,7 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Alert: (node) => {
     const c = CLASSES.Alert;
-    const variant = node.props.variant as "default" | "destructive";
+    const variant = node.props.variant as keyof typeof c.text;
     const text = node.props.text as string | undefined;
     return [
       `<div role="alert" class="${cx(c.root, c[variant])}">`,
@@ -185,7 +185,7 @@ export const EMITTERS: Record<string, Emit> = {
   },
   List: (node) => [`<ul class="${CLASSES.List.root}">`, ...listItems(node).map((item) => `<li>${esc(item)}</li>`), "</ul>"].join("\n"),
   Dialog: (node, ctx) => dialog(node, ctx, CLASSES.Dialog, CLASSES.Dialog.content),
-  Sheet: (node, ctx) => dialog(node, ctx, CLASSES.Sheet, cx(CLASSES.Sheet.content, CLASSES.Sheet[node.props.side as "right" | "left"])),
+  Sheet: (node, ctx) => dialog(node, ctx, CLASSES.Sheet, cx(CLASSES.Sheet.content, CLASSES.Sheet[node.props.side as keyof typeof CLASSES.Sheet])),
   /** Renders its Tabs too: triggers and panels pair up by position. */
   Tabs: (node, ctx) => {
     const c = CLASSES.Tabs;
@@ -323,7 +323,7 @@ function dialog(node: Node, ctx: Ctx, c: typeof CLASSES.Dialog | typeof CLASSES.
 /** A Button: a <button>, or a link styled as one with to=. `trigger` adds attributes to the <button>, for Menu's. */
 function button(node: Node, ctx: Ctx, trigger = "") {
   const c = CLASSES.Button;
-  const { variant, size, icon } = node.props as { variant: keyof typeof c.variant; size: "sm" | "md" | "lg"; icon?: string };
+  const { variant, size, icon } = node.props as { variant: keyof typeof c.variant; size: keyof typeof c.size; icon?: string };
   const iconOnly = node.props["icon-only"] === true;
   const loading = node.props.loading === true;
   const glyph = loading ? iconSvg("loader-circle", cx("size-4", c.spinner)) : icon !== undefined ? iconSvg(icon) : "";
