@@ -871,136 +871,6 @@ const chartColor = (i) => `var(--chart-${i % 5 + 1})`;
 const GRANTED = new Set(Object.values(ELEMENTS).flatMap((spec) => Object.keys(spec.childProps ?? {})));
 /** A Custom's props as written (strings, true for a flag), except those a parent grants: they are not the component's. */
 const customProps = (node) => Object.entries(node.props).filter(([key]) => !GRANTED.has(key));
-// src/placeholder.ts
-/**
-* The node path of every Element, the seed for its placeholder content: `<screen id>/<child index>/...`,
-* slot children as `<path>/actions/<i>`. Taken from the AST, so it does not depend on how emitters nest output.
-*/
-function nodePaths(document) {
-	const paths = /* @__PURE__ */ new Map();
-	const walk = (node, path) => {
-		paths.set(node, path);
-		node.children.forEach((child, i) => walk(child, `${path}/${i}`));
-		for (const [slot, nodes] of Object.entries(node.slots ?? {})) nodes.forEach((child, i) => walk(child, `${path}/${slot}/${i}`));
-	};
-	for (const screen of document.screens) walk(screen, screen.props.id);
-	return paths;
-}
-const PEOPLE = [
-	"Ana Souza",
-	"Bruno Lima",
-	"Carla Dias",
-	"Diego Rocha",
-	"Elena Costa",
-	"Felipe Alves",
-	"Grace Kim",
-	"Hugo Martin"
-];
-const STATUSES = [
-	"Active",
-	"Pending",
-	"Paid",
-	"Failed"
-];
-const MONTHS = [
-	"Jan",
-	"Feb",
-	"Mar",
-	"Apr",
-	"May",
-	"Jun",
-	"Jul",
-	"Aug",
-	"Sep",
-	"Oct",
-	"Nov",
-	"Dec"
-];
-/** A Table's rows: its `|` rows, or `rows=N` placeholder rows with cells guessed from the column names. */
-function tableRows(node, path) {
-	if (node.rows) return node.rows;
-	const random = seeded(path);
-	const pick = (xs) => xs[Math.floor(random() * xs.length)];
-	const first = Math.floor(random() * PEOPLE.length);
-	return Array.from({ length: node.props.rows ?? 0 }, (_, i) => {
-		const person = PEOPLE[(first + i * 3) % PEOPLE.length];
-		return node.props.cols.map((col) => {
-			const name = col.toLowerCase();
-			if (name.includes("email")) return `${person.toLowerCase().replace(" ", ".")}@example.com`;
-			if (name.includes("name")) return person;
-			if (name.includes("date")) return `${pick(MONTHS)} ${1 + Math.floor(random() * 28)}, 2026`;
-			if (name.includes("status")) return pick(STATUSES);
-			if (name.includes("amount")) return `$${(5 + random() * 995).toFixed(2)}`;
-			return `Item ${i + 1}`;
-		});
-	});
-}
-const DAYS = [
-	"Mon",
-	"Tue",
-	"Wed",
-	"Thu",
-	"Fri",
-	"Sat",
-	"Sun"
-];
-/**
-* A Chart's rows: its `|` rows, or `rows=N` placeholder rows. The x value is guessed from the x column's name
-* (Month, Date, Day, Year, else "Item n"); each series is a seeded random walk of whole numbers, so lines look like data.
-*/
-function chartRows(node, path) {
-	if (node.rows) return node.rows;
-	const random = seeded(path);
-	const [x, ...series] = node.props.cols;
-	const name = x.toLowerCase();
-	const count = node.props.rows ?? 0;
-	const guess = (i) => {
-		if (name.includes("month")) return MONTHS[i % 12];
-		if (name.includes("date")) {
-			const date = new Date(Date.UTC(2026, 0, 1 + i));
-			return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}`;
-		}
-		if (name.includes("day")) return DAYS[i % 7];
-		if (name.includes("year")) return String(2026 - count + 1 + i);
-		return `Item ${i + 1}`;
-	};
-	const values = series.map(() => 200 + random() * 800);
-	return Array.from({ length: count }, (_, i) => {
-		for (const [j, v] of values.entries()) values[j] = Math.max(10, v * (.8 + random() * .4));
-		return [guess(i), ...values.map((v) => String(Math.round(v)))];
-	});
-}
-/** A List's items: `items`, or `rows=N` placeholders "Item 1" to "Item N". */
-const listItems = (node) => node.props.items ?? Array.from({ length: node.props.rows ?? 0 }, (_, i) => `Item ${i + 1}`);
-const WORDS = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum".split(" ");
-/** Text lorem=N: `count` words of lorem ipsum, in sentences of 4 to 12 words. */
-function lorem(path, count) {
-	const random = seeded(path);
-	const sentences = [];
-	for (let left = count; left > 0;) {
-		const length = Math.min(left, 4 + Math.floor(random() * 9));
-		const words = Array.from({ length }, () => WORDS[Math.floor(random() * WORDS.length)]).join(" ");
-		sentences.push(`${words.charAt(0).toUpperCase()}${words.slice(1)}.`);
-		left -= length;
-	}
-	return sentences.join(" ");
-}
-/** Avatar initials: "Ana Souza" → "AS", "Carla Maria Dias" → "CD", "bruno" → "B". */
-function initials(name) {
-	const words = name.split(/\s+/).filter(Boolean);
-	return words.filter((_, i) => i === 0 || i === words.length - 1).map((word) => [...word][0].toUpperCase()).join("");
-}
-/** mulberry32 seeded with an FNV-1a hash of `seed`: the same floats in [0, 1) on every run. */
-function seeded(seed) {
-	let h = 2166136261;
-	for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
-	return () => {
-		h = h + 1831565813 | 0;
-		let t = Math.imul(h ^ h >>> 15, 1 | h);
-		t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-		return ((t ^ t >>> 14) >>> 0) / 4294967296;
-	};
-}
 // src/classes.ts
 /** `gap=sm|md|lg`, the same tokens in every Backend. */
 const gap = {
@@ -1025,23 +895,34 @@ const flex = {
 /**
 * Tailwind classes shared by every Backend, one entry per Element type, so the Preview and exports look alike.
 * Write full literal class strings (never `gap-${n}`): Tailwind finds them by scanning this file.
+*
+* Breakpoints, Tailwind's defaults in both Backends: phone below 768 px (base classes), tablet from 768 px (`md:`),
+* desktop from 1024 px (`lg:`). Write the phone layout first, then what changes from md: and lg:.
 */
 const CLASSES = {
 	Screen: {
-		root: "min-h-screen p-6",
+		/** Smaller padding on phones. */
+		root: "min-h-screen p-4 md:p-6",
 		/** A Screen with a Sidebar: the page shell, a sidebar column beside the main area (which holds header and body). */
 		shell: "flex min-h-screen",
-		main: "min-w-0 flex-1 p-6",
+		main: "min-w-0 flex-1 p-4 md:p-6",
 		header: "mb-6 grid gap-1",
 		headerWithActions: "grid-cols-[1fr_auto] gap-x-4",
 		actions: "col-start-2 row-span-2 row-start-1 flex items-center gap-2 self-start justify-self-end",
 		title: "text-2xl font-semibold tracking-tight",
+		/** With a Sidebar: the Sidebar toggle, then the title. */
+		titleRow: "flex items-center gap-2",
+		/** The Sidebar toggle: a ghost icon button that opens the Sidebar in a left Sheet on phones; from md: the column shows instead. */
+		sidebarToggle: "md:hidden",
 		subtitle: "text-sm text-muted-foreground",
 		body: "flex flex-col gap-4"
 	},
-	/** Plain markup in every Backend, styled after shadcn's sidebar (bg-sidebar is about bg-muted/50 on white). */
+	/**
+	* Plain markup in every Backend, styled after shadcn's sidebar (bg-sidebar is about bg-muted/50 on white). The
+	* Screen puts the `nav` in the `root` column, hidden on phones, and in the left Sheet that the Sidebar toggle opens.
+	*/
 	Sidebar: {
-		root: "w-64 shrink-0 border-r bg-muted/50 p-2",
+		root: "hidden w-64 shrink-0 flex-col border-r bg-muted/50 p-2 md:flex",
 		nav: "flex flex-col gap-1"
 	},
 	/** shadcn's SidebarMenuButton look; the active Link carries aria-current="page". */
@@ -1066,29 +947,35 @@ const CLASSES = {
 		root: "flex flex-col",
 		...flex
 	},
+	/** Wraps at every width: children that do not fit go to the next line instead of past the page edge. */
 	Row: {
-		root: "flex",
+		root: "flex flex-wrap",
 		...flex
 	},
 	Grid: {
 		root: "grid",
 		gap,
+		/** One column on phones, at most 2 on tablets, cols on desktop. cols=2 needs no lg: class. */
 		cols: {
-			2: "grid-cols-2",
-			3: "grid-cols-3",
-			4: "grid-cols-4",
-			5: "grid-cols-5",
-			6: "grid-cols-6"
+			2: "grid-cols-1 md:grid-cols-2",
+			3: "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
+			4: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4",
+			5: "grid-cols-1 md:grid-cols-2 lg:grid-cols-5",
+			6: "grid-cols-1 md:grid-cols-2 lg:grid-cols-6"
 		},
 		/** Wraps a child with span=N: a one-cell grid, so the child still stretches like any other Grid child. */
 		cell: "grid",
+		/**
+		* span=N at each width, never more than the columns: none on phones (one column), at most 2 on tablets, N on
+		* desktop. check keeps N <= cols, so span alone decides; span=2 needs no lg: class.
+		*/
 		span: {
 			1: "col-span-1",
-			2: "col-span-2",
-			3: "col-span-3",
-			4: "col-span-4",
-			5: "col-span-5",
-			6: "col-span-6"
+			2: "md:col-span-2",
+			3: "md:col-span-2 lg:col-span-3",
+			4: "md:col-span-2 lg:col-span-4",
+			5: "md:col-span-2 lg:col-span-5",
+			6: "md:col-span-2 lg:col-span-6"
 		}
 	},
 	/** The shadcn look, for the Preview; the export gets it from the project's own Separator. */
@@ -1145,6 +1032,7 @@ const CLASSES = {
 	},
 	/** The Preview's copy of shadcn's table.tsx; the export gets these from the project's own Table components. */
 	Table: {
+		/** Scrolls sideways when the Table is wider than the page, as shadcn's container does in the export. */
 		container: "relative w-full overflow-x-auto",
 		table: "w-full caption-bottom text-sm",
 		header: "[&_tr]:border-b",
@@ -1295,6 +1183,136 @@ function spanClasses(child) {
 	const span = child.props.span;
 	return span === void 0 ? void 0 : cx(CLASSES.Grid.cell, CLASSES.Grid.span[span]);
 }
+// src/placeholder.ts
+/**
+* The node path of every Element, the seed for its placeholder content: `<screen id>/<child index>/...`,
+* slot children as `<path>/actions/<i>`. Taken from the AST, so it does not depend on how emitters nest output.
+*/
+function nodePaths(document) {
+	const paths = /* @__PURE__ */ new Map();
+	const walk = (node, path) => {
+		paths.set(node, path);
+		node.children.forEach((child, i) => walk(child, `${path}/${i}`));
+		for (const [slot, nodes] of Object.entries(node.slots ?? {})) nodes.forEach((child, i) => walk(child, `${path}/${slot}/${i}`));
+	};
+	for (const screen of document.screens) walk(screen, screen.props.id);
+	return paths;
+}
+const PEOPLE = [
+	"Ana Souza",
+	"Bruno Lima",
+	"Carla Dias",
+	"Diego Rocha",
+	"Elena Costa",
+	"Felipe Alves",
+	"Grace Kim",
+	"Hugo Martin"
+];
+const STATUSES = [
+	"Active",
+	"Pending",
+	"Paid",
+	"Failed"
+];
+const MONTHS = [
+	"Jan",
+	"Feb",
+	"Mar",
+	"Apr",
+	"May",
+	"Jun",
+	"Jul",
+	"Aug",
+	"Sep",
+	"Oct",
+	"Nov",
+	"Dec"
+];
+/** A Table's rows: its `|` rows, or `rows=N` placeholder rows with cells guessed from the column names. */
+function tableRows(node, path) {
+	if (node.rows) return node.rows;
+	const random = seeded(path);
+	const pick = (xs) => xs[Math.floor(random() * xs.length)];
+	const first = Math.floor(random() * PEOPLE.length);
+	return Array.from({ length: node.props.rows ?? 0 }, (_, i) => {
+		const person = PEOPLE[(first + i * 3) % PEOPLE.length];
+		return node.props.cols.map((col) => {
+			const name = col.toLowerCase();
+			if (name.includes("email")) return `${person.toLowerCase().replace(" ", ".")}@example.com`;
+			if (name.includes("name")) return person;
+			if (name.includes("date")) return `${pick(MONTHS)} ${1 + Math.floor(random() * 28)}, 2026`;
+			if (name.includes("status")) return pick(STATUSES);
+			if (name.includes("amount")) return `$${(5 + random() * 995).toFixed(2)}`;
+			return `Item ${i + 1}`;
+		});
+	});
+}
+const DAYS = [
+	"Mon",
+	"Tue",
+	"Wed",
+	"Thu",
+	"Fri",
+	"Sat",
+	"Sun"
+];
+/**
+* A Chart's rows: its `|` rows, or `rows=N` placeholder rows. The x value is guessed from the x column's name
+* (Month, Date, Day, Year, else "Item n"); each series is a seeded random walk of whole numbers, so lines look like data.
+*/
+function chartRows(node, path) {
+	if (node.rows) return node.rows;
+	const random = seeded(path);
+	const [x, ...series] = node.props.cols;
+	const name = x.toLowerCase();
+	const count = node.props.rows ?? 0;
+	const guess = (i) => {
+		if (name.includes("month")) return MONTHS[i % 12];
+		if (name.includes("date")) {
+			const date = new Date(Date.UTC(2026, 0, 1 + i));
+			return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}`;
+		}
+		if (name.includes("day")) return DAYS[i % 7];
+		if (name.includes("year")) return String(2026 - count + 1 + i);
+		return `Item ${i + 1}`;
+	};
+	const values = series.map(() => 200 + random() * 800);
+	return Array.from({ length: count }, (_, i) => {
+		for (const [j, v] of values.entries()) values[j] = Math.max(10, v * (.8 + random() * .4));
+		return [guess(i), ...values.map((v) => String(Math.round(v)))];
+	});
+}
+/** A List's items: `items`, or `rows=N` placeholders "Item 1" to "Item N". */
+const listItems = (node) => node.props.items ?? Array.from({ length: node.props.rows ?? 0 }, (_, i) => `Item ${i + 1}`);
+const WORDS = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum".split(" ");
+/** Text lorem=N: `count` words of lorem ipsum, in sentences of 4 to 12 words. */
+function lorem(path, count) {
+	const random = seeded(path);
+	const sentences = [];
+	for (let left = count; left > 0;) {
+		const length = Math.min(left, 4 + Math.floor(random() * 9));
+		const words = Array.from({ length }, () => WORDS[Math.floor(random() * WORDS.length)]).join(" ");
+		sentences.push(`${words.charAt(0).toUpperCase()}${words.slice(1)}.`);
+		left -= length;
+	}
+	return sentences.join(" ");
+}
+/** Avatar initials: "Ana Souza" → "AS", "Carla Maria Dias" → "CD", "bruno" → "B". */
+function initials(name) {
+	const words = name.split(/\s+/).filter(Boolean);
+	return words.filter((_, i) => i === 0 || i === words.length - 1).map((word) => [...word][0].toUpperCase()).join("");
+}
+/** mulberry32 seeded with an FNV-1a hash of `seed`: the same floats in [0, 1) on every run. */
+function seeded(seed) {
+	let h = 2166136261;
+	for (let i = 0; i < seed.length; i++) h = Math.imul(h ^ seed.charCodeAt(i), 16777619);
+	return () => {
+		h = h + 1831565813 | 0;
+		let t = Math.imul(h ^ h >>> 15, 1 | h);
+		t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+		return ((t ^ t >>> 14) >>> 0) / 4294967296;
+	};
+}
 // src/preview/elements.ts
 /** HTML-escapes text and attribute values. */
 const esc = (s) => s.replace(/[&<>"']/g, (c) => ({
@@ -1336,18 +1354,36 @@ const choice$1 = (id, label, control) => `<div class="${CLASSES.Field.choice}">$
 * Props arrive checked, coerced and with enum defaults filled in.
 */
 const EMITTERS$1 = {
+	/**
+	* With a Sidebar: a page shell, the sidebar column beside the main area. On phones the column hides and the Sidebar
+	* toggle before the title opens it in a left Sheet, through the Dialog and Sheet machinery (SCRIPTS.dialog).
+	*/
 	Screen: (node, ctx) => {
 		const c = CLASSES.Screen;
+		const id = node.props.id;
 		const subtitle = node.props.subtitle;
 		const actions = node.slots?.actions;
 		const { sidebar, isShared, body } = screenParts(node, ctx.sidebar);
-		const main = lines(`<header class="${cx(c.header, actions && c.headerWithActions)}">`, `<h1 class="${c.title}">${esc(node.label)}</h1>`, subtitle !== void 0 && `<p class="${c.subtitle}">${esc(subtitle)}</p>`, actions && div(c.actions, ctx.render(actions)), `</header>`, div(c.body, ctx.render(body)));
-		return lines(`<section data-screen="${esc(node.props.id)}" class="${sidebar ? c.shell : c.root}">`, sidebar ? lines(ctx.render([isShared ? activeFor(sidebar, node.props.id) : sidebar]), div(c.main, main)) : main, `</section>`);
+		const title = `<h1 class="${c.title}">${esc(node.label)}</h1>`;
+		const b = CLASSES.Button;
+		const sidebarToggle = `<button type="button" data-opens="${esc(id)}" aria-haspopup="dialog" class="${cx(b.base, b.variant.ghost, b.iconSize.md, c.sidebarToggle)}">${iconSvg("menu")}<span class="${b.hiddenLabel}">Menu</span></button>`;
+		const main = lines(`<header class="${cx(c.header, actions && c.headerWithActions)}">`, sidebar ? div(c.titleRow, lines(sidebarToggle, title)) : title, subtitle !== void 0 && `<p class="${c.subtitle}">${esc(subtitle)}</p>`, actions && div(c.actions, ctx.render(actions)), `</header>`, div(c.body, ctx.render(body)));
+		if (!sidebar) return lines(`<section data-screen="${esc(id)}" class="${c.root}">`, main, `</section>`);
+		const shown = isShared ? activeFor(sidebar, id) : sidebar;
+		const sheet = {
+			type: "Sheet",
+			label: "Menu",
+			props: {
+				id,
+				side: "left"
+			},
+			children: [shown],
+			line: node.line
+		};
+		return lines(`<section data-screen="${esc(id)}" class="${c.shell}">`, lines(`<aside class="${CLASSES.Sidebar.root}">`, ctx.render([shown]), "</aside>"), div(c.main, main), ctx.render([sheet]), `</section>`);
 	},
-	Sidebar: (node, ctx) => {
-		const c = CLASSES.Sidebar;
-		return lines(`<aside class="${c.root}">`, `<nav class="${c.nav}">`, ctx.render(node.children), "</nav>", "</aside>");
-	},
+	/** The Sidebar's nav: the Screen puts it in its column and in the Sheet of its Sidebar toggle. */
+	Sidebar: (node, ctx) => lines(`<nav class="${CLASSES.Sidebar.nav}">`, ctx.render(node.children), "</nav>"),
 	/** A Link without to= goes nowhere yet: no href. */
 	Link: (node, ctx) => {
 		const { icon, to, active } = node.props;
@@ -1749,7 +1785,8 @@ document.addEventListener("keydown", (event) => {
   if (open.length) event.stopImmediatePropagation();
 });`,
 	dialog: `// Dialogs and Sheets: a [data-opens] Button shows the [data-dialog] with that id;
-// a click on a [data-dialog-close] (close button, backdrop, footer Button without Behavior) hides its Dialog or Sheet.
+// a click on a [data-dialog-close] (close button, backdrop, footer Button without Behavior) or on a link (a Link,
+// a Button with to=) hides its Dialog or Sheet, also a link to the Screen already shown.
 document.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : null;
   const opener = target && target.closest("[data-opens]");
@@ -1757,7 +1794,7 @@ document.addEventListener("click", (event) => {
     for (const o of document.querySelectorAll("[data-dialog]")) if (o.dataset.dialog === opener.dataset.opens) o.hidden = false;
     return;
   }
-  const closer = target && target.closest("[data-dialog-close]");
+  const closer = target && target.closest("[data-dialog-close], [data-dialog] a");
   if (closer) closer.closest("[data-dialog]").hidden = true;
 });
 // Escape closes the topmost shown Dialog or Sheet (the last in the page).
@@ -1783,9 +1820,67 @@ addEventListener("hashchange", () => {
 });
 showScreen();`
 };
+/**
+* The page around the sketch, not a handler: it runs the <template id="sketch"> (Screens plus SCRIPTS) in the iframe.
+* Never write a literal </body> or <\/script> here: watch.ts splices before the first </body>, and this is inline.
+*/
+const FRAME = `
+// Viewport toolbar: the frame is as wide as the pressed button says, so the breakpoint classes respond as on a device.
+// A narrower window scales the frame down to fit, like a browser's device mode.
+// history.state keeps the picked width and this page's hash keeps the shown Screen, so a reload keeps both.
+// The picked width is saved with the width the page was written at (--viewport): a page written at another one opens at it.
+const frame = document.querySelector("iframe");
+const buttons = [...document.querySelectorAll("button[data-width]")];
+const written = buttons.find((b) => b.ariaPressed === "true");
+let width;
+const fit = () => {
+  const stage = frame.parentElement;
+  const scale = Math.min(1, stage.clientWidth / width);
+  frame.style.width = width + "px";
+  frame.style.height = stage.clientHeight / scale + "px";
+  frame.style.scale = String(scale);
+};
+const pick = (button) => {
+  for (const b of buttons) b.setAttribute("aria-pressed", String(b === button));
+  width = Number(button.dataset.width);
+  history.replaceState({ viewport: button.value, written: written.value }, "");
+  fit();
+};
+for (const b of buttons) b.addEventListener("click", () => pick(b));
+addEventListener("resize", fit);
+const saved = history.state?.written === written.value && buttons.find((b) => b.value === history.state.viewport);
+pick(saved || written);
+// The base keeps the sketch's #screen links inside the frame. The frame starts on this page's hash and copies its own back.
+frame.addEventListener("load", () => {
+  const sketch = frame.contentWindow;
+  sketch.addEventListener("hashchange", () => history.replaceState(history.state, "", location.href.split("#")[0] + sketch.location.hash));
+});
+frame.srcdoc = '<!doctype html><html lang="en"><head><meta charset="utf-8"><base href="about:srcdoc">' +
+  '<script>history.replaceState(null, "", parent.location.hash)<\\/script>' +
+  "<style>" + document.querySelector("style").textContent + "</style></head><body>" +
+  document.getElementById("sketch").innerHTML;
+`;
 // src/preview/page.ts
-/** The Preview: one self-contained HTML page holding every Screen. No network: CSS and JS are inlined. */
-function renderPreview(document) {
+/** The widths, in px, that the Preview toolbar lays the sketch out at (`preview --viewport`), in toolbar order. */
+const VIEWPORTS = {
+	desktop: 1280,
+	tablet: 768,
+	phone: 390
+};
+const b = CLASSES.Button;
+/** Preview only, never exported: the toolbar above the sketch and the stage that holds its frame. */
+const TOOLBAR = {
+	root: "flex h-screen flex-col bg-muted",
+	bar: "flex shrink-0 justify-center gap-1 border-b bg-background p-2",
+	button: `${b.base} ${b.variant.ghost} ${b.size.sm} text-muted-foreground aria-pressed:bg-accent aria-pressed:text-accent-foreground`,
+	stage: "flex min-h-0 flex-1 justify-center overflow-hidden",
+	frame: "shrink-0 origin-top bg-background"
+};
+/**
+* The Preview: one self-contained HTML page holding every Screen. No network: CSS and JS are inlined.
+* The sketch sits in a <template>; FRAME runs it in an iframe as wide as the toolbar's pressed width (`viewport`).
+*/
+function renderPreview(document, viewport = "desktop") {
 	const scripts = /* @__PURE__ */ new Set();
 	const paths = nodePaths(document);
 	const ctx = (node) => ({
@@ -1796,22 +1891,35 @@ function renderPreview(document) {
 	});
 	const body = document.screens.map((screen) => render([screen], ctx)).map((html, i) => i > 0 && scripts.has("to") ? html.replace(/^<section/, "<section hidden") : html).join("\n");
 	const handlers = Object.keys(SCRIPTS).filter((name) => scripts.has(name)).map((name) => SCRIPTS[name]);
+	const title = esc(document.screens[0].label);
+	const buttons = Object.keys(VIEWPORTS).map((name) => `<button type="button" value="${name}" data-width="${VIEWPORTS[name]}" aria-pressed="${name === viewport}" title="${VIEWPORTS[name]} px" class="${TOOLBAR.button}">${name[0].toUpperCase()}${name.slice(1)}</button>`);
 	return [
 		"<!doctype html>",
 		"<html lang=\"en\">",
 		"<head>",
 		"<meta charset=\"utf-8\">",
 		"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
-		`<title>${esc(document.screens[0].label)}</title>`,
+		`<title>${title}</title>`,
 		`<style>${readAsset("assets/preview.css")}</style>`,
 		"</head>",
 		"<body>",
+		`<div class="${TOOLBAR.root}">`,
+		`<div role="toolbar" aria-label="Viewport" class="${TOOLBAR.bar}">`,
+		...buttons,
+		"</div>",
+		`<div class="${TOOLBAR.stage}">`,
+		`<iframe title="${title}" class="${TOOLBAR.frame}"></iframe>`,
+		"</div>",
+		"</div>",
+		"<template id=\"sketch\">",
 		body,
 		...handlers.length ? [
 			"<script>",
 			...handlers,
 			"<\/script>"
 		] : [],
+		"</template>",
+		`<script>${FRAME}<\/script>`,
 		"</body>",
 		"</html>",
 		""
@@ -1983,12 +2091,17 @@ const openState = (id) => {
 	const name = pascalCase(id, "Overlay");
 	return [`${name[0].toLowerCase()}${name.slice(1)}Open`, `set${name}Open`];
 };
-/** Dialog and Sheet: Content > Header(Title, Description) + body + Footer, with useState when an id lets opens= show it. */
-function dialog(node, ctx, kind, content) {
+/**
+* Dialog and Sheet: Content > Header(Title, Description) + body + Footer, with useState when an id lets opens= show it.
+* For the Sidebar toggle's Sheet: `trigger`, a Button, opens it from inside the root; `body` replaces the children's JSX.
+*/
+function dialog(node, ctx, { trigger, body } = {}) {
+	const kind = node.type;
 	/** Imports a part and returns its name. */
 	const ui = (part) => (ctx.use(`@/components/ui/${kind.toLowerCase()}`, `${kind}${part}`), `${kind}${part}`);
 	const id = node.props.id;
 	const desc = node.props.desc;
+	const side = jsxAttrs({ side: node.props.side === "right" ? void 0 : node.props.side });
 	let state = jsxAttrs({ defaultOpen: node.props.open === true });
 	if (id !== void 0) {
 		const [value, set] = openState(id);
@@ -1997,8 +2110,27 @@ function dialog(node, ctx, kind, content) {
 		state = ` open={${value}} onOpenChange={${set}}`;
 	}
 	const footer = node.slots?.footer?.map((n) => n.type === "Button" && !hasBehavior(n) ? wrap(`<${ui("Close")} asChild>`, ctx.render([n]), `</${kind}Close>`) : ctx.render([n]));
+	const children = body ?? ctx.render(node.children);
 	ctx.use(`@/components/ui/${kind.toLowerCase()}`, kind);
-	return wrap(`<${kind}${state}>`, wrap(`<${ui("Content")}${content}${desc === void 0 ? " aria-describedby={undefined}" : ""}>`, lines(wrap(`<${ui("Header")}>`, lines(`<${ui("Title")}>${text(node.label)}</${kind}Title>`, desc !== void 0 && `<${ui("Description")}>${text(desc)}</${kind}Description>`), `</${kind}Header>`), node.children.length > 0 && wrap(`<div className="${CLASSES[kind].body}">`, ctx.render(node.children), "</div>"), footer && wrap(`<${ui("Footer")}>`, lines(...footer), `</${kind}Footer>`)), `</${kind}Content>`), `</${kind}>`);
+	return wrap(`<${kind}${state}>`, lines(trigger && wrap(`<${ui("Trigger")} asChild>`, trigger, `</${kind}Trigger>`), wrap(`<${ui("Content")}${side}${desc === void 0 ? " aria-describedby={undefined}" : ""}>`, lines(wrap(`<${ui("Header")}>`, lines(`<${ui("Title")}>${text(node.label)}</${kind}Title>`, desc !== void 0 && `<${ui("Description")}>${text(desc)}</${kind}Description>`), `</${kind}Header>`), children && wrap(`<div className="${CLASSES[kind].body}">`, children, "</div>"), footer && wrap(`<${ui("Footer")}>`, lines(...footer), `</${kind}Footer>`)), `</${kind}Content>`)), `</${kind}>`);
+}
+/**
+* The Sidebar toggle that shows the Sidebar's `nav` on phones: a ghost icon Button, hidden from md:, that opens a left
+* Sheet holding the nav.
+*/
+function sidebarSheet(ctx, nav) {
+	const b = CLASSES.Button;
+	ctx.use("@/components/ui/button", "Button");
+	return dialog({
+		type: "Sheet",
+		label: "Menu",
+		props: { side: "left" },
+		children: [],
+		line: 0
+	}, ctx, {
+		trigger: wrap(`<Button variant="ghost" size="icon" className="${CLASSES.Screen.sidebarToggle}">`, lines(icon(ctx, "menu"), `<span className="${b.hiddenLabel}">Menu</span>`), "</Button>"),
+		body: nav
+	});
 }
 /** Skizo `size` → shadcn Button `size`, for text Buttons and for icon-only ones. md is shadcn's default. */
 const BUTTON_SIZE = {
@@ -2016,23 +2148,26 @@ const ICON_BUTTON_SIZE = {
 * Props arrive checked, coerced and with enum defaults filled in.
 */
 const EMITTERS = {
-	/** With a Sidebar: a page shell, the sidebar column beside <main>. The shared Sidebar is <AppSidebar> (app-sidebar.tsx). */
+	/**
+	* With a Sidebar: a page shell, the sidebar column beside <main>. On phones the column hides and a SheetTrigger
+	* before the title opens the Sidebar in a left Sheet. The shared Sidebar is <AppSidebar> (app-sidebar.tsx) in both.
+	*/
 	Screen: (node, ctx) => {
 		const c = CLASSES.Screen;
 		const subtitle = node.props.subtitle;
 		const actions = node.slots?.actions;
 		const { sidebar, isShared, body } = screenParts(node, ctx.sidebar);
-		const header = lines(`<h1 className="${c.title}">${text(node.label)}</h1>`, subtitle !== void 0 && `<p className="${c.subtitle}">${text(subtitle)}</p>`, actions && wrap(`<div className="${c.actions}">`, ctx.render(actions), "</div>"));
-		const main = wrap(`<main className="${sidebar ? c.main : c.root}">`, lines(wrap(`<header className="${cx(c.header, actions && c.headerWithActions)}">`, header, "</header>"), wrap(`<div className="${c.body}">`, ctx.render(body), "</div>")), "</main>");
-		if (!sidebar) return main;
 		if (isShared) ctx.use("./app-sidebar", "AppSidebar");
-		const column = isShared ? `<AppSidebar${jsxAttrs({ current: node.props.id })} />` : ctx.render([sidebar]);
+		const nav = sidebar && (isShared ? `<AppSidebar${jsxAttrs({ current: node.props.id })} />` : ctx.render([sidebar]));
+		const title = `<h1 className="${c.title}">${text(node.label)}</h1>`;
+		const header = lines(nav ? wrap(`<div className="${c.titleRow}">`, lines(sidebarSheet(ctx, nav), title), "</div>") : title, subtitle !== void 0 && `<p className="${c.subtitle}">${text(subtitle)}</p>`, actions && wrap(`<div className="${c.actions}">`, ctx.render(actions), "</div>"));
+		const main = wrap(`<main className="${nav ? c.main : c.root}">`, lines(wrap(`<header className="${cx(c.header, actions && c.headerWithActions)}">`, header, "</header>"), wrap(`<div className="${c.body}">`, ctx.render(body), "</div>")), "</main>");
+		if (!nav) return main;
+		const column = wrap(`<aside className="${CLASSES.Sidebar.root}">`, nav, "</aside>");
 		return wrap(`<div className="${c.shell}">`, lines(column, main), "</div>");
 	},
-	Sidebar: (node, ctx) => {
-		const c = CLASSES.Sidebar;
-		return wrap(`<aside className="${c.root}">`, wrap(`<nav className="${c.nav}">`, ctx.render(node.children), "</nav>"), "</aside>");
-	},
+	/** The Sidebar's nav: the Screen puts it in its column and in the Sheet of its Sidebar toggle. */
+	Sidebar: (node, ctx) => wrap(`<nav className="${CLASSES.Sidebar.nav}">`, ctx.render(node.children), "</nav>"),
 	/** In the shared Sidebar (AppSidebar) the active Link is the one whose to= is the `current` prop. */
 	Link: (node, ctx) => {
 		const { to, active } = node.props;
@@ -2150,8 +2285,8 @@ const EMITTERS = {
 		const margin = type === "bar" ? "" : " margin={{ left: 12, right: 12 }}";
 		return wrap(`<ChartContainer config={${name}Config} className="${CLASSES.Chart.container}">`, wrap(`<${chart} data={${name}Data}${margin}${title}>`, lines("<CartesianGrid vertical={false} />", `<XAxis dataKey="${x}" tickLine={false} axisLine={false} tickMargin={8} />`, "<ChartTooltip content={<ChartTooltipContent />} />", legend && "<ChartLegend content={<ChartLegendContent />} />", ...series.map((s) => `<${part} dataKey="${s}" ${look(s)} />`)), `</${chart}>`), "</ChartContainer>");
 	},
-	Dialog: (node, ctx) => dialog(node, ctx, "Dialog", ""),
-	Sheet: (node, ctx) => dialog(node, ctx, "Sheet", node.props.side === "right" ? "" : ` side="${node.props.side}"`),
+	Dialog: dialog,
+	Sheet: dialog,
 	/** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
 	Tabs: (node, ctx) => {
 		ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");
@@ -2400,13 +2535,21 @@ const COMMANDS = {
 		}
 	},
 	preview: {
-		options: { watch: { type: "boolean" } },
+		options: {
+			watch: { type: "boolean" },
+			viewport: { type: "string" }
+		},
 		run(file, flags, io) {
+			const viewport = flags.viewport ?? "desktop";
+			if (!Object.hasOwn(VIEWPORTS, viewport)) {
+				io.stderr(`skizo preview: ${badFlag("viewport", viewport, Object.keys(VIEWPORTS))}\n`);
+				return 2;
+			}
 			const out = `${file.replace(/\.skz$/, "")}.html`;
 			const build = () => {
 				const document = loadChecked(file, io);
 				if (typeof document === "number") return document;
-				const html = renderPreview(document);
+				const html = renderPreview(document, viewport);
 				writeFileSync(resolve(io.cwd, out), html);
 				io.stdout(`wrote ${out}\n`);
 				return html;
@@ -2431,12 +2574,11 @@ const COMMANDS = {
 			}
 			const exportTarget = TARGETS.get(target ?? "");
 			if (!exportTarget) {
-				const problem = target === void 0 ? "--target is required" : `unknown target "${target}"${didYouMean(target, TARGETS.keys())}`;
-				io.stderr(`skizo export: ${problem} (expected: ${[...TARGETS.keys()].join(", ")})\n`);
+				io.stderr(`skizo export: ${badFlag("target", target, [...TARGETS.keys()])}\n`);
 				return 2;
 			}
 			if (router !== void 0 && !ROUTER_NAMES.includes(router)) {
-				io.stderr(`skizo export: unknown router "${router}"${didYouMean(router, ROUTER_NAMES)} (expected: ${ROUTER_NAMES.join(", ")})\n`);
+				io.stderr(`skizo export: ${badFlag("router", router, ROUTER_NAMES)}\n`);
 				return 2;
 			}
 			const document = loadChecked(file, io);
@@ -2457,11 +2599,14 @@ const COMMANDS = {
 		}
 	}
 };
+/** Why a flag's value is not one of `names` (none given: it is required), with a hint and the names. */
+const badFlag = (flag, value, names) => `${value === void 0 ? `--${flag} is required` : `unknown ${flag} "${value}"${didYouMean(value, names)}`} (expected: ${names.join(", ")})`;
 const USAGE = `Usage: skizo <command>   (alias: skz)
 
   skizo guide                                          print the Guide to the Skizo language
   skizo check   <file.skz> [--json]                    report every error in a file
   skizo preview <file.skz> [--watch]                   write <file>.html; --watch serves it with live reload
+                [--viewport desktop|tablet|phone]      open it at this width (default desktop)
   skizo export  <file.skz> --target shadcn [--out dir] write one React file per Screen
                 [--router next|react-router]           write links with the Link of the router
 
