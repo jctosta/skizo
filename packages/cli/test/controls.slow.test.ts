@@ -16,6 +16,12 @@ const SKETCH = `Screen "New order"
   Button "More actions" icon=ellipsis icon-only variant=ghost
   Select "Status" options="Open,Paid" value=Open
   Select "Plan" options="Free,Pro" placeholder="Pick a plan" open
+  Card "Order #1042"
+    actions
+      Menu "Row actions" icon=ellipsis icon-only variant=ghost
+        Item "Edit"
+        Item "Duplicate"
+        Item "Delete" destructive
 `;
 
 /** Opens the Preview of SKETCH with the network blocked; `external` collects any request that left the file. */
@@ -51,6 +57,28 @@ test("a Select opens on click and shows its options, without network requests", 
 test("a Select flagged open shows its options on load", async () => {
   const { page } = await openPreview();
   expect(await page.getByRole("option", { name: "Pro" }).isVisible()).toBe(true);
+  await page.context().close();
+});
+
+test("a Menu opens on click, unclipped by its Card and inside the window, and closes on an outside click", async () => {
+  const { page } = await openPreview();
+  const deleteItem = page.getByRole("menuitem", { name: "Delete" });
+  const hiddenBefore = await deleteItem.isHidden();
+  await page.getByRole("button", { name: "Row actions" }).click();
+  // The last item hangs below its short Card: the pointer hits it only if the Card's overflow-hidden does not clip it.
+  const unclipped = await deleteItem.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el;
+  });
+  const box = await page.getByRole("menu", { name: "Row actions" }).boundingBox();
+  await page.getByRole("heading", { name: "New order" }).click();
+  const insideWindow = box!.x >= 0 && box!.x + box!.width <= 640;
+  expect({ hiddenBefore, unclipped, insideWindow, hiddenAfter: await deleteItem.isHidden() }).toEqual({
+    hiddenBefore: true,
+    unclipped: true,
+    insideWindow: true,
+    hiddenAfter: true,
+  });
   await page.context().close();
 });
 
