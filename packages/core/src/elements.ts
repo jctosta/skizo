@@ -172,7 +172,10 @@ export const ELEMENTS: Record<string, ElementSpec> = {
       opens: { kind: "ref", to: "overlay" },
       to: { kind: "ref", to: "screen" },
     },
-    check: iconOnly,
+    check(node, err, parent) {
+      iconOnly(node, err, parent);
+      if (node.props.opens !== undefined && node.props.to !== undefined) err("has both opens= and to= (keep one)");
+    },
   },
   Input: {
     label: "required",
