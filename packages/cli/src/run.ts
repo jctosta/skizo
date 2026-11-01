@@ -1,7 +1,8 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 import { check, didYouMean, type CheckError, type Document } from "@skizo/core";
+import { renderPreview } from "./preview/page";
 
 export type Io = { stdout(s: string): void; stderr(s: string): void; cwd: string; signal?: AbortSignal };
 
@@ -21,6 +22,16 @@ const COMMANDS: Record<string, Command> = {
       if (flags.json) io.stdout(`${JSON.stringify({ errors: errors.map((e) => ({ file, ...e })) }, null, 2)}\n`);
       else io.stdout(errors.length ? errorLines(file, errors) : `${file}: ok\n`);
       return errors.length ? 1 : 0;
+    },
+  },
+  preview: {
+    run(file, _flags, io) {
+      const document = loadChecked(file, io);
+      if (typeof document === "number") return document;
+      const out = `${file.replace(/\.skz$/, "")}.html`;
+      writeFileSync(resolve(io.cwd, out), renderPreview(document));
+      io.stdout(`wrote ${out}\n`);
+      return 0;
     },
   },
 };
