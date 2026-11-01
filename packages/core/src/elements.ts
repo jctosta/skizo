@@ -106,6 +106,20 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   },
   Tabs: { label: "none", props: {}, children: ["Tab"], exclusive: { flag: "active", firstByDefault: true } },
   Tab: { label: "required", props: { active: { kind: "flag" } }, children: "any", parents: ["Tabs"] },
+  /** Carries its own trigger, a Button: the Label is its text, or its accessible name with icon-only. */
+  Menu: {
+    label: "required",
+    props: {
+      // Button's variants.
+      variant: { kind: "enum", values: ["default", "secondary", "outline", "ghost", "destructive", "link"] },
+      icon: { kind: "icon" },
+      "icon-only": { kind: "flag" },
+      open: { kind: "flag" },
+    },
+    children: ["Item"],
+    check: iconOnly,
+  },
+  Item: { label: "required", props: { destructive: { kind: "flag" }, disabled: { kind: "flag" } }, parents: ["Menu"] },
   Button: {
     label: "required",
     props: {

@@ -1,1 +1,2 @@
 input.skz:2  Button  icon-only needs icon=... too
+input.skz:3  Menu  icon-only needs icon=... too
