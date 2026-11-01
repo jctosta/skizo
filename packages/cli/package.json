@@ -1,0 +1,27 @@
+{
+  "name": "@jctosta/skizo",
+  "version": "0.0.0",
+  "type": "module",
+  "bin": {
+    "skizo": "dist/cli.mjs",
+    "skz": "dist/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "assets",
+    "GUIDE.md"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "assets": "tailwindcss -i src/preview/preview.css -o assets/preview.css --minify",
+    "build": "pnpm assets && tsdown"
+  },
+  "devDependencies": {
+    "@skizo/core": "workspace:*",
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3",
+    "tsdown": "0.23.4"
+  }
+}

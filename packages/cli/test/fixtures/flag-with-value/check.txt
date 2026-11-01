@@ -1,0 +1,1 @@
+input.skz:2  Text  muted is a flag and takes no value (write just muted)

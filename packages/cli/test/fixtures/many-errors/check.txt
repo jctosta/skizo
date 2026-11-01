@@ -1,0 +1,4 @@
+input.skz:2  Heading  tab in indentation (indent with 2 spaces)
+input.skz:2  Heading  unknown prop "levle" — did you mean level?
+input.skz:3  Text  unknown size "xl" (expected: md, sm, lg)
+input.skz:4  Headng  unknown Element type "Headng" — did you mean Heading?

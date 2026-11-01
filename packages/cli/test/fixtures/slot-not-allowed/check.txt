@@ -1,0 +1,1 @@
+input.skz:2  Heading  takes no "footer" slot

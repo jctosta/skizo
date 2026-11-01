@@ -1,0 +1,4 @@
+Screen "Orders"
+  Heading "Recent orders"
+    footer
+      Text "Updated hourly"
