@@ -49,4 +49,17 @@ export const EMITTERS: Record<string, Emit> = {
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p className="${classes}">${text(node.label!)}</p>`;
   },
+  Table: (node, ctx) => {
+    ctx.use("@/components/ui/table", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow");
+    const row = (tag: "TableHead" | "TableCell", cells: string[]) =>
+      wrap("<TableRow>", lines(...cells.map((s) => `<${tag}>${text(s)}</${tag}>`)), "</TableRow>");
+    return wrap(
+      "<Table>",
+      lines(
+        wrap("<TableHeader>", row("TableHead", node.props.cols as string[]), "</TableHeader>"),
+        wrap("<TableBody>", lines(...(node.rows ?? []).map((cells) => row("TableCell", cells))), "</TableBody>"),
+      ),
+      "</Table>",
+    );
+  },
 };

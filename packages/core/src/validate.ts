@@ -31,6 +31,7 @@ export function validate(document: Document): CheckError[] {
       for (const name of Object.keys(node.slots ?? {}) as (keyof NonNullable<Node["slots"]>)[])
         if (!spec.slots?.includes(name)) err(node, `takes no "${name}" slot`);
       props(node, spec, err);
+      spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }));
       if (node.type === "Screen" && node.props.id === undefined && node.label !== undefined) {
         const slug = slugify(node.label);
         if (slug) node.props.id = slug;

@@ -1,0 +1,2 @@
+input.skz:4  Table  row has 2 cells, expected 3 (cols: Order, Customer, Amount)
+input.skz:6  Table  row has 4 cells, expected 3 (cols: Order, Customer, Amount)

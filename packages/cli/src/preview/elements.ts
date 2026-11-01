@@ -40,4 +40,21 @@ export const EMITTERS: Record<string, Emit> = {
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p class="${classes}">${esc(node.label!)}</p>`;
   },
+  Table: (node) => {
+    const c = CLASSES.Table;
+    const row = (tag: "th" | "td", cells: string[]) =>
+      `<tr class="${c.row}">${cells.map((s) => `<${tag} class="${tag === "th" ? c.head : c.cell}">${esc(s)}</${tag}>`).join("")}</tr>`;
+    return [
+      `<div class="${c.container}">`,
+      `<table class="${c.table}">`,
+      `<thead class="${c.header}">`,
+      row("th", node.props.cols as string[]),
+      "</thead>",
+      `<tbody class="${c.body}">`,
+      ...(node.rows ?? []).map((cells) => row("td", cells)),
+      "</tbody>",
+      "</table>",
+      "</div>",
+    ].join("\n");
+  },
 };
