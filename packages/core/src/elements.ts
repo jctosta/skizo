@@ -279,7 +279,8 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     children: "any",
     check(node, err) {
       const name = node.label;
-      // Its export would also clash with the Element's own import (Button from @/components/ui/button).
+      if (name === "Custom") return err('"Custom" is not the name of a component (write the name of your component, e.g. Custom "ChatBubble")');
+      // One way to write each thing: an Element type is written as itself, never through Custom.
       if (name !== undefined && Object.hasOwn(ELEMENTS, name)) return err(`"${name}" is an Element type (use ${name} instead of Custom)`);
       if (name === undefined || /^[A-Z][A-Za-z0-9]*$/.test(name)) return;
       const fixed = pascalCase(name);
