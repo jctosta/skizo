@@ -27,6 +27,9 @@ export const attrs = (pairs: Record<string, unknown>) =>
 /** DOM id of a form control: from its source line, so unique within the page and stable between runs. */
 export const fieldId = (node: Node) => `field-${node.line}`;
 
+/** Where `to=` goes in the Preview: the hash names the Screen to show (SCRIPTS.to). */
+const screenHref = (id: string) => `#${encodeURIComponent(id)}`;
+
 /** A form control under its Label, with error text below. */
 const field = (node: Node, control: string, error?: unknown) =>
   [
@@ -52,20 +55,31 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
-    return [
-      `<section data-screen="${esc(node.props.id as string)}" class="${c.root}">`,
+    const sidebar = node.children[0]?.type === "Sidebar" ? node.children[0] : undefined;
+    const main = lines(
       `<header class="${cx(c.header, actions && c.headerWithActions)}">`,
       `<h1 class="${c.title}">${esc(node.label!)}</h1>`,
       subtitle !== undefined && `<p class="${c.subtitle}">${esc(subtitle)}</p>`,
       actions && div(c.actions, ctx.render(actions)),
       `</header>`,
-      `<div class="${c.body}">`,
-      ctx.render(node.children),
-      `</div>`,
+      div(c.body, ctx.render(sidebar ? node.children.slice(1) : node.children)),
+    );
+    return lines(
+      `<section data-screen="${esc(node.props.id as string)}" class="${sidebar ? c.shell : c.root}">`,
+      sidebar ? lines(ctx.render([sidebar]), div(c.main, main)) : main,
       `</section>`,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    );
+  },
+  Sidebar: (node, ctx) => {
+    const c = CLASSES.Sidebar;
+    return lines(`<aside class="${c.root}">`, `<nav class="${c.nav}">`, ctx.render(node.children), "</nav>", "</aside>");
+  },
+  /** A Link without to= goes nowhere yet: no href. */
+  Link: (node, ctx) => {
+    const { icon, to, active } = node.props as { icon?: string; to?: string; active?: true };
+    if (to !== undefined) ctx.script("to");
+    const a = attrs({ href: to === undefined ? undefined : screenHref(to), "aria-current": active && "page" });
+    return `<a${a} class="${CLASSES.Link.root}">${icon === undefined ? "" : iconSvg(icon, CLASSES.Link.icon)}${esc(node.label!)}</a>`;
   },
   Heading: (node) => {
     const level = node.props.level as keyof typeof CLASSES.Heading;
@@ -210,7 +224,7 @@ export const EMITTERS: Record<string, Emit> = {
       `</div>`,
     ].join("\n");
   },
-  Button: (node) => {
+  Button: (node, ctx) => {
     const c = CLASSES.Button;
     const { variant, size, icon } = node.props as { variant: keyof typeof c.variant; size: "sm" | "md" | "lg"; icon?: string };
     const iconOnly = node.props["icon-only"] === true;
@@ -219,6 +233,12 @@ export const EMITTERS: Record<string, Emit> = {
     const label = iconOnly ? `<span class="${c.hiddenLabel}">${esc(node.label!)}</span>` : esc(node.label!);
     const disabled = node.props.disabled === true || loading ? " disabled" : "";
     const classes = cx(c.base, c.variant[variant], (iconOnly ? c.iconSize : c.size)[size]);
+    const to = node.props.to as string | undefined;
+    if (to !== undefined) {
+      // A link styled as a Button, like the export's <Button asChild><a>.
+      ctx.script("to");
+      return `<a href="${esc(screenHref(to))}" class="${classes}">${glyph}${label}</a>`;
+    }
     const opens = attrs({ "data-opens": node.props.opens, "aria-haspopup": node.props.opens && "dialog" });
     return `<button type="button" class="${classes}"${disabled}${opens}>${glyph}${label}</button>`;
   },

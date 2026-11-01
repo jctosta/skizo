@@ -1,0 +1,3 @@
+input.skz:4  Link  to=dashbord is an unknown Screen id — did you mean dashboard? (expected: orders, dashboard)
+input.skz:5  Button  to=zzzzzz is an unknown Screen id (expected: orders, dashboard)
+input.skz:7  Button  to=totals is the Card on line 6, not a Screen (expected: orders, dashboard)

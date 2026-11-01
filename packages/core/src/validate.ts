@@ -17,8 +17,8 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
   const errors: CheckError[] = [];
   /** Each id's first Element and the Screen it sits on. */
   const ids = new Map<string, { node: Node; screen: Node }>();
-  /** Ref props (opens=) to resolve once every id is known. */
-  const refs: { node: Node; screen: Node; key: string }[] = [];
+  /** Ref props (opens=, to=) to resolve once every id is known: a Screen may go to one further down the file. */
+  const refs: { node: Node; screen: Node; key: string; to: "overlay" | "screen" }[] = [];
   /** The Screen being walked. */
   let current: Node;
   const err = (node: Node, message: string) => errors.push({ line: node.line, type: node.type, message });
@@ -46,8 +46,8 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
         }
       props(node, spec, options, err);
       for (const [key, prop] of Object.entries(spec.props))
-        if (prop.kind === "ref" && typeof node.props[key] === "string") refs.push({ node, screen: current, key });
-      spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }));
+        if (prop.kind === "ref" && typeof node.props[key] === "string") refs.push({ node, screen: current, key, to: prop.to });
+      spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }), parent);
       // `span` (on any Element type whose schema lists it) counts columns of the Grid it sits directly in.
       const span = node.props.span;
       if (typeof span === "number") {
@@ -85,12 +85,18 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
     walk(s);
   }
 
-  // opens= names a Dialog or Sheet on its own Screen.
+  // to= names a Screen; opens= names a Dialog or Sheet on its own Screen.
+  const screenIds = document.screens.map((screen) => screen.props.id).filter((id) => typeof id === "string");
+  const screens = `(expected: ${screenIds.join(", ")})`;
   const expected = "(expected: a Dialog or Sheet on this Screen)";
-  for (const { node, screen, key } of refs) {
+  for (const { node, screen, key, to } of refs) {
     const id = node.props[key] as string;
     const target = ids.get(id);
-    if (!target) {
+    if (to === "screen") {
+      if (!target) err(node, `${key}=${id} is an unknown Screen id${didYouMean(id, screenIds)} ${screens}`);
+      else if (target.node.type !== "Screen")
+        err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line}, not a Screen ${screens}`);
+    } else if (!target) {
       const near = [...ids].filter(([, t]) => t.screen === screen && OPENABLE.includes(t.node.type)).map(([name]) => name);
       err(node, `${key}=${id} is an unknown id${didYouMean(id, near)} ${expected}`);
     } else if (!OPENABLE.includes(target.node.type)) err(node, `${key}=${id} is the ${target.node.type} on line ${target.node.line} ${expected}`);

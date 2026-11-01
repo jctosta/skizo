@@ -1,0 +1,11 @@
+// The Link going to its own Screen is active, so a second active Link (written or inferred) is an error.
+Screen "Orders"
+  Sidebar
+    Link "Dashboard" to=dashboard active
+    Link "Orders" to=orders
+    Link "Reports" active
+
+Screen "Dashboard"
+  Sidebar
+    Link "Dashboard" to=dashboard
+    Link "Orders" to=orders

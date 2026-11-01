@@ -1,0 +1,1 @@
+input.skz:3  Button  has both opens= and to= (keep one)

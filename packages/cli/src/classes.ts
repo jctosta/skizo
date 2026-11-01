@@ -16,6 +16,9 @@ const flex = {
 export const CLASSES = {
   Screen: {
     root: "min-h-screen p-6",
+    /** A Screen with a Sidebar: the page shell, a sidebar column beside the main area (which holds header and body). */
+    shell: "flex min-h-screen",
+    main: "min-w-0 flex-1 p-6",
     header: "mb-6 grid gap-1",
     headerWithActions: "grid-cols-[1fr_auto] gap-x-4",
     actions: "col-start-2 row-span-2 row-start-1 flex items-center gap-2 self-start justify-self-end",
@@ -23,8 +26,15 @@ export const CLASSES = {
     subtitle: "text-sm text-muted-foreground",
     body: "flex flex-col gap-4",
   },
+  /** Plain markup in every Backend, styled after shadcn's sidebar (bg-sidebar is about bg-muted/50 on white). */
+  Sidebar: { root: "w-64 shrink-0 border-r bg-muted/50 p-2", nav: "flex flex-col gap-1" },
+  /** shadcn's SidebarMenuButton look; the active Link carries aria-current="page". */
+  Link: {
+    root: "flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground",
+    icon: "size-4 shrink-0",
+  },
   Heading: {
-    "1": "text-3xl font-bold tracking-tight",
+    "1":"text-3xl font-bold tracking-tight",
     "2": "text-xl font-semibold tracking-tight",
     "3": "text-lg font-semibold tracking-tight",
     "4": "text-base font-semibold",

@@ -1,0 +1,6 @@
+// A click has one Behavior: a Button either opens an Overlay or goes to a Screen.
+Screen "Orders"
+  Button "New order" opens=new-order to=dashboard
+  Dialog "New order" id=new-order
+
+Screen "Dashboard"

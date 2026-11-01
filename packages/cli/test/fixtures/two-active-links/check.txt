@@ -1,0 +1,2 @@
+input.skz:5  Link  only one Link per Sidebar can be active (line 4 is active too)
+input.skz:6  Link  only one Link per Sidebar can be active (line 4 is active too)

@@ -12,8 +12,11 @@ export type PropSpec =
   | { kind: "number"; min?: number; max?: number; default?: number }
   /** Comma-separated; `\,` is a literal comma. */
   | { kind: "list" }
-  /** An Element's id. `overlay`: a Dialog or Sheet on the same Screen (opens=). */
-  | { kind: "ref"; to: "overlay" };
+  /**
+   * An Element's id, resolved once the whole file is read. `overlay`: a Dialog or Sheet on the same Screen (opens=);
+   * `screen`: a Screen (to=).
+   */
+  | { kind: "ref"; to: "overlay" | "screen" };
 
 export type ElementSpec = {
   label: "required" | "optional" | "none";
@@ -24,8 +27,11 @@ export type ElementSpec = {
   /** Element types this one may sit directly under (not in their slots); omitted for anywhere. */
   parents?: readonly string[];
   slots?: readonly ("actions" | "footer")[];
-  /** Rules the generic checks can't express. Runs after props are coerced; `line` defaults to the Element's. */
-  check?: (node: Node, err: (message: string, line?: number) => void) => void;
+  /**
+   * Rules the generic checks can't express. Runs after the Element's own props are coerced, before its children
+   * are walked; `line` defaults to the Element's.
+   */
+  check?: (node: Node, err: (message: string, line?: number) => void, parent?: Node) => void;
   /** A flag at most one child may set; with `firstByDefault`, the first child gets it when none does. */
   exclusive?: { flag: string; firstByDefault?: true };
 };
@@ -55,6 +61,27 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     props: { id: { kind: "string" }, subtitle: { kind: "string" } },
     children: "any",
     slots: ["actions"],
+  },
+  /** A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default). */
+  Sidebar: {
+    label: "none",
+    props: {},
+    children: ["Link"],
+    parents: ["Screen"],
+    exclusive: { flag: "active" },
+    check(node, err, parent) {
+      if (parent?.type !== "Screen") return;
+      // In a slot (index -1) the generic `parents` rule already reports it.
+      if (parent.children.indexOf(node) > 0) err("must be the first child of its Screen");
+      // Set before the Links are walked, so `exclusive` counts inferred and written `active` alike.
+      for (const link of node.children)
+        if (link.props.to === parent.props.id && link.props.active === undefined) link.props.active = true;
+    },
+  },
+  Link: {
+    label: "required",
+    props: { icon: { kind: "icon" }, active: { kind: "flag" }, to: { kind: "ref", to: "screen" } },
+    parents: ["Sidebar"],
   },
   Heading: { label: "required", props: { level: { kind: "enum", values: ["2", "1", "3", "4"] } } },
   Text: {
@@ -143,8 +170,12 @@ export const ELEMENTS: Record<string, ElementSpec> = {
       disabled: { kind: "flag" },
       loading: { kind: "flag" },
       opens: { kind: "ref", to: "overlay" },
+      to: { kind: "ref", to: "screen" },
     },
-    check: iconOnly,
+    check(node, err, parent) {
+      iconOnly(node, err, parent);
+      if (node.props.opens !== undefined && node.props.to !== undefined) err("has both opens= and to= (keep one)");
+    },
   },
   Input: {
     label: "required",
