@@ -247,9 +247,10 @@ the browser works. If the file has no <code>to=</code>, the Preview shows all Sc
   next to the source file. The page holds all Screens and works offline. With <code>--watch</code>, the command
   also serves the page on 127.0.0.1 and reloads it after each save. If a save fails <code>check</code>, the
   command shows the errors and keeps the last good page.</td></tr>
-  <tr><td><code>skizo export &lt;file.skz&gt; --target shadcn [--out dir]</code></td><td>Writes one
+  <tr><td><code>skizo export &lt;file.skz&gt; --target shadcn [--out dir] [--router next|react-router]</code></td><td>Writes one
   <code>.tsx</code> file for each Screen. The files go next to the source file, or into the
-  <code>--out</code> folder.</td></tr>
+  <code>--out</code> folder. With <code>--router</code>, the links use the <code>Link</code> component of
+  Next.js or React Router.</td></tr>
 </table>
 <p><code>skz</code> is a short alias for <code>skizo</code>. <code>preview</code> and <code>export</code> do not
 accept a file that fails <code>check</code>. They show the same errors as <code>check</code>.</p>
@@ -277,8 +278,11 @@ Screen becomes one file with the name of its id. For example, <code>orders.tsx</
   <li><code>opens=</code> becomes a <code>useState</code> hook. A click on the Button sets the state, and the state
   opens the Dialog or Sheet. The <code>open</code> flag sets the initial state to open.</li>
   <li><code>to=</code> becomes a plain <code>&lt;a href="/screen-id"&gt;</code> link. A Button with
-  <code>to=</code> wraps the link with <code>asChild</code>. You can replace the link with the link component of
-  your router.</li>
+  <code>to=</code> wraps the link with <code>asChild</code>.</li>
+  <li><code>--router next</code> writes each link as <code>&lt;Link href="/screen-id"&gt;</code> and imports
+  <code>Link</code> from <code>next/link</code>.</li>
+  <li><code>--router react-router</code> writes each link as <code>&lt;Link to="/screen-id"&gt;</code> and imports
+  <code>{ Link }</code> from <code>react-router</code>.</li>
   <li>An export of an unchanged file writes the same bytes. Thus a diff shows only the changes that you made in the source.</li>
 </ul></section>
 <section id="elements">
@@ -307,7 +311,7 @@ Screen becomes one file with the name of its id. For example, <code>orders.tsx</
   </div>
   <h4>Sidebar</h4><dl class="facts"><div><dt>Label</dt><dd>None</dd></div><div><dt>Children</dt><dd><a href="#sidebar">Link</a></dd></div><div><dt>Position</dt><dd>Directly in <a href="#screen">Screen</a></dd></div><div><dt>Rule</dt><dd>Only one child can have <code>active</code>.</dd></div></dl><h4>Link</h4><dl class="facts"><div><dt>Label</dt><dd>Required. The link text.</dd></div><div><dt>Children</dt><dd>None</dd></div><div><dt>Position</dt><dd>Directly in <a href="#sidebar">Sidebar</a></dd></div></dl><table class="props"><thead><tr><th>Prop</th><th>Values</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code>icon</code></td><td><a href="https://lucide.dev/icons">Lucide</a> icon name</td><td></td><td>An icon before the Label.</td></tr><tr><td><code>active</code></td><td><i>flag</i></td><td></td><td>Marks the current page. Skizo sets it from to=, so you do not usually write it.</td></tr><tr><td><code>to</code></td><td>Screen id</td><td></td><td>Shows the Screen with this id.</td></tr></tbody></table>
   <ul class="notes"><li>The Sidebar must be the first child of its Screen.</li><li>A Link can only be in a Sidebar. For a link in the page, write <code>Button variant=link to=...</code>.</li></ul>
-  <p class="shadcn"><b>Export:</b> An <code>&lt;aside&gt;&lt;nav&gt;</code> with plain <code>&lt;a&gt;</code> links. The active link gets <code>aria-current=&quot;page&quot;</code>.</p>
+  <p class="shadcn"><b>Export:</b> An <code>&lt;aside&gt;&lt;nav&gt;</code> with plain <code>&lt;a&gt;</code> links, or the <code>Link</code> of your router with <code>--router</code>. The active link gets <code>aria-current=&quot;page&quot;</code>.</p>
 </article><h2 class="group" id="layout">Layout</h2>
 <article class="element" id="stack">
   <h3><a href="#stack">Stack / Row</a></h3>

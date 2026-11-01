@@ -95,6 +95,7 @@ skizo check orders.skz --json                            # the same errors as JS
 skizo preview orders.skz                                 # write orders.html, one offline page
 skizo preview orders.skz --watch                         # serve the page and reload it on each save
 skizo export orders.skz --target shadcn --out src/screens   # write one .tsx file for each Screen
+skizo export orders.skz --target shadcn --router next       # write the links with Link from next/link
 ```
 
 `preview` and `export` do not accept a file that fails `check`. The exit code is 0 for success, 1 when the file has errors, and 2 when the command is not correct or Skizo cannot read the file.

@@ -1,5 +1,6 @@
 // Type-checks the shadcn export of every fixture that passes check against the vendored shadcn sources
-// in shadcn-app/ (Radix base, style radix-vega). New Element types are covered by adding a fixture.
+// in shadcn-app/ (Radix base, style radix-vega), once plain and once with each --router (stubs in src/routers.d.ts).
+// New Element types are covered by adding a fixture.
 import { spawnSync } from "node:child_process";
 import { readdirSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -20,8 +21,11 @@ test("exported TSX type-checks against the vendored shadcn components", async ()
   const exported: string[] = [];
   for (const name of readdirSync(FIXTURES)) {
     const input = join(FIXTURES, name, "input.skz");
-    const { code } = await runCli(["export", input, "--target", "shadcn", "--out", join(screens, name)]);
-    if (code === 0) exported.push(name);
+    for (const router of [[], ["--router", "next"], ["--router", "react-router"]]) {
+      const out = join(screens, [name, ...router.slice(1)].join("-"));
+      const { code } = await runCli(["export", input, "--target", "shadcn", ...router, "--out", out]);
+      if (code === 0) exported.push(out);
+    }
   }
   expect(exported).not.toEqual([]);
 
