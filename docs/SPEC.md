@@ -102,7 +102,7 @@ Each Backend is a map `Element type → emitter`. Shared rules:
 - A `Grid` wraps each child that sets `span=N` in a cell spanning N columns, so no other emitter handles `span`.
 - `Image` `ratio=W:H` becomes an inline `aspect-ratio` style, so any ratio works without a precompiled class.
 - Placeholder content (`rows=N`, `lorem=N`, `Image`) is **deterministic**, seeded by node path, so re-exports diff cleanly. Generated table cells are guessed from the column name (Name, Email, Date, Status, Amount, otherwise "Item n").
-- Overlays with the `open` flag render visibly in the Preview, and as `open` / `defaultOpen` in exported code.
+- Overlays and Selects with the `open` flag render visibly in the Preview, and as `open` / `defaultOpen` in exported code.
 - `icon-only` renders the icon alone and keeps the Label as the accessible name (`aria-label` or `sr-only` text).
 
 **shadcn Export target.** It imports from `@/components/ui/*`, so the export uses the project's own components and theme. Compound expansions:
@@ -120,9 +120,9 @@ Each Backend is a map `Element type → emitter`. Shared rules:
 | `Stat` | `div > p.text-sm (title) + div.text-2xl.font-bold + p.text-xs.text-muted-foreground` (no shadcn equivalent) |
 | `Screen` + `Sidebar` | Page shell: sidebar column (plain `aside > nav > a`, not shadcn's Sidebar) + main with a header row (title, subtitle, actions) |
 
-Each `Screen` becomes one `.tsx` file in `--out`, named after the Screen id (`orders.tsx` exporting `OrdersScreen`; an id starting with a digit gets a `Screen` prefix, `Screen2026ReportScreen`). `opens` turns into `useState` wiring between the trigger and the Overlay. `to` becomes a plain `<a href="/<screenId>">` (Buttons via `asChild`); swapping in a router's link component is left to the user. A `disabled` (or `loading`) Button with `to` renders as a disabled Button with no link, in the export and the Preview.
+Each `Screen` becomes one `.tsx` file in `--out`, named after the Screen id (`orders.tsx` exporting `OrdersScreen`; an id starting with a digit gets a `Screen` prefix, `Screen2026ReportScreen`). `opens` turns into `useState` wiring between the trigger and the Dialog or Sheet. `to` becomes a plain `<a href="/<screenId>">` (Buttons via `asChild`); swapping in a router's link component is left to the user. A `disabled` (or `loading`) Button with `to` renders as a disabled Button with no link, in the export and the Preview.
 
-**Preview.** It emits one self-contained HTML file that works offline. CSS for the fixed class set the Backend emits is precompiled at package build time and inlined; only the Lucide icons the file uses are inlined as SVG. All Screens go in one file. When the file has `to` links, one Screen shows at a time, picked by the URL hash (`#<screen id>`, the first Screen without one), and showing a Screen resets its Overlays to how they load; without `to` links every Screen shows, stacked. A few lines of vanilla JS handle Behavior (`to`, `opens`) and built-in interactions: switching Tabs, opening Menus and Selects, closing Overlays (close button, backdrop, a footer Button without Behavior) and Escape (the open popup, else the topmost Overlay). Form controls are plain, inert HTML. No build step for the user.
+**Preview.** It emits one self-contained HTML file that works offline. CSS for the fixed class set the Backend emits is precompiled at package build time and inlined; only the Lucide icons the file uses are inlined as SVG. All Screens go in one file. When the file has `to` links, one Screen shows at a time, picked by the URL hash (`#<screen id>`, the first Screen without one), and showing a Screen resets its Dialogs and Sheets to how they load; without `to` links every Screen shows, stacked. A few lines of vanilla JS handle Behavior (`to`, `opens`) and built-in interactions: switching Tabs, opening Menus and Selects, closing Dialogs and Sheets (close button, backdrop, a footer Button without Behavior) and Escape (an open Menu or Select, else the topmost Dialog or Sheet). Form controls are plain, inert HTML. No build step for the user.
 
 ### CLI
 

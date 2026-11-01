@@ -64,7 +64,7 @@ const valueInOptions: ElementSpec["check"] = (node, err) => {
   else err(`unknown value "${value}"${didYouMean(value, options)} (expected: ${options.join(", ")})`);
 };
 /** Dialog and Sheet. */
-const overlay = { desc: { kind: "string" }, open: { kind: "flag" } } as const;
+const dialog = { desc: { kind: "string" }, open: { kind: "flag" } } as const;
 /** Stack and Row. */
 const flex = {
   gap: sizes,
@@ -177,10 +177,10 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     },
   },
   /** The Label is the title. Shown by a Button's opens=, or on load with `open`. */
-  Dialog: { label: "required", props: overlay, children: "any", parents: ["Screen"], slots: ["footer"] },
+  Dialog: { label: "required", props: dialog, children: "any", parents: ["Screen"], slots: ["footer"] },
   Sheet: {
     label: "required",
-    props: { ...overlay, side: { kind: "enum", values: ["right", "left"] } },
+    props: { ...dialog, side: { kind: "enum", values: ["right", "left"] } },
     children: "any",
     parents: ["Screen"],
     slots: ["footer"],

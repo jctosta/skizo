@@ -84,7 +84,7 @@ export const icon = (ctx: Ctx, name: string, className?: string) => {
 const screenHref = (id: string) => `/${id}`;
 
 /**
- * The useState pair behind opens=, named after the Overlay's id: `new-order` → ["newOrderOpen", "setNewOrderOpen"].
+ * The useState pair behind opens=, named after the id of the Dialog or Sheet: `new-order` → ["newOrderOpen", "setNewOrderOpen"].
  * ponytail: ids that differ only in punctuation (new-order, new_order) collide; dedupe per Screen if it bites.
  */
 export const openState = (id: string) => {
@@ -94,7 +94,7 @@ export const openState = (id: string) => {
 };
 
 /** Dialog and Sheet: Content > Header(Title, Description) + body + Footer, with useState when an id lets opens= show it. */
-function overlay(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string) {
+function dialog(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string) {
   /** Imports a part and returns its name. */
   const ui = (part: string) => (ctx.use(`@/components/ui/${kind.toLowerCase()}`, `${kind}${part}`), `${kind}${part}`);
   const id = node.props.id as string | undefined;
@@ -106,7 +106,7 @@ function overlay(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string
     ctx.hook(`const [${value}, ${set}] = useState(${node.props.open === true})`);
     state = ` open={${value}} onOpenChange={${set}}`;
   }
-  // A footer Button without Behavior closes the Overlay, as in the Preview.
+  // A footer Button without Behavior closes the Dialog or Sheet, as in the Preview.
   const footer = node.slots?.footer?.map((n) =>
     n.type === "Button" && n.props.opens === undefined && n.props.to === undefined
       ? wrap(`<${ui("Close")} asChild>`, ctx.render([n]), `</${kind}Close>`)
@@ -290,8 +290,8 @@ export const EMITTERS: Record<string, Emit> = {
     );
   },
   List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
-  Dialog: (node, ctx) => overlay(node, ctx, "Dialog", ""),
-  Sheet: (node, ctx) => overlay(node, ctx, "Sheet", node.props.side === "right" ? "" : ` side="${node.props.side}"`),
+  Dialog: (node, ctx) => dialog(node, ctx, "Dialog", ""),
+  Sheet: (node, ctx) => dialog(node, ctx, "Sheet", node.props.side === "right" ? "" : ` side="${node.props.side}"`),
   /** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
   Tabs: (node, ctx) => {
     ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");

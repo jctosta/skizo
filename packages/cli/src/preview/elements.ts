@@ -185,8 +185,8 @@ export const EMITTERS: Record<string, Emit> = {
     ].join("\n");
   },
   List: (node) => [`<ul class="${CLASSES.List.root}">`, ...listItems(node).map((item) => `<li>${esc(item)}</li>`), "</ul>"].join("\n"),
-  Dialog: (node, ctx) => overlay(node, ctx, CLASSES.Dialog, CLASSES.Dialog.content),
-  Sheet: (node, ctx) => overlay(node, ctx, CLASSES.Sheet, cx(CLASSES.Sheet.content, CLASSES.Sheet[node.props.side as "right" | "left"])),
+  Dialog: (node, ctx) => dialog(node, ctx, CLASSES.Dialog, CLASSES.Dialog.content),
+  Sheet: (node, ctx) => dialog(node, ctx, CLASSES.Sheet, cx(CLASSES.Sheet.content, CLASSES.Sheet[node.props.side as "right" | "left"])),
   /** Renders its Tabs too: triggers and panels pair up by position. */
   Tabs: (node, ctx) => {
     const c = CLASSES.Tabs;
@@ -207,11 +207,11 @@ export const EMITTERS: Record<string, Emit> = {
       `</div>`,
     ].join("\n");
   },
-  /** Its trigger is a Button (always size md) and it renders its Items; script.ts's popup handler opens it. */
+  /** Its trigger is a Button (always size md) and it renders its Items; SCRIPTS.dropdown opens it. */
   Menu: (node, ctx) => {
     const b = CLASSES.Button;
     const c = CLASSES.Menu;
-    ctx.script("popup");
+    ctx.script("dropdown");
     const { variant, icon } = node.props as { variant: keyof typeof b.variant; icon?: string };
     const iconOnly = node.props["icon-only"] === true;
     const open = node.props.open === true;
@@ -223,9 +223,9 @@ export const EMITTERS: Record<string, Emit> = {
       return `<div role="menuitem"${attrs({ "aria-disabled": disabled && "true" })} class="${look}">${esc(item.label!)}</div>`;
     });
     return [
-      `<div data-popup>`,
-      `<button type="button" aria-haspopup="menu"${attrs({ "aria-expanded": String(open) })} data-popup-trigger class="${classes}">${icon === undefined ? "" : iconSvg(icon)}${label}</button>`,
-      `<div role="menu"${attrs({ "aria-label": node.label })} data-popup-content class="${c.content}"${open ? "" : " hidden"}>`,
+      `<div data-dropdown>`,
+      `<button type="button" aria-haspopup="menu"${attrs({ "aria-expanded": String(open) })} data-dropdown-trigger class="${classes}">${icon === undefined ? "" : iconSvg(icon)}${label}</button>`,
+      `<div role="menu"${attrs({ "aria-label": node.label })} data-dropdown-content class="${c.content}"${open ? "" : " hidden"}>`,
       ...items,
       `</div>`,
       `</div>`,
@@ -262,11 +262,11 @@ export const EMITTERS: Record<string, Emit> = {
   },
   Select: (node, ctx) => {
     const c = CLASSES.Select;
-    ctx.script("popup");
+    ctx.script("dropdown");
     const { value, placeholder = "", open } = node.props as { value?: string; placeholder?: string; open?: true };
     const options = (node.props.options ?? []) as string[];
     const shown = value === undefined ? `<span class="${c.placeholder}">${esc(placeholder)}</span>` : `<span>${esc(value)}</span>`;
-    const trigger = `<button type="button" role="combobox"${attrs({ id: fieldId(node), "aria-expanded": String(open === true) })} aria-haspopup="listbox" data-popup-trigger class="${c.trigger}">${shown}${iconSvg("chevron-down", c.chevron)}</button>`;
+    const trigger = `<button type="button" role="combobox"${attrs({ id: fieldId(node), "aria-expanded": String(open === true) })} aria-haspopup="listbox" data-dropdown-trigger class="${c.trigger}">${shown}${iconSvg("chevron-down", c.chevron)}</button>`;
     const check = iconSvg("check", c.check);
     const items = options.map(
       (option) => `<div role="option" aria-selected="${option === value}" class="${c.item}">${esc(option)}${check}</div>`,
@@ -274,9 +274,9 @@ export const EMITTERS: Record<string, Emit> = {
     return field(
       node,
       [
-        `<div data-popup>`,
+        `<div data-dropdown>`,
         trigger,
-        `<div role="listbox" data-popup-content class="${c.content}"${open === true ? "" : " hidden"}>`,
+        `<div role="listbox" data-dropdown-content class="${c.content}"${open === true ? "" : " hidden"}>`,
         ...items,
         `</div>`,
         `</div>`,
@@ -316,20 +316,20 @@ export const EMITTERS: Record<string, Emit> = {
 
 /**
  * Dialog and Sheet: a backdrop and a panel, hidden until a Button's opens= shows them, or shown on load with `open`.
- * The close button, the backdrop and footer Buttons without Behavior carry data-overlay-close (SCRIPTS.overlay).
+ * The close button, the backdrop and footer Buttons without Behavior carry data-dialog-close (SCRIPTS.dialog).
  */
-function overlay(node: Node, ctx: Ctx, c: typeof CLASSES.Dialog | typeof CLASSES.Sheet, panel: string) {
-  ctx.script("overlay");
+function dialog(node: Node, ctx: Ctx, c: typeof CLASSES.Dialog | typeof CLASSES.Sheet, panel: string) {
+  ctx.script("dialog");
   const b = CLASSES.Button;
   const desc = node.props.desc as string | undefined;
-  const title = `overlay-${node.line}`;
+  const title = `dialog-${node.line}`;
   const footer = node.slots?.footer?.map((n) => {
     const closes = n.type === "Button" && n.props.opens === undefined && n.props.to === undefined;
-    return closes ? `<div data-overlay-close class="contents">${ctx.render([n])}</div>` : ctx.render([n]);
+    return closes ? `<div data-dialog-close class="contents">${ctx.render([n])}</div>` : ctx.render([n]);
   });
   return lines(
-    `<div${attrs({ "data-overlay": node.props.id ?? "", hidden: node.props.open !== true })}>`,
-    `<div data-overlay-close class="${c.backdrop}"></div>`,
+    `<div${attrs({ "data-dialog": node.props.id ?? "", hidden: node.props.open !== true })}>`,
+    `<div data-dialog-close class="${c.backdrop}"></div>`,
     `<div role="dialog" aria-modal="true" aria-labelledby="${title}" class="${panel}">`,
     div(
       c.header,
@@ -337,7 +337,7 @@ function overlay(node: Node, ctx: Ctx, c: typeof CLASSES.Dialog | typeof CLASSES
     ),
     node.children.length > 0 && div(c.body, ctx.render(node.children)),
     footer && div(c.footer, lines(...footer)),
-    `<button type="button" data-overlay-close class="${cx(b.base, b.variant.ghost, b.iconSize.sm, c.close)}">${iconSvg("x")}<span class="${b.hiddenLabel}">Close</span></button>`,
+    `<button type="button" data-dialog-close class="${cx(b.base, b.variant.ghost, b.iconSize.sm, c.close)}">${iconSvg("x")}<span class="${b.hiddenLabel}">Close</span></button>`,
     "</div>",
     "</div>",
   );

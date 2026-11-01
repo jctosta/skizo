@@ -69,10 +69,10 @@ const showScreen = () => {
   const shown = screens.find((s) => s.dataset.screen === id) || screens[0];
   for (const s of screens) s.hidden = s !== shown;
 };
-// A Screen shows as it loads, like a remounted page: Overlays opened since close, those flagged open show again.
-const overlays = [...document.querySelectorAll("[data-overlay]")].map((o) => [o, o.hidden]);
+// A Screen shows as it loads, like a remounted page: Dialogs and Sheets opened since close, those flagged open show again.
+const dialogs = [...document.querySelectorAll("[data-dialog]")].map((o) => [o, o.hidden]);
 addEventListener("hashchange", () => {
-  for (const [o, hidden] of overlays) o.hidden = hidden;
+  for (const [o, hidden] of dialogs) o.hidden = hidden;
   showScreen();
   scrollTo(0, 0);
 });
