@@ -37,6 +37,8 @@ export type ElementSpec = {
 };
 
 const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
+/** Button and Menu (its trigger is a Button). */
+const variants = { kind: "enum", values: ["default", "secondary", "outline", "ghost", "destructive", "link"] } as const;
 /** Button and Menu: icon-only shows nothing but the icon, so it needs one. */
 const iconOnly: ElementSpec["check"] = (node, err) => {
   if (node.props["icon-only"] === true && node.props.icon === undefined) err("icon-only needs icon=... too");
@@ -150,8 +152,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Menu: {
     label: "required",
     props: {
-      // Button's variants.
-      variant: { kind: "enum", values: ["default", "secondary", "outline", "ghost", "destructive", "link"] },
+      variant: variants,
       icon: { kind: "icon" },
       "icon-only": { kind: "flag" },
       open: { kind: "flag" },
@@ -163,7 +164,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Button: {
     label: "required",
     props: {
-      variant: { kind: "enum", values: ["default", "secondary", "outline", "ghost", "destructive", "link"] },
+      variant: variants,
       size: sizes,
       icon: { kind: "icon" },
       "icon-only": { kind: "flag" },

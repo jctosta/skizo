@@ -22,27 +22,27 @@ Type "Label" flag key=value key="value with spaces"
 
 ## Elements
 
-The first enum value is the default. `size` and `gap` are always `sm|md|lg`. `icon` is a Lucide name (`plus`, `home`).
+The first enum value is the default. `size` and `gap` are always `md|sm|lg`. `icon` is a Lucide name (`plus`, `home`).
 
 ```
 Screen "Title"      id subtitle                      top level; many per file
 Sidebar             children: Link                   first child of Screen
 Stack / Row         gap align=start|center|end justify=start|between|end
-Grid                cols=2..6 gap                    children may set span=N
+Grid                cols=2..6 gap
 Separator
 Heading "Text"      level=2|1|3|4
-Text "Text"         size=md|sm|lg muted bold lorem=N
+Text "Text"         size muted bold lorem=N
 Stat "$12,450"      title hint trend=none|up|down
 Badge "Text"        variant=default|secondary|outline|destructive
 Avatar "Name"       size
 Image "Alt"         ratio=16:9|4:3|3:2|1:1           placeholder box
 Alert "Title"       text variant=default|destructive
 Progress            value=0..100
-Card "Title"        desc span; slots: actions footer
+Card "Title"        desc span=N (in a Grid); slots: actions footer
 Tabs > Tab "Label"  active (one Tab); Tab children = its panel
 Dialog "Title"      desc open; slot: footer          direct child of Screen
 Sheet "Title"       desc open side=right|left; slot: footer   direct child of Screen
-Menu "Trigger"      icon variant icon-only open; children: Item "Label" (destructive disabled)
+Menu "Trigger"      icon variant icon-only open (as Button); children: Item "Label" (destructive disabled)
 Button "Label"      variant=default|secondary|outline|ghost|destructive|link
                     size icon icon-only disabled loading opens to
 Link "Label"        icon active to                   only in Sidebar
