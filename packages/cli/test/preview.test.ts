@@ -48,6 +48,15 @@ test("the Preview inlines SVG for the Lucide icons the file uses, and only those
   ]);
 });
 
+test("a Preview of Screens that no to= links shows them all, since nothing could reach a hidden one", async () => {
+  const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  "First"\n\nScreen "Invoices"\n  "Second"\n` });
+  await runCli(["preview", "orders.skz"], cwd);
+  expect(readFileSync(join(cwd, "orders.html"), "utf8").match(/<section[^>]*>/g)).toEqual([
+    '<section data-screen="orders" class="min-h-screen p-6">',
+    '<section data-screen="invoices" class="min-h-screen p-6">',
+  ]);
+});
+
 test("previewing the same file twice gives byte-identical output", async () => {
   const cwd = withFiles({ "orders.skz": VALID });
   await runCli(["preview", "orders.skz"], cwd);
