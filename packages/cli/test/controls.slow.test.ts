@@ -24,9 +24,9 @@ const SKETCH = `Screen "New order"
         Item "Delete" destructive
 `;
 
-/** Opens the Preview of SKETCH with the network blocked; `external` collects any request that left the file. */
-async function openPreview(): Promise<{ page: Page; external: string[] }> {
-  const cwd = withFiles({ "order.skz": SKETCH });
+/** Opens the Preview of `sketch` with the network blocked; `external` collects any request that left the file. */
+async function openPreview(sketch = SKETCH): Promise<{ page: Page; external: string[] }> {
+  const cwd = withFiles({ "order.skz": sketch });
   await runCli(["preview", "order.skz"], cwd);
   const context = await browser.newContext({ viewport: { width: 640, height: 480 } });
   const external: string[] = [];
@@ -79,6 +79,18 @@ test("a Menu opens on click, unclipped by its Card and inside the window, and cl
     insideWindow: true,
     hiddenAfter: true,
   });
+  await page.context().close();
+});
+
+test("a Select in a Card opens unclipped by the Card", async () => {
+  const { page } = await openPreview(`Screen "Billing"\n  Card "Payment"\n    Select "Currency" options="EUR,USD,BRL"\n`);
+  await page.getByRole("combobox", { name: "Currency" }).click();
+  // The last option hangs below the short Card: the pointer hits it only if the Card's overflow-hidden does not clip it.
+  const unclipped = await page.getByRole("option", { name: "BRL" }).evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === el;
+  });
+  expect(unclipped).toBe(true);
   await page.context().close();
 });
 

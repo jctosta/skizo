@@ -1,0 +1,3 @@
+input.skz:2  Select  unknown value "Opn" — did you mean Open? (expected: Open, Paid)
+input.skz:3  Radio  unknown value "Enterprise" (expected: Free, Pro)
+input.skz:4  Select  value=Ana needs options= that include it

@@ -6,6 +6,22 @@ import { runCli, startCli, withFiles } from "./helpers/run-cli";
 
 const VALID = `Screen "Orders"\n  Heading "Recent orders"\n`;
 
+// The OS can fail a watch (Windows reports EPERM when the watched folder is deleted); macOS never does,
+// so a test sets `failWatch` to make the next fs.watch emit that error.
+const failWatch = vi.hoisted(() => ({ next: false }));
+vi.mock("node:fs", async (importOriginal) => {
+  const fs = await importOriginal<typeof import("node:fs")>();
+  const watch = ((...args: Parameters<typeof fs.watch>) => {
+    const watcher = fs.watch(...args);
+    if (failWatch.next) {
+      failWatch.next = false;
+      setTimeout(() => watcher.emit("error", Object.assign(new Error("EPERM: operation not permitted, watch"), { code: "EPERM" })), 20);
+    }
+    return watcher;
+  }) as typeof fs.watch;
+  return { ...fs, watch, default: { ...fs, watch } };
+});
+
 /** Starts `preview orders.skz --watch` in `cwd` and waits for the URL it prints. Stopped when the test ends. */
 async function watchPreview(cwd: string) {
   const cli = startCli(["preview", "orders.skz", "--watch"], cwd);
@@ -84,4 +100,17 @@ test("Ctrl-C stops the server and exits 0", async () => {
   const { cli, url } = await watchPreview(withFiles({ "orders.skz": VALID }));
   const code = await cli.stop();
   expect({ code, served: await fetch(url).then(() => true, () => false) }).toEqual({ code: 0, served: false });
+});
+
+test("a watch the OS fails reports why, stops the server and exits 1 instead of crashing", async () => {
+  failWatch.next = true;
+  const { cli, url } = await watchPreview(withFiles({ "orders.skz": VALID }));
+  await vi.waitUntil(() => cli.out.stderr);
+  // Already exited on its own: stop() then only reports the exit code.
+  const code = await cli.stop();
+  expect({ code, stderr: cli.out.stderr, served: await fetch(url).then(() => true, () => false) }).toEqual({
+    code: 1,
+    stderr: "skizo preview: stopped watching orders.skz (EPERM: operation not permitted, watch)\n",
+    served: false,
+  });
 });

@@ -18,31 +18,31 @@ Type "Label" flag key=value key="value with spaces"
 - Lowercase slot words group children: `actions` (Screen/Card header actions), `footer` (Card/Dialog/Sheet footer).
 - Any element can take `id=name`. Ids are the targets of `opens=` and `to=`.
 - Give content one way only: a label or `lorem=N`; `|` rows or `rows=N`; `items=` or `rows=N`.
-- `icon-only` (Button, Menu) hides the label visually. The label is still required.
+- `icon-only` (Button, Menu) shows only the `icon=`; the label is still required.
 
 ## Elements
 
-The first enum value is the default. `size` and `gap` are always `sm|md|lg`. `icon` is a Lucide name (`plus`, `home`).
+The first enum value is the default. `size` and `gap` are always `md|sm|lg`. `icon` is a Lucide name (`plus`, `home`).
 
 ```
 Screen "Title"      id subtitle                      top level; many per file
 Sidebar             children: Link                   first child of Screen
 Stack / Row         gap align=start|center|end justify=start|between|end
-Grid                cols=2..6 gap                    children may set span=N
+Grid                cols=2..6 gap
 Separator
 Heading "Text"      level=2|1|3|4
-Text "Text"         size=md|sm|lg muted bold lorem=N
+Text "Text"         size muted bold lorem=N
 Stat "$12,450"      title hint trend=none|up|down
 Badge "Text"        variant=default|secondary|outline|destructive
 Avatar "Name"       size
 Image "Alt"         ratio=16:9|4:3|3:2|1:1           placeholder box
 Alert "Title"       text variant=default|destructive
 Progress            value=0..100
-Card "Title"        desc span; slots: actions footer
+Card "Title"        desc span=N (in a Grid); slots: actions footer
 Tabs > Tab "Label"  active (one Tab); Tab children = its panel
 Dialog "Title"      desc open; slot: footer          direct child of Screen
 Sheet "Title"       desc open side=right|left; slot: footer   direct child of Screen
-Menu "Trigger"      icon variant icon-only open; children: Item "Label" (destructive disabled)
+Menu "Trigger"      icon variant icon-only open (as Button); children: Item "Label" (destructive disabled)
 Button "Label"      variant=default|secondary|outline|ghost|destructive|link
                     size icon icon-only disabled loading opens to
 Link "Label"        icon active to                   only in Sidebar
@@ -64,32 +64,30 @@ List                items="a,b,c" or rows=N
 ## Example
 
 ```
-Screen "Orders" id=orders subtitle="Manage and track customer orders"
+Screen "Orders" id=orders subtitle="Track customer orders"
   Sidebar
     Link "Dashboard" icon=home to=dashboard
     Link "Orders" icon=package to=orders
   actions
     Button "New order" icon=plus opens=new-order
-  Grid cols=3
+  Grid
     Card "Revenue" desc="Last 30 days"
       Stat "$12,450" hint="+12% vs last month" trend=up
-    Card "Pending" desc="Awaiting payment"
+    Card "Pending"
       actions
         Menu "Pending actions" icon=ellipsis icon-only variant=ghost
           Item "Send reminders"
           Item "Cancel all" destructive
       Badge "18 orders" variant=secondary
-    Card "Avg. order value"
-      Stat "$86.20"
   Tabs
-    Tab "All" active
-      Table cols="Order,Customer,Status,Amount"
-        | #1042 | Ana Souza | Paid | $120.00
-        | #1041 | Bruno Lima | Open | $64.50
+    Tab "All"
+      Table cols="Order,Customer,Amount"
+        | #1042 | Ana Souza | $120.00
+        | #1041 | Bruno Lima | $64.50
     Tab "Open"
       Table cols="Order,Customer,Amount" rows=5
-  Dialog "New order" id=new-order desc="Create an order for a customer."
-    Input "Customer name" placeholder="Jane Doe"
+  Dialog "New order" id=new-order
+    Input "Customer" placeholder="Jane Doe"
     Select "Status" options="Open,Paid" value=Open
     footer
       Button "Cancel" variant=outline

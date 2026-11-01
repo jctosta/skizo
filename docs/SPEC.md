@@ -12,7 +12,7 @@ Terms in this document (Element, Element type, Label, Screen, Overlay, Behavior,
 
 The document has two parts:
 
-- **Part A — Guide.** Self-contained; this is what `skizo guide` prints for agents. It measured about 1.2k tokens on extraction (1,209 with tiktoken cl100k_base); keep it near that. It lives in [packages/cli/GUIDE.md](../packages/cli/GUIDE.md); Part A links to it.
+- **Part A — Guide.** Self-contained; this is what `skizo guide` prints for agents. It measures 1,182 tokens at v0.2 (tiktoken cl100k_base); keep it near 1.1k, trimming the example first. It lives in [packages/cli/GUIDE.md](../packages/cli/GUIDE.md); Part A links to it.
 - **Part B — Implementation notes.** Parser, AST, validation, Backends. Agents never see this.
 
 ---
@@ -66,6 +66,7 @@ type Node = {
   children: Node[];
   slots?: { actions?: Node[]; footer?: Node[] };
   rows?: string[][];            // Table only
+  rowLines?: number[];          // Table only: the source line of each row, for errors
   line: number;                 // 1-based, for errors and source maps
 };
 type Document = { screens: Node[] };   // each Screen node has props.id (auto-slug of label if missing)
@@ -73,16 +74,17 @@ type Document = { screens: Node[] };   // each Screen node has props.id (auto-sl
 
 ### Validation
 
-There is one schema per Element type, written in Zod or similar: allowed props and their types, enums, defaults, allowed children, allowed slots. Rules:
+There is one schema per Element type, in a hand-rolled, dependency-free table (`ELEMENTS` in `packages/core/src/elements.ts`): allowed props and their types, enums (the first value is the default), number ranges, allowed children, parents and slots, and per-type checks. The Guide's Elements table must agree with it both ways; a test enforces that. Rules:
 
-- Unknown Element type, prop, flag, enum value or id → error with a nearest-match hint: `Button: unknown prop "varient" — did you mean variant?`
+- Unknown Element type, prop, flag, enum value, icon or id → error with a nearest-match hint: `Button: unknown prop "varient" — did you mean variant?`
 - A bare word that matches an enum value of some prop → error with a hint: `Badge: unknown flag "secondary" — did you mean variant=secondary?`
 - `opens` must resolve to a `Dialog` or `Sheet` on the same Screen. `to` must resolve to a `Screen`.
 - Duplicate ids → error. Only one `active` per `Tabs` or `Sidebar`. `Tabs` default to the first `Tab` if none is active. A Sidebar `Link` whose `to` is its own Screen is active.
-- Structural rules: `Tab` only under `Tabs`, `Item` only under `Menu`, row lines only under `Table`, `Sidebar` only as the first child of `Screen`, `Dialog` and `Sheet` only as direct children of `Screen`, and a Table needs `cols`.
+- Structural rules: `Tab` only under `Tabs`, `Item` only under `Menu`, `Link` only under `Sidebar`, row lines only under `Table`, `Sidebar` only as the first child of `Screen`, `Dialog` and `Sheet` only as direct children of `Screen`, `span` only directly inside a `Grid` and at most its `cols`, and a Table needs `cols`.
 - A Table row must have exactly one cell per `cols` entry.
 - One content source per Element: Label or `lorem`, `|` rows or `rows`, `items` or `rows`. Both → error.
-- `Button` and `Menu` need a Label, including with `icon-only`.
+- A list prop (`options`, `cols`, `items`) may not hold an empty item. A Select or Radio `value` must be one of its `options`.
+- `Button` and `Menu` need a Label, including with `icon-only`, and `icon-only` needs `icon`. A Button has one Behavior: `opens` or `to`, not both.
 - Report **all** errors, not just the first. Format, one per line:
 
 ```
@@ -104,8 +106,8 @@ Each Backend is a map `Element type → emitter`. Shared rules:
 
 | DSL | shadcn |
 |---|---|
-| `Card` | `Card > CardHeader(CardTitle, CardDescription, actions) > CardContent > CardFooter` |
-| `Dialog` | `Dialog open? > DialogContent > DialogHeader(Title, Description) + body + DialogFooter` |
+| `Card` | `Card > CardHeader(CardTitle, CardDescription, CardAction) + CardContent + CardFooter` |
+| `Dialog` | `Dialog open? > DialogContent > DialogHeader(Title, Description) + body + DialogFooter`; footer Buttons without Behavior inside `DialogClose asChild`; no `desc` → `aria-describedby={undefined}` |
 | `Sheet` | Same pattern with `Sheet*` and `side` |
 | `Select` | `Label + Select > SelectTrigger(SelectValue) > SelectContent > SelectItem*` |
 | `Tabs` | `Tabs defaultValue=<active> > TabsList(TabsTrigger*) + TabsContent*` |
@@ -113,18 +115,18 @@ Each Backend is a map `Element type → emitter`. Shared rules:
 | `Menu` | `DropdownMenu > DropdownMenuTrigger(Button icon/variant) > DropdownMenuContent > DropdownMenuItem*` |
 | `Input`/`Textarea` | `div.grid.gap-2 > Label + Input` (+ error text) |
 | `Stat` | `div > p.text-sm (title) + div.text-2xl.font-bold + p.text-xs.text-muted-foreground` (no shadcn equivalent) |
-| `Screen` + `Sidebar` | Page shell: sidebar column + main with a header row (title, subtitle, actions) |
+| `Screen` + `Sidebar` | Page shell: sidebar column (plain `aside > nav > a`, not shadcn's Sidebar) + main with a header row (title, subtitle, actions) |
 
 Each `Screen` becomes one `.tsx` file in `--out`, named after the Screen id (`orders.tsx` exporting `OrdersScreen`). `opens` turns into `useState` wiring between the trigger and the Overlay. `to` becomes a plain `<a href="/<screenId>">` (Buttons via `asChild`); swapping in a router's link component is left to the user.
 
-**Preview.** It emits one self-contained HTML file that works offline. CSS for the fixed class set the Backend emits is precompiled at package build time and inlined; only the Lucide icons the file uses are inlined as SVG. All Screens go in one file. A few lines of vanilla JS handle Behavior (`to`, `opens`) and built-in interactions: switching Tabs, opening Menus and Selects, closing Overlays (close button, backdrop, a footer Button without Behavior). Form controls are plain, inert HTML. No build step for the user.
+**Preview.** It emits one self-contained HTML file that works offline. CSS for the fixed class set the Backend emits is precompiled at package build time and inlined; only the Lucide icons the file uses are inlined as SVG. All Screens go in one file. When the file has `to` links, one Screen shows at a time, picked by the URL hash (`#<screen id>`, the first Screen without one), and showing a Screen resets its Overlays to how they load; without `to` links every Screen shows, stacked. A few lines of vanilla JS handle Behavior (`to`, `opens`) and built-in interactions: switching Tabs, opening Menus and Selects, closing Overlays (close button, backdrop, a footer Button without Behavior) and Escape (the open popup, else the topmost Overlay). Form controls are plain, inert HTML. No build step for the user.
 
 ### CLI
 
 ```
 skizo guide                                      # prints the Guide (packages/cli/GUIDE.md)
 skizo check   <file.skz> [--json]
-skizo preview <file.skz> [--watch]               # writes <file>.html; --watch serves it with live reload
+skizo preview <file.skz> [--watch]               # writes <file>.html; --watch also serves it on 127.0.0.1 (a free port, printed) with live reload
 skizo export  <file.skz> --target shadcn  [--out dir]
 ```
 
@@ -140,6 +142,7 @@ packages/
   cli/       @jctosta/skizo, bin: skizo, skz; bundles core; holds the Backends and GUIDE.md
 ```
 
+- The tarball holds `dist/cli.mjs` (core bundled in), `assets/` (Preview CSS, Lucide icon data), `GUIDE.md` and no dependencies. `prepack` builds it. A slow test installs the packed tarball with npm and runs both bins from it.
 - The parser is hand-written and line-based. No parser generator.
 - Tests are golden files: `.skz` in, HTML/TSX snapshots out (Vitest).
 - `core` stays dependency-light and separate so a web playground or editor extension can reuse it. Publish it when such a consumer exists.

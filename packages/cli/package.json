@@ -16,7 +16,8 @@
   },
   "scripts": {
     "assets": "tailwindcss -i src/preview/preview.css -o assets/preview.css --minify && node scripts/build-icons.mjs",
-    "build": "pnpm assets && tsdown"
+    "build": "pnpm assets && tsdown",
+    "prepack": "pnpm build"
   },
   "devDependencies": {
     "@skizo/core": "workspace:*",

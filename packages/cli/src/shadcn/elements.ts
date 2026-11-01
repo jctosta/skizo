@@ -104,7 +104,8 @@ function overlay(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string
   return wrap(
     `<${kind}${state}>`,
     wrap(
-      `<${ui("Content")}${content}>`,
+      // Without a Description, Radix warns unless told there is none.
+      `<${ui("Content")}${content}${desc === undefined ? " aria-describedby={undefined}" : ""}>`,
       lines(
         wrap(
           `<${ui("Header")}>`,

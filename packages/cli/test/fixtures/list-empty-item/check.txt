@@ -1,0 +1,3 @@
+input.skz:2  Select  options has an empty item (remove the extra comma)
+input.skz:3  Radio  options has an empty item (remove the extra comma)
+input.skz:4  Table  cols has an empty item (remove the extra comma)

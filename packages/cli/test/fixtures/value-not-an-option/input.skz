@@ -1,0 +1,4 @@
+Screen "Orders"
+  Select "Status" options="Open,Paid" value=Opn
+  Radio "Plan" options="Free,Pro" value=Enterprise
+  Select "Owner" value=Ana

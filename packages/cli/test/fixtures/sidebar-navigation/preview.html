@@ -69,7 +69,13 @@ const showScreen = () => {
   const shown = screens.find((s) => s.dataset.screen === id) || screens[0];
   for (const s of screens) s.hidden = s !== shown;
 };
-addEventListener("hashchange", () => (showScreen(), scrollTo(0, 0)));
+// A Screen shows as it loads, like a remounted page: Overlays opened since close, those flagged open show again.
+const overlays = [...document.querySelectorAll("[data-overlay]")].map((o) => [o, o.hidden]);
+addEventListener("hashchange", () => {
+  for (const [o, hidden] of overlays) o.hidden = hidden;
+  showScreen();
+  scrollTo(0, 0);
+});
 showScreen();
 </script>
 </body>

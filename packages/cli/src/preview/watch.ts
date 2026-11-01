@@ -1,7 +1,7 @@
 import { readFileSync, watch } from "node:fs";
 import { createServer, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { basename, dirname } from "node:path";
+import { basename, dirname, relative } from "node:path";
 import type { Io } from "../run";
 
 const EVENTS = "/__skizo/events";
@@ -10,7 +10,7 @@ const RELOAD = `<script>new EventSource("${EVENTS}").onmessage=()=>location.relo
 
 /**
  * `preview --watch`: serves `html` on localhost and swaps in `rebuild()` whenever `source` is saved,
- * until `io.signal` aborts (Ctrl-C); then it closes everything and resolves 0.
+ * until `io.signal` aborts (Ctrl-C); then it closes everything and resolves 0. A watch the OS fails resolves 1.
  * `rebuild` returns the new Preview, or an exit code once it has printed why there is none.
  */
 export async function watchPreview(
@@ -67,10 +67,17 @@ export async function watchPreview(
   hosts = [`127.0.0.1:${port}`, `localhost:${port}`];
   io.stdout(`Preview: http://127.0.0.1:${port}/\n`);
 
-  if (!io.signal?.aborted) await new Promise((stop) => io.signal?.addEventListener("abort", stop, { once: true }));
+  // Runs until Ctrl-C, or until the OS fails the watch (Windows: the folder was deleted); no reload could follow that.
+  const failed = await new Promise<Error | undefined>((stop) => {
+    watcher.on("error", stop);
+    if (io.signal?.aborted) stop(undefined);
+    io.signal?.addEventListener("abort", () => stop(undefined), { once: true });
+  });
   watcher.close();
   clearTimeout(timer);
   server.closeAllConnections();
   await new Promise((closed) => server.close(closed));
-  return 0;
+  if (!failed) return 0;
+  io.stderr(`skizo preview: stopped watching ${relative(io.cwd, source)} (${failed.message})\n`);
+  return 1;
 }

@@ -37,6 +37,11 @@ test("an unknown command gets a nearest-match hint and exit code 2", async () =>
   expect({ code, stderr }).toEqual({ code: 2, stderr: 'skizo: unknown command "chek" — did you mean check?\n' });
 });
 
+test("a command named after an Object method is an unknown command, not a crash", async () => {
+  const { code, stderr } = await runCli(["toString", "orders.skz"]);
+  expect({ code, stderr }).toEqual({ code: 2, stderr: 'skizo: unknown command "toString"\n' });
+});
+
 test("a file with errors fails check with exit code 1", async () => {
   const { code } = await runCli(["check", "orders.skz"], withFiles({ "orders.skz": `Screen "Orders"\n\tHeading "x"\n` }));
   expect(code).toBe(1);

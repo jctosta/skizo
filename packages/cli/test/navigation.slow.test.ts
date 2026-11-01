@@ -25,9 +25,9 @@ Screen "Dashboard"
   "Welcome back"
 `;
 
-/** Opens the Preview of FLOW with the network blocked; `external` collects any request that left the file. */
-async function openPreview(): Promise<{ page: Page; external: string[] }> {
-  const cwd = withFiles({ "flow.skz": FLOW });
+/** Opens the Preview of `flow` with the network blocked; `external` collects any request that left the file. */
+async function openPreview(flow = FLOW): Promise<{ page: Page; external: string[] }> {
+  const cwd = withFiles({ "flow.skz": flow });
   await runCli(["preview", "flow.skz"], cwd);
   const context = await browser.newContext({ viewport: { width: 640, height: 480 } });
   const external: string[] = [];
@@ -61,5 +61,24 @@ test("a Button with to= shows its Screen", async () => {
   const { page } = await openPreview();
   await page.getByRole("link", { name: "Open dashboard" }).click();
   await expect.poll(() => shownTitle(page)).toEqual(["Dashboard"]);
+  await page.context().close();
+});
+
+test("a Dialog left open on a Screen is closed when you come back to it", async () => {
+  const { page } = await openPreview(`Screen "Orders"
+  Button "New order" opens=new-order
+  Dialog "New order" id=new-order
+    footer
+      Button "See dashboard" to=dashboard
+
+Screen "Dashboard"
+  Button "Back to orders" to=orders
+`);
+  await page.getByRole("button", { name: "New order" }).click();
+  await page.getByRole("link", { name: "See dashboard" }).click();
+  await expect.poll(() => shownTitle(page)).toEqual(["Dashboard"]);
+  await page.getByRole("link", { name: "Back to orders" }).click();
+  await expect.poll(() => shownTitle(page)).toEqual(["Orders"]);
+  expect(await page.getByRole("dialog", { name: "New order" }).isVisible()).toBe(false);
   await page.context().close();
 });
