@@ -1,0 +1,6 @@
+// A Screen id that starts with a digit (auto-slug or id=) still exports a valid component name.
+Screen "2026 Report"
+  Button "Q3" to=3rd-quarter
+
+Screen "Third quarter" id=3rd-quarter
+  Button "Back" to=2026-report

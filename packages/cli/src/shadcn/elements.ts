@@ -23,6 +23,18 @@ export const text = (s: string) => (/[{}<>&]/.test(s) ? `{${JSON.stringify(s)}}`
 /** A string as a JSX attribute value: quoted, or a string expression when it holds `"` or `&`. */
 export const attr = (s: string) => (/["&]/.test(s) ? `{${JSON.stringify(s)}}` : `"${s}"`);
 
+/**
+ * A JS identifier in PascalCase from an id: `order-details` → `OrderDetails`. One that would start with a digit
+ * (or be empty) gets `prefix` first: `2026-report` → `Screen2026Report` with prefix `Screen`.
+ */
+export const pascalCase = (id: string, prefix = "") => {
+  const name = id
+    .split(/[^A-Za-z0-9]+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+  return /^[A-Za-z]/.test(name) ? name : `${prefix}${name}`;
+};
+
 /** Joins the present lines. */
 export const lines = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
 

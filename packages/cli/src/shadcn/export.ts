@@ -1,6 +1,6 @@
 import type { Document, Node } from "@skizo/core";
 import { nodePaths } from "../placeholder";
-import { EMITTERS, lines, wrap, type Ctx } from "./elements";
+import { EMITTERS, lines, pascalCase, wrap, type Ctx } from "./elements";
 
 /** The shadcn Export target: file name → TSX, one file per Screen, named after its id. */
 export function exportShadcn(document: Document): Record<string, string> {
@@ -8,12 +8,8 @@ export function exportShadcn(document: Document): Record<string, string> {
   return Object.fromEntries(document.screens.map((screen) => [`${screen.props.id}.tsx`, screenFile(screen, paths)]));
 }
 
-/** `order-details` → `OrderDetailsScreen`. */
-const componentName = (id: string) =>
-  `${id
-    .split(/[^A-Za-z0-9]+/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("")}Screen`;
+/** `order-details` → `OrderDetailsScreen`; `2026-report` → `Screen2026ReportScreen` (no identifier starts with a digit). */
+const componentName = (id: string) => `${pascalCase(id, "Screen")}Screen`;
 
 function screenFile(screen: Node, paths: Map<Node, string>): string {
   const imports = new Map<string, Set<string>>();
