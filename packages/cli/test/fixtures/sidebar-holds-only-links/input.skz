@@ -1,0 +1,5 @@
+Screen "Orders"
+  Sidebar
+    Link "Orders"
+    Button "New order"
+  Link "Dashboard"

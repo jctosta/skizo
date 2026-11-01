@@ -11,7 +11,9 @@ export type PropSpec =
   /** `default` is filled in when the prop is missing. */
   | { kind: "number"; min?: number; max?: number; default?: number }
   /** Comma-separated; `\,` is a literal comma. */
-  | { kind: "list" };
+  | { kind: "list" }
+  /** A Screen id (`to=`), resolved once the whole file is read. */
+  | { kind: "screen" };
 
 export type ElementSpec = {
   label: "required" | "optional" | "none";
@@ -22,8 +24,11 @@ export type ElementSpec = {
   /** Element types this one may sit directly under; omitted for anywhere. */
   parents?: readonly string[];
   slots?: readonly ("actions" | "footer")[];
-  /** Rules the generic checks can't express. Runs after props are coerced; `line` defaults to the Element's. */
-  check?: (node: Node, err: (message: string, line?: number) => void) => void;
+  /**
+   * Rules the generic checks can't express. Runs after the Element's own props are coerced, before its children
+   * are walked; `line` defaults to the Element's.
+   */
+  check?: (node: Node, err: (message: string, line?: number) => void, parent?: Node) => void;
   /** A flag at most one child may set; with `firstByDefault`, the first child gets it when none does. */
   exclusive?: { flag: string; firstByDefault?: true };
 };
@@ -51,6 +56,26 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     props: { id: { kind: "string" }, subtitle: { kind: "string" } },
     children: "any",
     slots: ["actions"],
+  },
+  /** A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default). */
+  Sidebar: {
+    label: "none",
+    props: {},
+    children: ["Link"],
+    parents: ["Screen"],
+    exclusive: { flag: "active" },
+    check(node, err, parent) {
+      if (parent?.type !== "Screen") return;
+      if (parent.children[0] !== node) err("must be the first child of its Screen");
+      // Set before the Links are walked, so `exclusive` counts inferred and written `active` alike.
+      for (const link of node.children)
+        if (link.props.to === parent.props.id && link.props.active === undefined) link.props.active = true;
+    },
+  },
+  Link: {
+    label: "required",
+    props: { icon: { kind: "icon" }, active: { kind: "flag" }, to: { kind: "screen" } },
+    parents: ["Sidebar"],
   },
   Heading: { label: "required", props: { level: { kind: "enum", values: ["2", "1", "3", "4"] } } },
   Text: {
@@ -115,6 +140,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
       "icon-only": { kind: "flag" },
       disabled: { kind: "flag" },
       loading: { kind: "flag" },
+      to: { kind: "screen" },
     },
     check: iconOnly,
   },

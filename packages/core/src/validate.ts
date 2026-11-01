@@ -15,7 +15,9 @@ export type CheckOptions = {
  */
 export function validate(document: Document, options: CheckOptions = {}): CheckError[] {
   const errors: CheckError[] = [];
-  const ids = new Map<string, number>();
+  const ids = new Map<string, Node>();
+  /** `to=` props, resolved after the walk: a Screen may go to one further down the file. */
+  const screenRefs: { node: Node; key: string }[] = [];
   const err = (node: Node, message: string) => errors.push({ line: node.line, type: node.type, message });
 
   if (!document.screens.length) errors.push({ line: 1, type: "Screen", message: 'no Screen in the file (start with Screen "Title")' });
@@ -39,7 +41,9 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
           err(node, `takes no "${name}" slot (allowed in: ${owners.join(", ")})`);
         }
       props(node, spec, options, err);
-      spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }));
+      for (const [key, prop] of Object.entries(spec.props))
+        if (prop.kind === "screen" && typeof node.props[key] === "string") screenRefs.push({ node, key });
+      spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }), parent);
       // `span` (on any Element type whose schema lists it) counts columns of the Grid it sits directly in.
       const span = node.props.span;
       if (typeof span === "number") {
@@ -57,8 +61,8 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
     const id = node.props.id;
     if (typeof id === "string") {
       const first = ids.get(id);
-      if (first === undefined) ids.set(id, node.line);
-      else err(node, `duplicate id "${id}" (also on line ${first})`);
+      if (first === undefined) ids.set(id, node);
+      else err(node, `duplicate id "${id}" (also on line ${first.line})`);
     }
 
     for (const child of node.children) walk(child, node);
@@ -73,6 +77,14 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
     }
   };
   for (const screen of document.screens) walk(screen);
+
+  const screenIds = document.screens.map((screen) => screen.props.id).filter((id) => typeof id === "string");
+  for (const { node, key } of screenRefs) {
+    const id = node.props[key] as string;
+    const target = ids.get(id);
+    if (!target) err(node, `unknown Screen id "${id}"${didYouMean(id, screenIds)} (expected: ${screenIds.join(", ")})`);
+    else if (target.type !== "Screen") err(node, `${key}=${id} is a ${target.type} (line ${target.line}), not a Screen`);
+  }
   return errors;
 }
 

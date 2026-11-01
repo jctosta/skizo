@@ -1,0 +1,9 @@
+// to= must name a Screen id: a typo gets a hint, an id of another Element type is an error.
+Screen "Orders"
+  Sidebar
+    Link "Dashboard" to=dashbord
+  Button "Settings" to=zzzzzz
+  Card "Totals" id=totals
+  Button "Totals" to=totals
+
+Screen "Dashboard"

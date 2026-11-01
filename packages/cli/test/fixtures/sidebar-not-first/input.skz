@@ -1,0 +1,9 @@
+Screen "Orders"
+  Heading "Recent orders"
+  Sidebar
+    Link "Orders"
+
+// A slot child is not the first child either.
+Screen "Dashboard"
+  actions
+    Sidebar

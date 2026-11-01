@@ -1,0 +1,2 @@
+input.skz:4  Button  cannot go inside Sidebar (allowed: Link)
+input.skz:5  Link  only goes inside Sidebar
