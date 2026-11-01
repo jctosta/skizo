@@ -1,7 +1,8 @@
+Sidebar
+  Link "Dashboard" icon=home to=dashboard
+  Link "Orders" icon=package to=orders
+
 Screen "Orders" id=orders subtitle="Manage and track customer orders"
-  Sidebar
-    Link "Dashboard" icon=home to=dashboard
-    Link "Orders" icon=package to=orders
   actions
     Button "New order" icon=plus opens=new-order
   Grid cols=3
@@ -30,7 +31,4 @@ Screen "Orders" id=orders subtitle="Manage and track customer orders"
       Button "Create order"
 
 Screen "Dashboard" id=dashboard
-  Sidebar
-    Link "Dashboard" icon=home to=dashboard
-    Link "Orders" icon=package to=orders
   Text lorem=30

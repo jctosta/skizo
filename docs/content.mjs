@@ -272,7 +272,7 @@ Screen becomes one file with the name of its id. For example, <code>orders.tsx</
   <code>to=</code> wraps the link with <code>asChild</code>.</li>
   <li><code>--router next</code> writes each link as <code>&lt;Link href="/screen-id"&gt;</code> and imports
   <code>Link</code> from <code>next/link</code>. A file with <code>useState</code> or a Chart starts with
-  <code>"use client"</code>, because the App Router renders it in the browser.</li>
+  <code>"use client"</code>. Then the App Router runs it in the browser.</li>
   <li><code>--router react-router</code> writes each link as <code>&lt;Link to="/screen-id"&gt;</code> and imports
   <code>{ Link }</code> from <code>react-router</code>.</li>
   <li>A shared Sidebar becomes one file, <code>app-sidebar.tsx</code>. It exports
@@ -370,7 +370,7 @@ Screen "Archive" id=archive
   Card "Refunds"
     Stat "4"
   Card "Traffic" span=2
-    Image "Chart of daily visits" ratio=21:9
+    Chart "Daily visits" type=area cols="Day,Visits" rows=7
   Card "Notes"
     Text lorem=14`,
         about: { Grid: { props: { cols: "The number of columns." } } },
