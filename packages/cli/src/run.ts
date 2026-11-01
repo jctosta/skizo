@@ -107,7 +107,8 @@ export async function run(argv: string[], io: Io): Promise<number> {
     io.stderr(USAGE);
     return 2;
   }
-  const command = COMMANDS[name];
+  // hasOwn: `skizo toString` must not find Object.prototype's.
+  const command = Object.hasOwn(COMMANDS, name) ? COMMANDS[name] : undefined;
   if (!command) {
     io.stderr(`skizo: unknown command "${name}"${didYouMean(name, Object.keys(COMMANDS))}\n`);
     return 2;
@@ -120,8 +121,8 @@ export async function run(argv: string[], io: Io): Promise<number> {
     return 2;
   }
   const [file = "", ...extra] = args.positionals;
-  if (!command.noFile && (!file || extra.length)) {
-    io.stderr(`skizo ${name}: expected one <file.skz>\n`);
+  if (command.noFile ? args.positionals.length : !file || extra.length) {
+    io.stderr(`skizo ${name}: ${command.noFile ? "takes no arguments" : "expected one <file.skz>"}\n`);
     return 2;
   }
   return command.run(file, args.values, io);

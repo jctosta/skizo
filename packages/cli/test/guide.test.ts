@@ -21,6 +21,11 @@ test("--help lists every command, points agents to skizo guide and exits 0", asy
   });
 });
 
+test("guide given an argument is a usage error instead of ignoring it", async () => {
+  const { code, stdout, stderr } = await runCli(["guide", "orders.skz"]);
+  expect({ code, stdout, stderr }).toEqual({ code: 2, stdout: "", stderr: "skizo guide: takes no arguments\n" });
+});
+
 test("no arguments prints the same usage on stderr with exit code 2", async () => {
   const help = await runCli(["--help"]);
   const { code, stdout, stderr } = await runCli([]);
