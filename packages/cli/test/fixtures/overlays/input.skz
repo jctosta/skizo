@@ -1,0 +1,16 @@
+Screen "Orders" id=orders
+  actions
+    Button "Filters" icon=funnel variant=outline opens=filters
+    Button "New order" icon=plus opens=new-order
+  Text "Pick an order to see its details."
+  Dialog "New order" id=new-order desc="Create an order for a customer."
+    Input "Customer name" placeholder="Jane Doe"
+    footer
+      Button "Cancel" variant=outline
+      Button "Create order"
+  Sheet "Filters" id=filters side=left open
+    Select "Status" options="Open,Paid"
+    footer
+      Button "Apply"
+  Dialog "Welcome back" open
+    "Here is what changed since your last visit."

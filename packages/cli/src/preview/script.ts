@@ -35,6 +35,18 @@ document.addEventListener("click", (event) => {
     p.querySelector("[data-popup-trigger]").setAttribute("aria-expanded", String(open));
   }
 });`,
+  overlay: `// Overlays (Dialog, Sheet): a [data-opens] Button shows the [data-overlay] with that id;
+// a click on a [data-overlay-close] (close button, backdrop, footer Button without Behavior) hides its overlay.
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const opener = target && target.closest("[data-opens]");
+  if (opener) {
+    for (const o of document.querySelectorAll("[data-overlay]")) if (o.dataset.overlay === opener.dataset.opens) o.hidden = false;
+    return;
+  }
+  const closer = target && target.closest("[data-overlay-close]");
+  if (closer) closer.closest("[data-overlay]").hidden = true;
+});`,
 };
 
 export type Script = keyof typeof SCRIPTS;

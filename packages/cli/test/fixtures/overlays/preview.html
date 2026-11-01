@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orders</title>
+<style>/* preview.css */</style>
+</head>
+<body>
+<section data-screen="orders" class="min-h-screen p-6">
+<header class="mb-6 grid gap-1 grid-cols-[1fr_auto] gap-x-4">
+<h1 class="text-2xl font-semibold tracking-tight">Orders</h1>
+<div class="col-start-2 row-span-2 row-start-1 flex items-center gap-2 self-start justify-self-end">
+<button type="button" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 border-border bg-background shadow-xs hover:bg-muted hover:text-foreground h-9 gap-1.5 px-2.5" data-opens="filters" aria-haspopup="dialog"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"/></svg>Filters</button>
+<button type="button" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/80 h-9 gap-1.5 px-2.5" data-opens="new-order" aria-haspopup="dialog"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>New order</button>
+</div>
+</header>
+<div class="flex flex-col gap-4">
+<p class="text-sm">Pick an order to see its details.</p>
+<div data-overlay="new-order" hidden>
+<div data-overlay-close class="fixed inset-0 isolate z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs"></div>
+<div role="dialog" aria-modal="true" aria-labelledby="overlay-6" class="fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none sm:max-w-md">
+<div class="flex flex-col gap-2">
+<h2 id="overlay-6" class="leading-none font-medium">New order</h2>
+<p class="text-sm text-muted-foreground">Create an order for a customer.</p>
+</div>
+<div class="grid gap-4">
+<div class="grid gap-2">
+<label for="field-7" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Customer name</label>
+<input id="field-7" type="text" placeholder="Jane Doe" class="h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-2.5 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm">
+</div>
+</div>
+<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+<div data-overlay-close class="contents"><button type="button" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 border-border bg-background shadow-xs hover:bg-muted hover:text-foreground h-9 gap-1.5 px-2.5">Cancel</button></div>
+<div data-overlay-close class="contents"><button type="button" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/80 h-9 gap-1.5 px-2.5">Create order</button></div>
+</div>
+<button type="button" data-overlay-close class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-8 absolute top-4 right-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg><span class="sr-only">Close</span></button>
+</div>
+</div>
+<div data-overlay="filters">
+<div data-overlay-close class="fixed inset-0 z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs"></div>
+<div role="dialog" aria-modal="true" aria-labelledby="overlay-11" class="fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm">
+<div class="flex flex-col gap-1.5 p-4">
+<h2 id="overlay-11" class="font-medium text-foreground">Filters</h2>
+</div>
+<div class="grid flex-1 auto-rows-min gap-4 px-4">
+<div class="grid gap-2">
+<label for="field-12" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Status</label>
+<div data-popup class="relative">
+<button type="button" role="combobox" id="field-12" aria-expanded="false" aria-haspopup="listbox" data-popup-trigger class="flex h-9 w-fit items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"><span class="text-muted-foreground"></span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none size-4 text-muted-foreground" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<div role="listbox" data-popup-content class="absolute top-full left-0 z-50 mt-1 min-w-36 overflow-hidden rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10" hidden>
+<div role="option" aria-selected="false" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Open<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+<div role="option" aria-selected="false" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Paid<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-auto flex flex-col gap-2 p-4">
+<div data-overlay-close class="contents"><button type="button" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/80 h-9 gap-1.5 px-2.5">Apply</button></div>
+</div>
+<button type="button" data-overlay-close class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-8 absolute top-4 right-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg><span class="sr-only">Close</span></button>
+</div>
+</div>
+<div data-overlay="">
+<div data-overlay-close class="fixed inset-0 isolate z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs"></div>
+<div role="dialog" aria-modal="true" aria-labelledby="overlay-15" class="fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 outline-none sm:max-w-md">
+<div class="flex flex-col gap-2">
+<h2 id="overlay-15" class="leading-none font-medium">Welcome back</h2>
+</div>
+<div class="grid gap-4">
+<p class="text-sm">Here is what changed since your last visit.</p>
+</div>
+<button type="button" data-overlay-close class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-8 absolute top-4 right-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg><span class="sr-only">Close</span></button>
+</div>
+</div>
+</div>
+</section>
+<script>
+// Popups (Select): a [data-popup] holds a [data-popup-trigger] and a [data-popup-content].
+// A click on a trigger toggles its popup; any other click closes every open popup.
+// Picking a [role="option"] in a popup also shows it on the trigger.
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const popup = target && target.closest("[data-popup]");
+  const toggled = popup && target.closest("[data-popup-trigger]") ? popup : null;
+  const option = popup && target.closest('[role="option"]');
+  if (option) {
+    const shown = popup.querySelector("[data-popup-trigger] > span");
+    shown.textContent = option.textContent;
+    shown.removeAttribute("class");
+    for (const o of popup.querySelectorAll('[role="option"]')) o.setAttribute("aria-selected", String(o === option));
+  }
+  for (const p of document.querySelectorAll("[data-popup]")) {
+    const content = p.querySelector("[data-popup-content]");
+    const open = p === toggled && content.hidden;
+    content.hidden = !open;
+    p.querySelector("[data-popup-trigger]").setAttribute("aria-expanded", String(open));
+  }
+});
+// Overlays (Dialog, Sheet): a [data-opens] Button shows the [data-overlay] with that id;
+// a click on a [data-overlay-close] (close button, backdrop, footer Button without Behavior) hides its overlay.
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const opener = target && target.closest("[data-opens]");
+  if (opener) {
+    for (const o of document.querySelectorAll("[data-overlay]")) if (o.dataset.overlay === opener.dataset.opens) o.hidden = false;
+    return;
+  }
+  const closer = target && target.closest("[data-overlay-close]");
+  if (closer) closer.closest("[data-overlay]").hidden = true;
+});
+</script>
+</body>
+</html>
