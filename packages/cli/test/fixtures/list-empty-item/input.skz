@@ -1,0 +1,4 @@
+Screen "Orders"
+  Select "Status" options="Open,,Paid"
+  Radio "Plan" options="Free,Pro,"
+  Table cols="Order, ,Amount" rows=2

@@ -1,4 +1,5 @@
 import type { Node } from "./ast";
+import { didYouMean } from "./nearest";
 
 /** How `check` reads one prop. Raw values are strings (or true for a bare flag); `check` coerces them. */
 export type PropSpec =
@@ -42,6 +43,14 @@ const variants = { kind: "enum", values: ["default", "secondary", "outline", "gh
 /** Button and Menu: icon-only shows nothing but the icon, so it needs one. */
 const iconOnly: ElementSpec["check"] = (node, err) => {
   if (node.props["icon-only"] === true && node.props.icon === undefined) err("icon-only needs icon=... too");
+};
+/** Select and Radio: value= picks one of options=, or it would show nothing once exported. */
+const valueInOptions: ElementSpec["check"] = (node, err) => {
+  const value = node.props.value;
+  const options = (node.props.options ?? []) as string[];
+  if (typeof value !== "string" || options.includes(value)) return;
+  if (!options.length) err(`value=${value} needs options= that include it`);
+  else err(`unknown value "${value}"${didYouMean(value, options)} (expected: ${options.join(", ")})`);
 };
 /** Dialog and Sheet. */
 const overlay = { desc: { kind: "string" }, open: { kind: "flag" } } as const;
@@ -195,8 +204,9 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Select: {
     label: "required",
     props: { options: { kind: "list" }, value: { kind: "string" }, placeholder: { kind: "string" }, open: { kind: "flag" } },
+    check: valueInOptions,
   },
   Checkbox: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
   Switch: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
-  Radio: { label: "required", props: { options: { kind: "list" }, value: { kind: "string" } } },
+  Radio: { label: "required", props: { options: { kind: "list" }, value: { kind: "string" } }, check: valueInOptions },
 };

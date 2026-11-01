@@ -153,8 +153,12 @@ function coerce(
         err(`${key}=${value} is out of range (expected: ${prop.min ?? ""}..${prop.max ?? ""})`);
       return n;
     }
-    case "list":
-      return value.split(/(?<!\\),/).map((item) => item.replaceAll("\\,", ",").trim());
+    case "list": {
+      const items = value.split(/(?<!\\),/).map((item) => item.replaceAll("\\,", ",").trim());
+      // An empty option, column or item renders as nothing (and Radix throws on <SelectItem value="">).
+      if (items.includes("")) err(`${key} has an empty item (remove the extra comma)`);
+      return items;
+    }
     default:
       return value.replaceAll("\\,", ",");
   }
