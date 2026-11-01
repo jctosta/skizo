@@ -65,9 +65,23 @@ test("export refuses a file that fails check and prints the same errors", async 
   });
 });
 
+const SHARED_SIDEBAR = `Sidebar\n  Link "Orders" to=orders\n\n${TWO_SCREENS}\nScreen "Sign in" plain\n  "Welcome"\n`;
+
+test("a shared Sidebar is written once, as app-sidebar.tsx, and each Screen that shows it renders AppSidebar", async () => {
+  const cwd = withFiles({ "orders.skz": SHARED_SIDEBAR });
+  const { stdout } = await runCli(["export", "orders.skz", "--target", "shadcn"], cwd);
+  const rendered = (name: string) => readFileSync(join(cwd, name), "utf8").match(/<AppSidebar .*\/>/)?.[0];
+  expect({ stdout, orders: rendered("orders.tsx"), details: rendered("order-details.tsx"), plain: rendered("sign-in.tsx") }).toEqual({
+    stdout: "wrote app-sidebar.tsx\nwrote orders.tsx\nwrote order-details.tsx\nwrote sign-in.tsx\n",
+    orders: '<AppSidebar current="orders" />',
+    details: '<AppSidebar current="order-details" />',
+    plain: undefined,
+  });
+});
+
 test("exporting an unchanged file twice gives byte-identical output", async () => {
-  const cwd = withFiles({ "orders.skz": TWO_SCREENS });
-  const read = () => ["orders.tsx", "order-details.tsx"].map((name) => readFileSync(join(cwd, name), "utf8"));
+  const cwd = withFiles({ "orders.skz": SHARED_SIDEBAR });
+  const read = () => ["app-sidebar.tsx", "orders.tsx", "order-details.tsx"].map((name) => readFileSync(join(cwd, name), "utf8"));
   await runCli(["export", "orders.skz", "--target", "shadcn"], cwd);
   const first = read();
   await runCli(["export", "orders.skz", "--target", "shadcn"], cwd);

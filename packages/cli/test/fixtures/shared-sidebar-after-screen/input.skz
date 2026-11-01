@@ -1,0 +1,6 @@
+// A shared Sidebar goes before the first Screen.
+Screen "Orders"
+  "Recent orders"
+
+Sidebar
+  Link "Orders" to=orders

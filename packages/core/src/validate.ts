@@ -12,8 +12,9 @@ export type CheckOptions = {
 
 /**
  * Checks a parsed document against the ELEMENTS schemas. Generic: per-Element-type rules belong in ELEMENTS; the
- * only type named here is Screen, the top level of every file.
- * Mutates the AST into what Backends read: coerced prop values, defaults, inferred props (ELEMENTS `infer`).
+ * only types named here are those of the top level: Screens, and the shared Sidebar before them.
+ * Mutates the AST into what Backends read: coerced prop values, defaults, inferred props (ELEMENTS `infer`), and
+ * the shared Sidebar moved from `screens` to `sidebar`.
  */
 export function validate(document: Document, options: CheckOptions = {}): CheckError[] {
   const errors: CheckError[] = [];
@@ -25,19 +26,30 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
   let current: Node;
   const err = (node: Node, message: string) => errors.push({ line: node.line, type: node.type, message });
 
+  // The first top-level Sidebar is shared when no Screen comes before it.
+  const top = document.screens.findIndex((node) => node.type === "Sidebar" || node.type === "Screen");
+  if (document.screens[top]?.type === "Sidebar") [document.sidebar] = document.screens.splice(top, 1);
+  for (const link of document.sidebar?.children ?? [])
+    if (link.props.active === true) err(link, "takes no active in a shared Sidebar (each Screen marks the Link whose to= is that Screen)");
+
   if (!document.screens.length) errors.push({ line: 1, type: "Screen", message: 'no Screen in the file (start with Screen "Title")' });
 
   const walk = (node: Node, parent?: Node, inSlot = false) => {
     const spec = ELEMENTS[node.type];
     if (!spec) err(node, `unknown Element type "${node.type}"${didYouMean(node.type, Object.keys(ELEMENTS))}`);
     else {
-      if (!parent && node.type !== "Screen") err(node, "must be inside a Screen (only Screens go at the top level)");
+      if (!parent && node.type === "Sidebar" && node !== document.sidebar) {
+        if (document.sidebar) err(node, `only one Sidebar per file can be shared (line ${document.sidebar.line} is shared too)`);
+        else err(node, "must come before the first Screen to be shared (or go first inside a Screen)");
+      } else if (!parent && node.type !== "Screen" && node !== document.sidebar)
+        err(node, "must be inside a Screen (only Screens go at the top level)");
       if (parent && node.type === "Screen") err(node, "must be at the top level, not inside another Element");
       const allowed = parent && !inSlot ? ELEMENTS[parent.type]?.children : "any";
       if (!allowed) err(node, `cannot go inside ${parent!.type} (${parent!.type} takes no children)`);
       else if (allowed !== "any" && !allowed.includes(node.type))
         err(node, `cannot go inside ${parent!.type} (allowed: ${allowed.join(", ")})`);
-      if (spec.parents && (inSlot || !spec.parents.includes(parent?.type ?? "")))
+      // At the top level, the rule above already says where it goes.
+      if (spec.parents && parent && (inSlot || !spec.parents.includes(parent.type)))
         err(node, `only goes directly inside ${spec.parents.join(" or ")}`);
       if (spec.label === "required" && node.label === undefined) err(node, `needs a Label (${node.type} "...")`);
       if (spec.label === "none" && node.label !== undefined) err(node, "takes no Label");
@@ -74,7 +86,7 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
       if (!first && firstByDefault && node.children[0]) node.children[0].props[flag] = true;
     }
   };
-  for (const s of document.screens) {
+  for (const s of document.sidebar ? [document.sidebar, ...document.screens] : document.screens) {
     current = s;
     walk(s);
   }

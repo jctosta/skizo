@@ -130,7 +130,8 @@ function facts(type, spec, about) {
   const list = (types) => types.map((t) => `<a href="#${slug(covered.get(t).types[0])}">${t}</a>`).join(", ");
   const label = spec.label === "none" ? "None" : `${spec.label === "required" ? "Required" : "Optional"}. ${md(about?.label ?? "")}`;
   const children = spec.children === undefined ? "None" : spec.children === "any" ? "Any Elements" : list(spec.children);
-  const goes = type === "Screen" ? "The top level of the file" : spec.parents ? `Directly in ${list(spec.parents)}` : "Anywhere in a Screen";
+  const goes =
+    about?.position ?? (type === "Screen" ? "The top level of the file" : spec.parents ? `Directly in ${list(spec.parents)}` : "Anywhere in a Screen");
   const items = [["Label", label], ["Children", children], ["Position", goes]];
   if (spec.slots) items.push(["Slots", spec.slots.map((s) => `<code>${s}</code>`).join(", ")]);
   if (spec.exclusive)
@@ -140,7 +141,7 @@ function facts(type, spec, about) {
 
 function elementEntry(entry) {
   const id = slug(entry.types[0]);
-  const full = entry.example.startsWith("Screen");
+  const full = /^(Screen|Sidebar)\b/.test(entry.example);
   const source = full ? entry.example : `Screen "${entry.types[0]}"\n${entry.example.replace(/^/gm, "  ")}`;
   const index = frame(source, `element-${id}`, { demo: true, wrapped: !full });
   const height = entry.height ? ` style="height:${entry.height}px"` : "";

@@ -15,6 +15,8 @@ export type Ctx = {
   id(base: string): string;
   /** Adds a line to the top of the Screen's component, before `return`: state hooks. */
   hook(line: string): void;
+  /** The Sidebar shared by every Screen without its own (Document.sidebar), exported once as AppSidebar. */
+  sidebar?: Node;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -131,12 +133,12 @@ const ICON_BUTTON_SIZE = { sm: "icon-sm", md: "icon", lg: "icon-lg" } as const;
  * Props arrive checked, coerced and with enum defaults filled in.
  */
 export const EMITTERS: Record<string, Emit> = {
-  /** With a Sidebar first: a page shell, the sidebar column beside <main>. */
+  /** With a Sidebar: a page shell, the sidebar column beside <main>. The shared Sidebar is <AppSidebar> (app-sidebar.tsx). */
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
-    const { sidebar, body } = screenParts(node);
+    const { sidebar, isShared, body } = screenParts(node, ctx.sidebar);
     const header = lines(
       `<h1 className="${c.title}">${text(node.label!)}</h1>`,
       subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
@@ -150,17 +152,27 @@ export const EMITTERS: Record<string, Emit> = {
       ),
       "</main>",
     );
-    return sidebar ? wrap(`<div className="${c.shell}">`, lines(ctx.render([sidebar]), main), "</div>") : main;
+    if (!sidebar) return main;
+    if (isShared) ctx.use("./app-sidebar", "AppSidebar");
+    const column = isShared ? `<AppSidebar${jsxAttrs({ current: node.props.id })} />` : ctx.render([sidebar]);
+    return wrap(`<div className="${c.shell}">`, lines(column, main), "</div>");
   },
   Sidebar: (node, ctx) => {
     const c = CLASSES.Sidebar;
     return wrap(`<aside className="${c.root}">`, wrap(`<nav className="${c.nav}">`, ctx.render(node.children), "</nav>"), "</aside>");
   },
-  /** A plain anchor, like every to=; a Link without to= goes nowhere yet: no href. */
+  /**
+   * A plain anchor, like every to=; a Link without to= goes nowhere yet: no href. In the shared Sidebar (AppSidebar)
+   * the Link is active when its to= is the `current` prop.
+   */
   Link: (node, ctx) => {
     const { to, active } = node.props as { to?: string; active?: true };
     const href = to === undefined ? undefined : screenHref(to);
-    const tag = `<a${jsxAttrs({ href, "aria-current": active && "page" })} className="${CLASSES.Link.root}">`;
+    const current =
+      to !== undefined && ctx.sidebar?.children.includes(node)
+        ? ` aria-current={current === ${JSON.stringify(to)} ? "page" : undefined}`
+        : jsxAttrs({ "aria-current": active && "page" });
+    const tag = `<a${jsxAttrs({ href })}${current} className="${CLASSES.Link.root}">`;
     if (node.props.icon === undefined) return `${tag}${text(node.label!)}</a>`;
     return wrap(tag, lines(icon(ctx, node.props.icon as string, CLASSES.Link.icon), text(node.label!)), "</a>");
   },
