@@ -1,7 +1,7 @@
 import type { Node } from "@skizo/core";
-import { hasBehavior, lines, screenParts, statHint } from "../backend";
+import { chartColor, hasBehavior, lines, screenParts, statHint } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
-import { initials, listItems, lorem, tableRows } from "../placeholder";
+import { chartRows, initials, listItems, lorem, tableRows } from "../placeholder";
 import { iconSvg } from "../icons";
 import type { Script } from "./script";
 
@@ -184,6 +184,24 @@ export const EMITTERS: Record<string, Emit> = {
     ].join("\n");
   },
   List: (node) => [`<ul class="${CLASSES.List.root}">`, ...listItems(node).map((item) => `<li>${esc(item)}</li>`), "</ul>"].join("\n"),
+  /**
+   * A static SVG computed here, no script. Bar, line and area plots stretch to the width (preserveAspectRatio none,
+   * strokes kept at 2px), so the x labels go below in HTML, one equal column per point. A pie's legend names its slices.
+   */
+  Chart: (node, ctx) => {
+    const c = CLASSES.Chart;
+    const cols = node.props.cols as string[];
+    const rows = chartRows(node, ctx.path);
+    const legend = (names: string[]) =>
+      div(
+        c.legend,
+        lines(...names.map((name, i) => `<div class="${c.legendItem}"><div class="${c.swatch}" style="background-color: ${chartColor(i)}"></div>${esc(name)}</div>`)),
+      );
+    const figure = (body: string) => lines(`<div role="img" aria-label="${esc(node.label!)}" class="${c.root}">`, body, "</div>");
+    if (node.props.type === "pie") return figure(lines(pie(rows), legend(rows.map(([name]) => name!))));
+    const labels = `<div class="${c.labels}" style="grid-template-columns: repeat(${rows.length}, minmax(0, 1fr))">${rows.map(([x]) => `<div class="${c.label}">${esc(x!)}</div>`).join("")}</div>`;
+    return figure(lines(cartesian(node.props.type as "line" | "bar" | "area", rows, cols.length - 1), labels, cols.length > 2 && legend(cols.slice(1))));
+  },
   Dialog: (node, ctx) => dialog(node, ctx, CLASSES.Dialog, CLASSES.Dialog.content),
   Sheet: (node, ctx) => dialog(node, ctx, CLASSES.Sheet, cx(CLASSES.Sheet.content, CLASSES.Sheet[node.props.side as keyof typeof CLASSES.Sheet])),
   /** Renders its Tabs too: triggers and panels pair up by position. */
@@ -339,6 +357,59 @@ function button(node: Node, ctx: Ctx, trigger = "") {
   }
   const opens = attrs({ "data-opens": node.props.opens, "aria-haspopup": node.props.opens && "dialog" });
   return `<button type="button"${trigger} class="${classes}"${attrs({ disabled })}${opens}>${glyph}${label}</button>`;
+}
+
+/** An SVG coordinate, with at most 2 decimals. */
+const coord = (v: number) => String(+v.toFixed(2));
+
+/**
+ * A bar, line or area plot in a 100 x 100 box: one x band per row, each point at its band's center; y spans the
+ * values and 0, with 5% headroom. Grid lines like recharts' CartesianGrid without vertical lines.
+ */
+function cartesian(type: "line" | "bar" | "area", rows: string[][], series: number) {
+  const values = rows.map((row) => row.slice(1).map(Number));
+  const low = Math.min(0, ...values.flat());
+  const span = Math.max(0, ...values.flat()) - low || 1;
+  const y = (v: number) => 100 - ((v - low) / span) * 95;
+  const band = 100 / rows.length;
+  const x = (i: number) => band * (i + 0.5);
+  const thin = `vector-effect="non-scaling-stroke"`;
+  const grid = [0, 1, 2, 3, 4].map((k) => `<line x1="0" x2="100" y1="${coord(5 + k * 23.75)}" y2="${coord(5 + k * 23.75)}" stroke="var(--border)" ${thin}/>`);
+  const points = (s: number) => values.map((row, i) => `${coord(x(i))},${coord(y(row[s]!))}`).join(" ");
+  const line = (s: number) => `<polyline points="${points(s)}" fill="none" stroke="${chartColor(s)}" stroke-width="2" ${thin}/>`;
+  const marks = Array.from({ length: series }, (_, s) => {
+    if (type === "line") return line(s);
+    if (type === "area") {
+      const base = (i: number) => `${coord(x(i))},${coord(y(0))}`;
+      return lines(`<polygon points="${base(0)} ${points(s)} ${base(rows.length - 1)}" fill="${chartColor(s)}" fill-opacity="0.4"/>`, line(s));
+    }
+    // A group of bars per band, side by side in its middle 80%.
+    const width = (band * 0.8) / series;
+    return lines(
+      ...values.map((row, i) => {
+        const [top, bottom] = [y(Math.max(row[s]!, 0)), y(Math.min(row[s]!, 0))];
+        return `<rect x="${coord(band * (i + 0.1) + s * width)}" y="${coord(top)}" width="${coord(width)}" height="${coord(bottom - top)}" fill="${chartColor(s)}"/>`;
+      }),
+    );
+  });
+  return lines(`<svg viewBox="0 0 100 100" preserveAspectRatio="none" class="${CLASSES.Chart.plot}">`, ...grid, ...marks, "</svg>");
+}
+
+/** A pie of radius 100 around 0,0: one slice per row, clockwise from 12 o'clock, colored in row order. A negative value counts as 0. */
+function pie(rows: string[][]) {
+  const values = rows.map(([, v]) => Math.max(0, Number(v)));
+  const total = values.reduce((sum, v) => sum + v, 0);
+  const point = (angle: number) => `${coord(100 * Math.sin(angle))},${coord(-100 * Math.cos(angle))}`;
+  let angle = 0;
+  const slices = values.map((v, i) => {
+    const share = total ? v / total : 0;
+    const start = angle;
+    angle += share * 2 * Math.PI;
+    // An arc back to its own start draws nothing: a slice that is the whole pie is a circle.
+    if (share === 1) return `<circle r="100" fill="${chartColor(i)}"/>`;
+    return share > 0 && `<path d="M0,0 L${point(start)} A100,100 0 ${share > 0.5 ? 1 : 0},1 ${point(angle)} Z" fill="${chartColor(i)}"/>`;
+  });
+  return lines(`<svg viewBox="-100 -100 200 200" class="${CLASSES.Chart.pie}">`, ...slices, "</svg>");
 }
 
 /** A `<div>` holding `body`, which may be empty. */

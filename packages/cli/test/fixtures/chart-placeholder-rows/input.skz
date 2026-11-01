@@ -1,0 +1,4 @@
+// rows=N: x values guessed from the x column's name, numbers seeded by node path.
+Screen "Dashboard"
+  Chart "Visits" cols="Month,Visits,Signups" rows=6
+  Chart "Plans" type=pie cols="Plan,Users" rows=3

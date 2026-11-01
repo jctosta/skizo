@@ -145,7 +145,7 @@ of a Stat and the alt text of an Image.</p>
 ${h.skz(`Button "Save" variant=secondary icon=check disabled`)}
 <h3>Text lines, table rows and comments</h3>
 <p>A line with only a string is a paragraph. It is the same as a Text. A line that starts with <code>|</code> is
-a Table row. Each row has one cell for each column. A line that starts with <code>//</code> is a comment. The
+a row of a Table or a Chart. Each row has one cell for each column. A line that starts with <code>//</code> is a comment. The
 Preview and the export ignore comments.</p>
 ${h.skz(`// A note for the human. Skizo does not show it.
 "A paragraph of text."
@@ -174,6 +174,7 @@ Each id must be unique in the file. If a Screen has no id, Skizo makes one from 
 <ul>
   <li>A Text has a Label or <code>lorem=N</code>.</li>
   <li>A Table has <code>|</code> rows or <code>rows=N</code>.</li>
+  <li>A Chart has <code>|</code> rows or <code>rows=N</code>. It must have one of the two.</li>
   <li>A List has <code>items=</code> or <code>rows=N</code>.</li>
 </ul>
 <p><code>lorem=N</code> and <code>rows=N</code> make placeholder content. The placeholder content is the same
@@ -255,9 +256,10 @@ Screen becomes one file with the name of its id. For example, <code>orders.tsx</
 <ul>
   <li>A shadcn project on the Radix base. The export uses <code>asChild</code>.</li>
   <li>The <code>lucide-react</code> package.</li>
-  <li>The shadcn components that the file uses: alert, avatar, badge, button, card, checkbox, dialog,
+  <li>The shadcn components that the file uses: alert, avatar, badge, button, card, chart, checkbox, dialog,
   dropdown-menu, input, label, progress, radio-group, select, separator, sheet, switch, table, tabs and
   textarea.</li>
+  <li>The <code>recharts</code> package, if the file has a Chart. The shadcn chart component installs it.</li>
 </ul>
 <h3>Output</h3>
 <ul>
@@ -444,11 +446,11 @@ Text lorem=24`,
       },
       {
         types: ["Image"],
-        summary: "A placeholder box for a picture, a chart or a video.",
+        summary: "A placeholder box for a picture, a map or a video. For a chart, use Chart.",
         example: `Grid cols=3
   Image "Product photo" ratio=1:1
   Image "Hero banner"
-  Image "Chart" ratio=4:3`,
+  Image "Store map" ratio=4:3`,
         about: { Image: { label: "The alt text. The box shows it.", props: { ratio: "The width-to-height ratio in whole numbers, for example 16:9, 4:3 or 21:9." } } },
       },
       {
@@ -489,6 +491,39 @@ Table cols="Name,Email,Date,Status,Amount" rows=3`,
         example: `List items="Organic search,Direct,Referral"
 List rows=3`,
         about: { List: { props: { items: "The items, separated by commas.", rows: "Shows N placeholder items instead of items=." } } },
+      },
+      {
+        types: ["Chart"],
+        summary: "A line, bar, area or pie chart. Write the data as `|` rows, as in a Table, or use `rows=N` to get placeholder rows.",
+        example: `Grid
+  Chart "Revenue" cols="Month,Revenue,Costs"
+    | Jan | 1200 | 800
+    | Feb | 1500 | 950
+    | Mar | 1350 | 1100
+  Chart "Orders" type=bar cols="Day,Orders" rows=5
+  Chart "Traffic" type=area cols="Date,Visits" rows=6
+  Chart "Plans" type=pie cols="Plan,Users"
+    | Free | 620
+    | Pro | 240
+    | Team | 90`,
+        about: {
+          Chart: {
+            label: "The accessible name of the chart. The chart does not show it.",
+            props: {
+              type: "The kind of chart.",
+              cols: "The column headers, separated by commas. The first column gives the x axis, or the slice names of a pie. Each other column is a series of numbers. This prop is necessary.",
+              rows: "Shows N placeholder rows instead of `|` lines.",
+            },
+          },
+        },
+        notes: [
+          "Each `|` row must have one cell for each column. The cells after the first cell are numbers, for example 1200 or 12.5.",
+          "A pie has exactly two columns: the slice name and its value.",
+          "A chart with two or more series shows a legend.",
+          "Skizo makes placeholder x values from the column name: Month, Day, Date or Year. Other columns get Item n. The numbers are the same each time.",
+          "The Preview draws the chart as an SVG image. It uses the chart colors of the shadcn theme, `--chart-1` to `--chart-5`.",
+        ],
+        shadcn: "`ChartContainer > LineChart, BarChart, AreaChart or PieChart` from recharts, with `ChartTooltip`. The data is a const array above the component, with the column slugs as keys, and a `ChartConfig` gives the labels and colors.",
       },
     ],
   },

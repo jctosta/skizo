@@ -28,15 +28,18 @@ function screenFile(screen: Node, paths: Map<Node, string>): string {
   };
   const hooks: string[] = [];
   const hook: Ctx["hook"] = (line) => hooks.push(line);
+  const declarations: string[] = [];
+  const declare: Ctx["declare"] = (code) => declarations.push(code);
   const ctx = (node: Node): Ctx => ({
     path: paths.get(node)!,
     use,
     id,
     hook,
+    declare,
     render: (nodes) => nodes.map((n) => emitterFor(EMITTERS, n.type, "shadcn export")(n, ctx(n))).join("\n"),
   });
   const jsx = ctx(screen).render([screen]);
   const head = [...imports.keys()].sort().map((from) => `import { ${[...imports.get(from)!].sort().join(", ")} } from "${from}"\n`);
   const body = wrap(`export function ${componentName(screen.props.id as string)}() {`, lines(...hooks, wrap("return (", jsx, ")")), "}");
-  return `${head.join("")}${head.length ? "\n" : ""}${body}\n`;
+  return `${head.join("")}${head.length ? "\n" : ""}${declarations.map((code) => `${code}\n\n`).join("")}${body}\n`;
 }

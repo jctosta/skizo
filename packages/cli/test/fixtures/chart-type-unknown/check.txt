@@ -1,0 +1,1 @@
+input.skz:2  Chart  unknown type "lines" — did you mean line? (expected: line, bar, area, pie)

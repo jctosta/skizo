@@ -63,6 +63,21 @@ const valueInOptions: ElementSpec["check"] = (node, err) => {
   if (!options.length) err(`value=${value} needs options= that include it`);
   else err(`unknown value "${value}"${didYouMean(value, options)} (expected: ${options.join(", ")})`);
 };
+/**
+ * Table and Chart: `|` rows or rows=N, not both; cols= is required; one cell per column. Returns the columns, or
+ * undefined without cols=. `example` shows how to write cols= in the error.
+ */
+const tabular = (node: Node, err: (message: string, line?: number) => void, example: string) => {
+  if (node.rows && node.props.rows !== undefined) err("has both | rows and rows= (keep one)");
+  const cols = node.props.cols as string[] | undefined;
+  if (!cols) return void err(`needs cols (${example})`);
+  node.rows?.forEach((cells, i) => {
+    if (cells.length !== cols.length) err(`row has ${cells.length} cells, expected ${cols.length} (cols: ${cols.join(", ")})`, node.rowLines![i]);
+  });
+  return cols;
+};
+/** A Chart value: what the export can write as a JS number literal. */
+const NUMBER = /^-?\d+(\.\d+)?$/;
 /** Dialog and Sheet. */
 const dialog = { desc: { kind: "string" }, open: { kind: "flag" } } as const;
 /** Stack and Row. */
@@ -160,13 +175,7 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     label: "none",
     props: { cols: { kind: "list" }, rows: { kind: "number", min: 1 } },
     check(node, err) {
-      if (node.rows && node.props.rows !== undefined) err("has both | rows and rows= (keep one)");
-      const cols = node.props.cols as string[] | undefined;
-      if (!cols) return err('needs cols (Table cols="A,B,C")');
-      node.rows?.forEach((cells, i) => {
-        if (cells.length !== cols.length)
-          err(`row has ${cells.length} cells, expected ${cols.length} (cols: ${cols.join(", ")})`, node.rowLines![i]);
-      });
+      tabular(node, err, 'Table cols="A,B,C"');
     },
   },
   List: {
@@ -174,6 +183,23 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     props: { items: { kind: "list" }, rows: { kind: "number", min: 1 } },
     check(node, err) {
       if (node.props.items !== undefined && node.props.rows !== undefined) err("has both items= and rows= (keep one)");
+    },
+  },
+  /** Data as a Table's: the first column is the x axis (pie: the slice names), each further column a series of numbers. The Label is the accessible name. */
+  Chart: {
+    label: "required",
+    props: { type: { kind: "enum", values: ["line", "bar", "area", "pie"] }, cols: { kind: "list" }, rows: { kind: "number", min: 1 } },
+    check(node, err) {
+      const cols = tabular(node, err, 'Chart "Label" cols="X,Series"');
+      if (!node.rows && node.props.rows === undefined) err("needs | rows or rows=N (a Chart without data draws nothing)");
+      if (!cols) return;
+      if (cols.length < 2) err("needs at least two columns in cols (the x column, then one per series)");
+      else if (node.props.type === "pie" && cols.length !== 2) err("type=pie needs exactly two columns in cols (the slice name, then its value)");
+      node.rows?.forEach((cells, i) => {
+        if (cells.length !== cols.length) return;
+        for (const [j, cell] of cells.entries())
+          if (j > 0 && !NUMBER.test(cell)) err(`"${cell}" in column ${cols[j]} is not a number (write digits, e.g. 1200 or 12.5)`, node.rowLines![i]);
+      });
     },
   },
   /** The Label is the title. Shown by a Button's opens=, or on load with `open`. */

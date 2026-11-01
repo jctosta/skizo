@@ -7,9 +7,9 @@ export type Node = {
   props: Record<string, string | number | boolean | string[]>;
   children: Node[];
   slots?: { actions?: Node[]; footer?: Node[] };
-  /** Table only. */
+  /** Table and Chart only. */
   rows?: string[][];
-  /** Table only: the 1-based source line of each of `rows`, for errors. */
+  /** Table and Chart only: the 1-based source line of each of `rows`, for errors. */
   rowLines?: number[];
   /** 1-based source line. */
   line: number;

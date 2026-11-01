@@ -26,6 +26,9 @@ export const statHint = (node: Node) => [ARROWS[node.props.trend as keyof typeof
 /** Whether a Button declares a Behavior (opens= or to=). In a footer, a Button without one closes its Dialog or Sheet. */
 export const hasBehavior = (node: Node) => node.props.opens !== undefined || node.props.to !== undefined;
 
+/** The color of a Chart's series (a pie's slice) `i`: shadcn's --chart-1 to --chart-5, then from the start again. */
+export const chartColor = (i: number) => `var(--chart-${(i % 5) + 1})`;
+
 /**
  * A JS identifier in PascalCase from an id or icon name: `order-details` → `OrderDetails`. One that would start
  * with a digit (or be empty) gets `prefix` first: `2026-report` → `Screen2026Report` with prefix `Screen`.

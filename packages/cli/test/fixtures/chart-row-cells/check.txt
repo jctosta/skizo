@@ -1,0 +1,1 @@
+input.skz:4  Chart  row has 1 cells, expected 2 (cols: Month, Revenue)

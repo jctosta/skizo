@@ -1,0 +1,27 @@
+// Every Chart type from | rows: the first column is the x axis (a pie's slice names), each further one a series.
+Screen "Dashboard"
+  Grid
+    Card "Revenue"
+      Chart "Revenue" cols="Month,Revenue,Costs"
+        | Jan | 1200 | 800
+        | Feb | 1500.5 | 950
+        | Mar | 1350 | -100
+    Card "Orders"
+      Chart "Orders" type=bar cols="Day,Orders"
+        | Mon | 12
+        | Tue | 18
+        | Wed | 9
+    Card "Traffic"
+      Chart "Traffic \"weekly\"" type=area cols="Week,New users,Returning users"
+        | W1 | 120 | 300
+        | W2 | 180 | 280
+        | W3 | 150 | 320
+    Card "Plans"
+      Chart "Plans" type=pie cols="Plan,Users"
+        | Free | 620
+        | Pro | 240
+        | Team | 90
+  // The same Label again: its export names get a number. A column that slugs to digits is a quoted data key.
+  Chart "Revenue" type=bar cols="Region,2026,2025"
+    | North | 40 | 32
+    | South | 25 | 30

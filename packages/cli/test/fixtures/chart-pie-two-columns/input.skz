@@ -1,0 +1,2 @@
+Screen "Dashboard"
+  Chart "Plans" type=pie cols="Plan,Users,Revenue" rows=3

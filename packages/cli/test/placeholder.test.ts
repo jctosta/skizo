@@ -68,3 +68,41 @@ test("the Email cell belongs to the Name in the same row", async () => {
   const [name, email] = await exportCells(`Screen "Customers"\n  Table cols="Name,Email" rows=1\n`);
   expect(email).toBe(`${name!.toLowerCase().replace(" ", ".")}@example.com`);
 });
+
+/** The data array of every Chart the export writes, in source order. */
+const exportCharts = async (source: string) => {
+  const cwd = withFiles({ "dashboard.skz": source });
+  await runCli(["export", "dashboard.skz", "--target", "shadcn"], cwd);
+  const tsx = readFileSync(join(cwd, "dashboard.tsx"), "utf8");
+  return [...tsx.matchAll(/^const \w+Data = (\[[\s\S]*?\n\])/gm)].map(
+    (m) => new Function(`return ${m[1]}`)() as Record<string, string | number>[],
+  );
+};
+
+test("rows=N fills a Chart with N rows whose x values are guessed from the x column's name", async () => {
+  const chart = (x: string) => `  Chart "${x}" cols="${x},Visits" rows=3`;
+  const charts = await exportCharts(['Screen "Dashboard"', ...["Month", "Day", "Signup date", "Year", "Region"].map(chart)].join("\n"));
+  expect(charts.map((rows) => rows.map((row) => Object.values(row)[0]))).toEqual([
+    ["Jan", "Feb", "Mar"],
+    ["Mon", "Tue", "Wed"],
+    ["Jan 1", "Jan 2", "Jan 3"],
+    ["2024", "2025", "2026"],
+    ["Item 1", "Item 2", "Item 3"],
+  ]);
+});
+
+test("placeholder Chart values are whole numbers in every series", async () => {
+  const [rows] = await exportCharts(`Screen "Dashboard"\n  Chart "Traffic" cols="Month,Visits,Signups" rows=4\n`);
+  const values = rows!.flatMap(({ visits, signups }) => [visits, signups]);
+  expect({ count: values.length, whole: values.every(Number.isInteger) }).toEqual({ count: 8, whole: true });
+});
+
+test("placeholder Chart values are the same on every run", async () => {
+  const source = `Screen "Dashboard"\n  Chart "Traffic" cols="Month,Visits" rows=6\n`;
+  expect(await exportCharts(source)).toEqual(await exportCharts(source));
+});
+
+test("same-shaped Charts at different places get different placeholder values", async () => {
+  const [first, second] = await exportCharts(`Screen "Dashboard"\n  Chart "A" cols="Month,Visits" rows=6\n  Chart "B" cols="Month,Visits" rows=6\n`);
+  expect(first).not.toEqual(second);
+});
