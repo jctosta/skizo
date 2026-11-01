@@ -94,27 +94,27 @@ Screen "Dashboard"
   "Welcome back"
 `;
 
-test("on a phone the Sidebar hides behind a menu Button that opens it in a left Sheet, where a Link shows its Screen", async () => {
+test("on a phone the Sidebar hides behind the Sidebar toggle that opens it in a left Sheet, where a Link shows its Screen", async () => {
   const { page, sketch } = await openPreview(browser, SHARED_SIDEBAR, { args: ["--viewport", "phone"] });
   const shown = (role: "navigation" | "dialog" | "heading") => sketch.getByRole(role).filter({ visible: true });
-  const menu = sketch.getByRole("button", { name: "Menu" }).filter({ visible: true });
+  const toggle = sketch.getByRole("button", { name: "Menu" }).filter({ visible: true });
 
   const column = await shown("navigation").count();
-  await menu.click();
+  await toggle.click();
   const sheet = sketch.getByRole("dialog", { name: "Menu" }).filter({ visible: true });
   const left = await sheet.evaluate((el) => el.getBoundingClientRect().left);
   await sheet.getByRole("link", { name: "Dashboard" }).click();
   // hashchange fires after the click resolves.
   await expect.poll(() => shown("heading").first().textContent()).toBe("Dashboard");
-  const after = { dialogs: await shown("dialog").count(), menu: await menu.count() };
-  // From md: up the column shows and the menu Button does not.
+  const after = { dialogs: await shown("dialog").count(), toggle: await toggle.count() };
+  // From md: up the column shows and the Sidebar toggle does not.
   await page.getByRole("button", { name: "Tablet" }).click();
-  const tablet = { navigation: await shown("navigation").count(), menu: await menu.count() };
+  const tablet = { navigation: await shown("navigation").count(), toggle: await toggle.count() };
 
   expect({ column, left, after, tablet }).toEqual({
     column: 0,
     left: 0,
-    after: { dialogs: 0, menu: 1 },
-    tablet: { navigation: 1, menu: 0 },
+    after: { dialogs: 0, toggle: 1 },
+    tablet: { navigation: 1, toggle: 0 },
   });
 });

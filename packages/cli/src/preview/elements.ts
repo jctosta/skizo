@@ -61,8 +61,8 @@ const choice = (id: string, label: string, control: string) =>
  */
 export const EMITTERS: Record<string, Emit> = {
   /**
-   * With a Sidebar: a page shell, the sidebar column beside the main area. On phones the column hides and a menu
-   * button before the title opens the Sidebar in a left Sheet, through the Dialog and Sheet machinery (SCRIPTS.dialog).
+   * With a Sidebar: a page shell, the sidebar column beside the main area. On phones the column hides and the Sidebar
+   * toggle before the title opens it in a left Sheet, through the Dialog and Sheet machinery (SCRIPTS.dialog).
    */
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
@@ -73,10 +73,10 @@ export const EMITTERS: Record<string, Emit> = {
     const title = `<h1 class="${c.title}">${esc(node.label!)}</h1>`;
     const b = CLASSES.Button;
     // The Sheet takes the Screen's id: ids are unique in the file, so no Dialog or Sheet can have it.
-    const menu = `<button type="button" data-opens="${esc(id)}" aria-haspopup="dialog" class="${cx(b.base, b.variant.ghost, b.iconSize.md, c.menu)}">${iconSvg("menu")}<span class="${b.hiddenLabel}">Menu</span></button>`;
+    const sidebarToggle = `<button type="button" data-opens="${esc(id)}" aria-haspopup="dialog" class="${cx(b.base, b.variant.ghost, b.iconSize.md, c.sidebarToggle)}">${iconSvg("menu")}<span class="${b.hiddenLabel}">Menu</span></button>`;
     const main = lines(
       `<header class="${cx(c.header, actions && c.headerWithActions)}">`,
-      sidebar ? div(c.titleRow, lines(menu, title)) : title,
+      sidebar ? div(c.titleRow, lines(sidebarToggle, title)) : title,
       subtitle !== undefined && `<p class="${c.subtitle}">${esc(subtitle)}</p>`,
       actions && div(c.actions, ctx.render(actions)),
       `</header>`,
@@ -93,7 +93,7 @@ export const EMITTERS: Record<string, Emit> = {
       `</section>`,
     );
   },
-  /** The Sidebar's nav: the Screen puts it in its column and in the Sheet of its menu button. */
+  /** The Sidebar's nav: the Screen puts it in its column and in the Sheet of its Sidebar toggle. */
   Sidebar: (node, ctx) => lines(`<nav class="${CLASSES.Sidebar.nav}">`, ctx.render(node.children), "</nav>"),
   /** A Link without to= goes nowhere yet: no href. */
   Link: (node, ctx) => {

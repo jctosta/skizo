@@ -132,7 +132,7 @@ export const openState = (id: string) => {
 
 /**
  * Dialog and Sheet: Content > Header(Title, Description) + body + Footer, with useState when an id lets opens= show it.
- * `trigger`, a Button, opens it from inside the root (the Screen's menu); `body` replaces the children's JSX.
+ * `trigger`, a Button, opens it from inside the root (the Screen's Sidebar toggle); `body` replaces the children's JSX.
  */
 function dialog(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string, trigger?: string, body?: string) {
   /** Imports a part and returns its name. */
@@ -181,13 +181,13 @@ function dialog(node: Node, ctx: Ctx, kind: "Dialog" | "Sheet", content: string,
 }
 
 /**
- * The menu button that shows the Sidebar's `nav` on phones: a ghost icon Button, hidden from md:, that opens a left
+ * The Sidebar toggle that shows the Sidebar's `nav` on phones: a ghost icon Button, hidden from md:, that opens a left
  * Sheet holding the nav.
  */
-function menu(ctx: Ctx, nav: string) {
+function sidebarSheet(ctx: Ctx, nav: string) {
   const b = CLASSES.Button;
   ctx.use("@/components/ui/button", "Button");
-  const button = wrap(`<Button variant="ghost" size="icon" className="${CLASSES.Screen.menu}">`, lines(icon(ctx, "menu"), `<span className="${b.hiddenLabel}">Menu</span>`), "</Button>");
+  const button = wrap(`<Button variant="ghost" size="icon" className="${CLASSES.Screen.sidebarToggle}">`, lines(icon(ctx, "menu"), `<span className="${b.hiddenLabel}">Menu</span>`), "</Button>");
   return dialog({ type: "Sheet", label: "Menu", props: {}, children: [], line: 0 }, ctx, "Sheet", ` side="left"`, button, nav);
 }
 
@@ -213,7 +213,7 @@ export const EMITTERS: Record<string, Emit> = {
     const nav = sidebar && (isShared ? `<AppSidebar${jsxAttrs({ current: node.props.id })} />` : ctx.render([sidebar]));
     const title = `<h1 className="${c.title}">${text(node.label!)}</h1>`;
     const header = lines(
-      nav ? wrap(`<div className="${c.titleRow}">`, lines(menu(ctx, nav), title), "</div>") : title,
+      nav ? wrap(`<div className="${c.titleRow}">`, lines(sidebarSheet(ctx, nav), title), "</div>") : title,
       subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
       actions && wrap(`<div className="${c.actions}">`, ctx.render(actions), "</div>"),
     );
@@ -229,7 +229,7 @@ export const EMITTERS: Record<string, Emit> = {
     const column = wrap(`<aside className="${CLASSES.Sidebar.root}">`, nav, "</aside>");
     return wrap(`<div className="${c.shell}">`, lines(column, main), "</div>");
   },
-  /** The Sidebar's nav: the Screen puts it in its column and in the Sheet of its menu button. */
+  /** The Sidebar's nav: the Screen puts it in its column and in the Sheet of its Sidebar toggle. */
   Sidebar: (node, ctx) => wrap(`<nav className="${CLASSES.Sidebar.nav}">`, ctx.render(node.children), "</nav>"),
   /** In the shared Sidebar (AppSidebar) the active Link is the one whose to= is the `current` prop. */
   Link: (node, ctx) => {

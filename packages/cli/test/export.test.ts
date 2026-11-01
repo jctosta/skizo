@@ -79,7 +79,7 @@ test("a shared Sidebar is written once, as app-sidebar.tsx, and each Screen that
   });
 });
 
-test("on phones a menu Button opens the shared Sidebar in a left Sheet, and AppSidebar stays the one source of the links", async () => {
+test("on phones the Sidebar toggle opens the shared Sidebar in a left Sheet, and AppSidebar stays the one source of the links", async () => {
   const cwd = withFiles({ "orders.skz": SHARED_SIDEBAR });
   await runCli(["export", "orders.skz", "--target", "shadcn"], cwd);
   const file = readFileSync(join(cwd, "orders.tsx"), "utf8");
@@ -154,7 +154,7 @@ test("--router next writes each link to a Screen as Link from next/link, with hr
       'import Link from "next/link"',
       '<Link href="/orders" aria-current="page">Orders</Link>',
       "<a>Help</a>",
-      // The phone menu's Sheet holds the same links.
+      // The Sheet of the Sidebar toggle holds the same links.
       "<SheetTrigger asChild>",
       '<Link href="/orders" aria-current="page">Orders</Link>',
       "<a>Help</a>",

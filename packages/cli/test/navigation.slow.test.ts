@@ -10,7 +10,7 @@ afterAll(async () => {
   await browser?.close();
 });
 
-// openPreview's 1280 px window shows the Sidebar; below md: (768 px) it folds behind a toggle (responsive.slow.test.ts).
+// openPreview's 1280 px window shows the Sidebar; below md: (768 px) it folds behind the Sidebar toggle (responsive.slow.test.ts).
 const FLOW = `Screen "Orders"
   Sidebar
     Link "Dashboard" icon=home to=dashboard

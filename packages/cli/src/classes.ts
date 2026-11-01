@@ -27,16 +27,16 @@ export const CLASSES = {
     headerWithActions: "grid-cols-[1fr_auto] gap-x-4",
     actions: "col-start-2 row-span-2 row-start-1 flex items-center gap-2 self-start justify-self-end",
     title: "text-2xl font-semibold tracking-tight",
-    /** With a Sidebar: the menu button, then the title. */
+    /** With a Sidebar: the Sidebar toggle, then the title. */
     titleRow: "flex items-center gap-2",
-    /** The ghost icon Button that opens the Sidebar in a left Sheet on phones; from md: the column shows instead. */
-    menu: "md:hidden",
+    /** The Sidebar toggle: a ghost icon button that opens the Sidebar in a left Sheet on phones; from md: the column shows instead. */
+    sidebarToggle: "md:hidden",
     subtitle: "text-sm text-muted-foreground",
     body: "flex flex-col gap-4",
   },
   /**
    * Plain markup in every Backend, styled after shadcn's sidebar (bg-sidebar is about bg-muted/50 on white). The
-   * Screen puts the `nav` in the `root` column, hidden on phones, and in the left Sheet its menu button opens.
+   * Screen puts the `nav` in the `root` column, hidden on phones, and in the left Sheet that the Sidebar toggle opens.
    */
   Sidebar: { root: "hidden w-64 shrink-0 flex-col border-r bg-muted/50 p-2 md:flex", nav: "flex flex-col gap-1" },
   /** shadcn's SidebarMenuButton look; the active Link carries aria-current="page". */
