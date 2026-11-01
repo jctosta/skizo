@@ -1,0 +1,8 @@
+Screen "Dashboard"
+  Card "Revenue" span=2
+  Grid cols=3
+    Stack
+      Card "Orders" span=2
+    Card "Customers"
+      actions
+        Card "Nested" span=2

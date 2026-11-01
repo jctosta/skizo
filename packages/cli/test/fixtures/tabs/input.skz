@@ -1,0 +1,21 @@
+// Tabs: an explicit active Tab, a first Tab active by default, nested Tabs and an empty panel.
+Screen "Orders"
+  Tabs
+    Tab "All"
+      Heading "Every order"
+      Text "Sorted by date" muted
+    Tab "Needs review" active
+      Tabs
+        Tab "Today"
+          "Nothing to review today."
+        Tab "This week"
+    Tab "Refunds & <returns>"
+      "Refunded orders show here."
+
+// Tab Labels that do not slug to distinct values fall back to tab-1, tab-2, ... in the export.
+Screen "Drafts"
+  Tabs
+    Tab "Draft"
+      "First draft"
+    Tab "Draft"
+      "Second draft"

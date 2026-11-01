@@ -9,6 +9,8 @@ export type Node = {
   slots?: { actions?: Node[]; footer?: Node[] };
   /** Table only. */
   rows?: string[][];
+  /** Table only: the 1-based source line of each of `rows`, for errors. */
+  rowLines?: number[];
   /** 1-based source line. */
   line: number;
 };

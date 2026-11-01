@@ -1,9 +1,17 @@
 import type { Node } from "@skizo/core";
-import { CLASSES, cx } from "../classes";
+import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
+import { initials, listItems, lorem, tableRows } from "../placeholder";
 import { iconSvg } from "../icons";
+import type { Script } from "./script";
 
-/** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
-export type Ctx = { render(nodes: Node[]): string };
+/** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
+export type Ctx = {
+  render(nodes: Node[]): string;
+  /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
+  path: string;
+  /** Adds one of the SCRIPTS handlers to the page. */
+  script(name: Script): void;
+};
 export type Emit = (node: Node, ctx: Ctx) => string;
 
 /** HTML-escapes text and attribute values. */
@@ -43,11 +51,13 @@ export const EMITTERS: Record<string, Emit> = {
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
+    const actions = node.slots?.actions;
     return [
       `<section data-screen="${esc(node.props.id as string)}" class="${c.root}">`,
-      `<header class="${c.header}">`,
+      `<header class="${cx(c.header, actions && c.headerWithActions)}">`,
       `<h1 class="${c.title}">${esc(node.label!)}</h1>`,
       subtitle !== undefined && `<p class="${c.subtitle}">${esc(subtitle)}</p>`,
+      actions && div(c.actions, ctx.render(actions)),
       `</header>`,
       `<div class="${c.body}">`,
       ctx.render(node.children),
@@ -61,10 +71,118 @@ export const EMITTERS: Record<string, Emit> = {
     const level = node.props.level as keyof typeof CLASSES.Heading;
     return `<h${level} class="${CLASSES.Heading[level]}">${esc(node.label!)}</h${level}>`;
   },
-  Text: (node) => {
+  Text: (node, ctx) => {
     const c = CLASSES.Text;
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
-    return `<p class="${classes}">${esc(node.label!)}</p>`;
+    return `<p class="${classes}">${esc(node.label ?? lorem(ctx.path, node.props.lorem as number))}</p>`;
+  },
+  Stat: (node) => {
+    const c = CLASSES.Stat;
+    const trend = node.props.trend as "none" | "up" | "down";
+    const title = node.props.title as string | undefined;
+    const hint = [{ none: "", up: "↑", down: "↓" }[trend], node.props.hint].filter(Boolean).join(" ");
+    return [
+      `<div class="${c.root}">`,
+      title !== undefined && `<p class="${c.title}">${esc(title)}</p>`,
+      `<div class="${c.value}">${esc(node.label!)}</div>`,
+      hint && `<p class="${c[trend]}">${esc(hint)}</p>`,
+      `</div>`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  },
+  Badge: (node) => {
+    const c = CLASSES.Badge;
+    return `<span class="${cx(c.root, c[node.props.variant as "default" | "secondary" | "outline" | "destructive"])}">${esc(node.label!)}</span>`;
+  },
+  Avatar: (node) => {
+    const c = CLASSES.Avatar;
+    const size = c[node.props.size as "sm" | "md" | "lg"];
+    // Only the initials show, so the full name is the accessible name.
+    return `<span role="img" aria-label="${esc(node.label!)}" class="${cx(c.root, size)}">${esc(initials(node.label!))}</span>`;
+  },
+  Image: (node) => {
+    const c = CLASSES.Image;
+    const alt = esc(node.label!);
+    return `<div role="img" aria-label="${alt}" class="${cx(c.root, c[node.props.ratio as "16:9" | "4:3" | "3:2" | "1:1"])}">${alt}</div>`;
+  },
+  Alert: (node) => {
+    const c = CLASSES.Alert;
+    const variant = node.props.variant as "default" | "destructive";
+    const text = node.props.text as string | undefined;
+    return [
+      `<div role="alert" class="${cx(c.root, c[variant])}">`,
+      `<div class="${c.title}">${esc(node.label!)}</div>`,
+      text !== undefined && `<div class="${c.text[variant]}">${esc(text)}</div>`,
+      `</div>`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  },
+  Progress: (node) => {
+    const c = CLASSES.Progress;
+    const value = (node.props.value as number | undefined) ?? 0;
+    return `<div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${value}" class="${c.root}"><div class="${c.indicator}" style="width: ${value}%"></div></div>`;
+  },
+  Stack: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
+  Row: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
+  Grid: (node, ctx) => div(gridClasses(node), ctx.render(node.children)),
+  Separator: () => `<div role="none" class="${CLASSES.Separator.root}"></div>`,
+  Card: (node, ctx) => {
+    const c = CLASSES.Card;
+    const desc = node.props.desc as string | undefined;
+    const { actions, footer } = node.slots ?? {};
+    const header = lines(
+      node.label !== undefined && `<div class="${c.title}">${esc(node.label)}</div>`,
+      desc !== undefined && `<div class="${c.desc}">${esc(desc)}</div>`,
+      actions && div(cx(c.action, c.actions), ctx.render(actions)),
+    );
+    return div(
+      cx(c.root, c.span[node.props.span as keyof typeof c.span]),
+      lines(
+        header && div(cx(c.header, actions && c.headerWithActions), header),
+        node.children.length > 0 && div(c.content, ctx.render(node.children)),
+        footer && div(cx(c.footer, c.footerItems), ctx.render(footer)),
+      ),
+    );
+  },
+  Table: (node, ctx) => {
+    const c = CLASSES.Table;
+    const row = (tag: "th" | "td", cells: string[]) =>
+      `<tr class="${c.row}">${cells.map((s) => `<${tag} class="${tag === "th" ? c.head : c.cell}">${esc(s)}</${tag}>`).join("")}</tr>`;
+    return [
+      `<div class="${c.container}">`,
+      `<table class="${c.table}">`,
+      `<thead class="${c.header}">`,
+      row("th", node.props.cols as string[]),
+      "</thead>",
+      `<tbody class="${c.body}">`,
+      ...tableRows(node, ctx.path).map((cells) => row("td", cells)),
+      "</tbody>",
+      "</table>",
+      "</div>",
+    ].join("\n");
+  },
+  List: (node) => [`<ul class="${CLASSES.List.root}">`, ...listItems(node).map((item) => `<li>${esc(item)}</li>`), "</ul>"].join("\n"),
+  /** Renders its Tabs too: triggers and panels pair up by position. */
+  Tabs: (node, ctx) => {
+    const c = CLASSES.Tabs;
+    ctx.script("tabs");
+    const active = (tab: Node) => tab.props.active === true;
+    return [
+      `<div class="${c.root}">`,
+      `<div role="tablist" class="${c.list}">`,
+      ...node.children.map(
+        (tab) => `<button type="button" role="tab" aria-selected="${active(tab)}" class="${c.trigger}">${esc(tab.label!)}</button>`,
+      ),
+      `</div>`,
+      ...node.children.map((tab) =>
+        [`<div role="tabpanel" class="${c.panel}"${active(tab) ? "" : " hidden"}>`, ctx.render(tab.children), `</div>`]
+          .filter(Boolean)
+          .join("\n"),
+      ),
+      `</div>`,
+    ].join("\n");
   },
   Button: (node) => {
     const c = CLASSES.Button;
@@ -87,8 +205,9 @@ export const EMITTERS: Record<string, Emit> = {
     const a = attrs({ id: fieldId(node), placeholder, rows });
     return field(node, `<textarea${a} class="${CLASSES.Textarea.control}">${esc(String(value))}</textarea>`);
   },
-  Select: (node) => {
+  Select: (node, ctx) => {
     const c = CLASSES.Select;
+    ctx.script("popup");
     const { value, placeholder = "", open } = node.props as { value?: string; placeholder?: string; open?: true };
     const options = (node.props.options ?? []) as string[];
     const shown = value === undefined ? `<span class="${c.placeholder}">${esc(placeholder)}</span>` : `<span>${esc(value)}</span>`;
@@ -102,7 +221,7 @@ export const EMITTERS: Record<string, Emit> = {
       [
         `<div data-popup class="${c.root}">`,
         trigger,
-        `<div role="listbox" data-popup-content class="${cx(c.content, open !== true && c.closed)}">`,
+        `<div role="listbox" data-popup-content class="${c.content}"${open === true ? "" : " hidden"}>`,
         ...items,
         `</div>`,
         `</div>`,
@@ -139,3 +258,9 @@ export const EMITTERS: Record<string, Emit> = {
     ].join("\n");
   },
 };
+
+/** Joins the present lines. */
+const lines = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
+
+/** A `<div>` holding `body`, which may be empty. */
+const div = (classes: string, body: string) => lines(`<div class="${classes}">`, body, "</div>");

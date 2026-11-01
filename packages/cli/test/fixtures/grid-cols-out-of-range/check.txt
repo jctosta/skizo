@@ -1,0 +1,3 @@
+input.skz:2  Grid  cols=7 is out of range (expected: 2..6)
+input.skz:4  Grid  cols=1 is out of range (expected: 2..6)
+input.skz:6  Grid  cols=two is not a whole number

@@ -1,0 +1,3 @@
+Screen "Orders"
+  Table cols="Order,Amount" rows=5
+    | #1042 | $120.00

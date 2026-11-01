@@ -1,0 +1,10 @@
+// The Screen actions slot sits at the right of the header row, with or without a subtitle.
+Screen "Orders" subtitle="Manage and track customer orders"
+  actions
+    Text "Synced" muted
+    Text "2 min ago" size=sm
+  Text "Body"
+
+Screen "Archive"
+  actions
+    Text "Read only" muted

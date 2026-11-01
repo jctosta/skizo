@@ -34,8 +34,19 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
       if (spec.label === "required" && node.label === undefined) err(node, `needs a Label (${node.type} "...")`);
       if (spec.label === "none" && node.label !== undefined) err(node, "takes no Label");
       for (const name of Object.keys(node.slots ?? {}) as (keyof NonNullable<Node["slots"]>)[])
-        if (!spec.slots?.includes(name)) err(node, `takes no "${name}" slot`);
+        if (!spec.slots?.includes(name)) {
+          const owners = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type]!.slots?.includes(name));
+          err(node, `takes no "${name}" slot (allowed in: ${owners.join(", ")})`);
+        }
       props(node, spec, options, err);
+      spec.check?.(node, (message, line = node.line) => errors.push({ line, type: node.type, message }));
+      // `span` (on any Element type whose schema lists it) counts columns of the Grid it sits directly in.
+      const span = node.props.span;
+      if (typeof span === "number") {
+        const cols = parent?.type === "Grid" && !inSlot ? parent.props.cols : undefined;
+        if (cols === undefined) err(node, "span only works directly inside a Grid");
+        else if (typeof cols === "number" && span > cols) err(node, `span=${span} is larger than the Grid's cols=${cols}`);
+      }
       if (node.type === "Screen" && node.props.id === undefined && node.label !== undefined) {
         const slug = slugify(node.label);
         if (slug) node.props.id = slug;
@@ -52,6 +63,14 @@ export function validate(document: Document, options: CheckOptions = {}): CheckE
 
     for (const child of node.children) walk(child, node);
     for (const child of [...(node.slots?.actions ?? []), ...(node.slots?.footer ?? [])]) walk(child, node, true);
+
+    if (spec?.exclusive) {
+      const { flag, firstByDefault } = spec.exclusive;
+      const [first, ...extra] = node.children.filter((child) => child.props[flag] === true);
+      for (const child of extra)
+        err(child, `only one ${child.type} per ${node.type} can be ${flag} (line ${first!.line} is ${flag} too)`);
+      if (!first && firstByDefault && node.children[0]) node.children[0].props[flag] = true;
+    }
   };
   for (const screen of document.screens) walk(screen);
   return errors;
@@ -72,8 +91,11 @@ function props(node: Node, spec: ElementSpec, options: CheckOptions, err: (node:
       err(node, `${key} needs a value${prop.kind === "enum" ? ` (expected: ${prop.values.join(", ")})` : ""}`);
     } else node.props[key] = coerce(key, String(raw), prop, options, (message) => err(node, message));
   }
-  for (const [key, prop] of Object.entries(spec.props))
-    if (prop.kind === "enum" && node.props[key] === undefined) node.props[key] = prop.values[0]!;
+  for (const [key, prop] of Object.entries(spec.props)) {
+    if (node.props[key] !== undefined) continue;
+    if (prop.kind === "enum") node.props[key] = prop.values[0]!;
+    if (prop.kind === "number" && prop.default !== undefined) node.props[key] = prop.default;
+  }
 }
 
 function coerce(

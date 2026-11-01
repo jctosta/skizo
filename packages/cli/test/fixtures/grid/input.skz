@@ -1,0 +1,13 @@
+// Grid defaults to cols=2 gap=md; every cols value maps to a column count.
+Screen "Grid"
+  Grid
+    Text "A"
+    Text "B"
+  Grid cols=3 gap=sm
+    Text "C"
+  Grid cols=4 gap=lg
+    Text "D"
+  Grid cols=5
+    Text "E"
+  Grid cols=6
+    Text "F"

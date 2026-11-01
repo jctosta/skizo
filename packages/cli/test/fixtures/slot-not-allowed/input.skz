@@ -1,4 +1,7 @@
 Screen "Orders"
   Heading "Recent orders"
-    footer
+    actions
       Text "Updated hourly"
+  Stack
+    actions
+      Text "Refresh"
