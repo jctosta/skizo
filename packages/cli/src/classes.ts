@@ -203,11 +203,11 @@ export const CLASSES = {
   },
   /** shadcn Select look-alike for the Preview, opened by preview/script.ts (exports use <Select>). */
   Select: {
-    root: "relative",
     trigger: "flex h-9 w-fit items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
     placeholder: "text-muted-foreground",
     chevron: "pointer-events-none size-4 text-muted-foreground",
-    content: "absolute top-full left-0 z-50 mt-1 min-w-36 overflow-hidden rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10",
+    // Like Menu's: no top/left and no positioned wrapper, so a Card's overflow-hidden cannot clip it.
+    content: "absolute z-50 mt-1 min-w-36 overflow-hidden rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10",
     item: "relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible",
     check: "pointer-events-none invisible absolute right-2 size-4",
   },

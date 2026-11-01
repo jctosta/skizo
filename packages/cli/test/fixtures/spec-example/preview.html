@@ -114,9 +114,9 @@
 </div>
 <div class="grid gap-2">
 <label for="field-27" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Status</label>
-<div data-popup class="relative">
+<div data-popup>
 <button type="button" role="combobox" id="field-27" aria-expanded="false" aria-haspopup="listbox" data-popup-trigger class="flex h-9 w-fit items-center justify-between gap-1.5 rounded-md border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap shadow-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"><span>Open</span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none size-4 text-muted-foreground" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
-<div role="listbox" data-popup-content class="absolute top-full left-0 z-50 mt-1 min-w-36 overflow-hidden rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10" hidden>
+<div role="listbox" data-popup-content class="absolute z-50 mt-1 min-w-36 overflow-hidden rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10" hidden>
 <div role="option" aria-selected="true" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Open<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
 <div role="option" aria-selected="false" class="relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm select-none hover:bg-accent hover:text-accent-foreground aria-selected:[&_svg]:visible">Paid<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none invisible absolute right-2 size-4" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
 </div>
@@ -189,6 +189,16 @@ document.addEventListener("click", (event) => {
     p.querySelector("[data-popup-trigger]").setAttribute("aria-expanded", String(open));
   }
 });
+// Escape closes the open popups, and only them: a Dialog under a popup stays open.
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const open = [...document.querySelectorAll("[data-popup-content]")].filter((c) => c.checkVisibility());
+  for (const content of open) {
+    content.hidden = true;
+    content.closest("[data-popup]").querySelector("[data-popup-trigger]").setAttribute("aria-expanded", "false");
+  }
+  if (open.length) event.stopImmediatePropagation();
+});
 // Overlays (Dialog, Sheet): a [data-opens] Button shows the [data-overlay] with that id;
 // a click on a [data-overlay-close] (close button, backdrop, footer Button without Behavior) hides its overlay.
 document.addEventListener("click", (event) => {
@@ -201,6 +211,12 @@ document.addEventListener("click", (event) => {
   const closer = target && target.closest("[data-overlay-close]");
   if (closer) closer.closest("[data-overlay]").hidden = true;
 });
+// Escape closes the topmost shown overlay (the last in the page).
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const top = [...document.querySelectorAll("[data-overlay]")].filter((o) => o.checkVisibility()).pop();
+  if (top) top.hidden = true;
+});
 // Screens (to=): one shows at a time. A to= is a link to #<screen id>; the hash picks the Screen,
 // so the back button works and a preview --watch reload stays on it. No hash: the first Screen.
 const showScreen = () => {
@@ -209,7 +225,13 @@ const showScreen = () => {
   const shown = screens.find((s) => s.dataset.screen === id) || screens[0];
   for (const s of screens) s.hidden = s !== shown;
 };
-addEventListener("hashchange", () => (showScreen(), scrollTo(0, 0)));
+// A Screen shows as it loads, like a remounted page: Overlays opened since close, those flagged open show again.
+const overlays = [...document.querySelectorAll("[data-overlay]")].map((o) => [o, o.hidden]);
+addEventListener("hashchange", () => {
+  for (const [o, hidden] of overlays) o.hidden = hidden;
+  showScreen();
+  scrollTo(0, 0);
+});
 showScreen();
 </script>
 </body>

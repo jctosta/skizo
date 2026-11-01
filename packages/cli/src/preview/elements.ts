@@ -266,7 +266,7 @@ export const EMITTERS: Record<string, Emit> = {
     return field(
       node,
       [
-        `<div data-popup class="${c.root}">`,
+        `<div data-popup>`,
         trigger,
         `<div role="listbox" data-popup-content class="${c.content}"${open === true ? "" : " hidden"}>`,
         ...items,

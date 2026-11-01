@@ -73,6 +73,16 @@ document.addEventListener("click", (event) => {
     p.querySelector("[data-popup-trigger]").setAttribute("aria-expanded", String(open));
   }
 });
+// Escape closes the open popups, and only them: a Dialog under a popup stays open.
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const open = [...document.querySelectorAll("[data-popup-content]")].filter((c) => c.checkVisibility());
+  for (const content of open) {
+    content.hidden = true;
+    content.closest("[data-popup]").querySelector("[data-popup-trigger]").setAttribute("aria-expanded", "false");
+  }
+  if (open.length) event.stopImmediatePropagation();
+});
 </script>
 </body>
 </html>

@@ -92,6 +92,26 @@ test("opens= shows the Sheet at its side and a backdrop click closes it", async 
   await page.context().close();
 });
 
+test("Escape closes an open Select first, then the Dialog under it", async () => {
+  const { page } = await openPreview(
+    `Screen "Orders"\n  Button "New order" opens=new-order\n  Dialog "New order" id=new-order\n    Select "Status" options="Open,Paid"\n`,
+  );
+  const { overlay, visibleAfter } = await open(page, "New order");
+  await page.getByRole("combobox", { name: "Status" }).click();
+  const option = page.getByRole("option", { name: "Paid" });
+  const optionShown = await option.isVisible();
+  await page.keyboard.press("Escape");
+  const afterFirst = { option: await option.isVisible(), dialog: await overlay.isVisible() };
+  await page.keyboard.press("Escape");
+  expect({ visibleAfter, optionShown, afterFirst, dialogAfterSecond: await overlay.isVisible() }).toEqual({
+    visibleAfter: true,
+    optionShown: true,
+    afterFirst: { option: false, dialog: true },
+    dialogAfterSecond: false,
+  });
+  await page.context().close();
+});
+
 test("an Overlay flagged open shows on load", async () => {
   const { page } = await openPreview(`Screen "Orders"\n  Dialog "Welcome back" open\n    "Here is what changed."\n`);
   expect(await page.getByRole("dialog", { name: "Welcome back" }).isVisible()).toBe(true);
