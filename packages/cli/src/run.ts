@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 import { check, didYouMean, type CheckError, type Document } from "@skizo/core";
 import { renderPreview } from "./preview/page";
+import { watchPreview } from "./preview/watch";
 
 export type Io = { stdout(s: string): void; stderr(s: string): void; cwd: string; signal?: AbortSignal };
 
@@ -25,13 +26,20 @@ const COMMANDS: Record<string, Command> = {
     },
   },
   preview: {
-    run(file, _flags, io) {
-      const document = loadChecked(file, io);
-      if (typeof document === "number") return document;
+    options: { watch: { type: "boolean" } },
+    run(file, flags, io) {
       const out = `${file.replace(/\.skz$/, "")}.html`;
-      writeFileSync(resolve(io.cwd, out), renderPreview(document));
-      io.stdout(`wrote ${out}\n`);
-      return 0;
+      const build = () => {
+        const document = loadChecked(file, io);
+        if (typeof document === "number") return document;
+        const html = renderPreview(document);
+        writeFileSync(resolve(io.cwd, out), html);
+        io.stdout(`wrote ${out}\n`);
+        return html;
+      };
+      const html = build();
+      if (typeof html === "number") return html;
+      return flags.watch ? watchPreview(resolve(io.cwd, file), html, build, io) : 0;
     },
   },
 };
