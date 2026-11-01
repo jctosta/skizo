@@ -204,8 +204,14 @@ const elementsHtml = GROUPS.map((g) => `<h2 class="group" id="${slug(g.title)}">
 const examplesHtml = exampleFiles.map(exampleSection).join("");
 rmSync(tmp, { recursive: true, force: true });
 
+// GitHub Pages serves docs/ from main (docs/.nojekyll keeps the files as they are).
+const SITE = "https://jctosta.github.io/skizo/";
+const REPO = "https://github.com/jctosta/skizo";
+const DESCRIPTION = "Skizo is a small language to sketch user interfaces, made for coding agents. The skizo command checks a sketch, shows it as a Preview page and exports it as shadcn React code.";
+
 const nav = `
 <a class="brand" href="#top"><img src="assets/logo/skizo-lockup.svg" alt="Skizo" width="87" height="28"> <span class="tag">alpha</span></a>
+<a href="${REPO}">GitHub repository</a>
 <p class="navhead">Basics</p>
 ${sections.map((s) => `<a href="#${s.id}">${esc(s.title)}</a>`).join("")}
 <p class="navhead"><a href="#elements">Elements</a></p>
@@ -219,6 +225,14 @@ const page = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Skizo documentation</title>
+<meta name="description" content="${esc(DESCRIPTION)}">
+<link rel="canonical" href="${SITE}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Skizo documentation">
+<meta property="og:description" content="${esc(DESCRIPTION)}">
+<meta property="og:url" content="${SITE}">
+<meta property="og:image" content="${SITE}assets/logo/skizo-icon-512.png">
+<meta name="twitter:card" content="summary">
 <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/logo/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="assets/logo/apple-touch-icon.png">
