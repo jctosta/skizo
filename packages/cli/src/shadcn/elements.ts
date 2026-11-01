@@ -7,8 +7,13 @@ import { initials, listItems, lorem, tableRows } from "../placeholder";
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
 export type Ctx = {
   render(nodes: Node[]): string;
-  /** Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
+  /**
+   * Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`.
+   * `default as Link` imports the default export: `import Link from ...`.
+   */
   use(from: string, ...names: string[]): void;
+  /** The `--router` whose Link the export writes links with; undefined for plain anchors. Read it through `screenLink`. */
+  router?: Router;
   /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
   path: string;
   /** `base`, or `base-2`, `base-3`... when the Screen's file already uses it: DOM ids for form controls. */
@@ -67,8 +72,24 @@ export const icon = (ctx: Ctx, name: string, className?: string) => {
   return `<${component}${className ? ` className="${className}"` : ""} />`;
 };
 
-/** Where `to=` goes: the Screen's route. A plain path, so swapping in a router's link component is left to the user. */
-const screenHref = (id: string) => `/${id}`;
+/** `--router`: each router's Link component, as `ctx.use` imports it, and the prop that takes the path. */
+export const ROUTERS = {
+  next: { from: "next/link", name: "default as Link", prop: "href" },
+  "react-router": { from: "react-router", name: "Link", prop: "to" },
+};
+export type Router = keyof typeof ROUTERS;
+
+/**
+ * A link to the Screen `to`, at its route `/<id>`. Every emitter that writes a link calls this, so `--router` reaches
+ * them all: the router's Link, else a plain `<a href>`. Without `to` it goes nowhere yet: a plain `<a>` with no href.
+ */
+export function screenLink(ctx: Ctx, to: string | undefined, attrs: Record<string, unknown>, body: string) {
+  const router = to === undefined || ctx.router === undefined ? undefined : ROUTERS[ctx.router];
+  if (router) ctx.use(router.from, router.name);
+  const tag = router ? "Link" : "a";
+  const open = `<${tag}${jsxAttrs({ [router?.prop ?? "href"]: to === undefined ? undefined : `/${to}`, ...attrs })}>`;
+  return body.includes("\n") ? wrap(open, body, `</${tag}>`) : `${open}${body}</${tag}>`;
+}
 
 /**
  * The useState pair behind opens=, named after the id of the Dialog or Sheet: `new-order` → ["newOrderOpen", "setNewOrderOpen"].
@@ -156,13 +177,10 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Sidebar;
     return wrap(`<aside className="${c.root}">`, wrap(`<nav className="${c.nav}">`, ctx.render(node.children), "</nav>"), "</aside>");
   },
-  /** A plain anchor, like every to=; a Link without to= goes nowhere yet: no href. */
   Link: (node, ctx) => {
     const { to, active } = node.props as { to?: string; active?: true };
-    const href = to === undefined ? undefined : screenHref(to);
-    const tag = `<a${jsxAttrs({ href, "aria-current": active && "page" })} className="${CLASSES.Link.root}">`;
-    if (node.props.icon === undefined) return `${tag}${text(node.label!)}</a>`;
-    return wrap(tag, lines(icon(ctx, node.props.icon as string, CLASSES.Link.icon), text(node.label!)), "</a>");
+    const glyph = node.props.icon !== undefined && icon(ctx, node.props.icon as string, CLASSES.Link.icon);
+    return screenLink(ctx, to, { "aria-current": active && "page", className: CLASSES.Link.root }, lines(glyph, text(node.label!)));
   },
   Heading: (node) => {
     const level = node.props.level as keyof typeof CLASSES.Heading;
@@ -330,11 +348,8 @@ export const EMITTERS: Record<string, Emit> = {
     const glyph = loading ? icon(ctx, "loader-circle", c.spinner) : node.props.icon !== undefined && icon(ctx, node.props.icon as string);
     const label = iconOnly ? `<span className="${c.hiddenLabel}">${text(node.label!)}</span>` : text(node.label!);
     const content = glyph ? lines(glyph, label) : label;
-    // to=: the Button renders a plain anchor (asChild), like a Link.
-    if (to !== undefined) {
-      const anchor = `<a href=${attr(screenHref(to))}>`;
-      return wrap(tag, glyph ? wrap(anchor, content, "</a>") : `${anchor}${content}</a>`, "</Button>");
-    }
+    // to=: the Button renders the link (asChild), like a Link.
+    if (to !== undefined) return wrap(tag, screenLink(ctx, to, {}, content), "</Button>");
     return glyph ? wrap(tag, content, "</Button>") : `${tag}${content}</Button>`;
   },
   Input: (node, ctx) => {
