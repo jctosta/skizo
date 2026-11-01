@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preferences</title>
+<style>/* preview.css */</style>
+</head>
+<body>
+<section data-screen="preferences" class="min-h-screen p-6">
+<header class="mb-6 grid gap-1">
+<h1 class="text-2xl font-semibold tracking-tight">Preferences</h1>
+</header>
+<div class="flex flex-col gap-4">
+<div class="flex items-center gap-2"><input type="checkbox" id="field-2" checked class="peer size-4 shrink-0 accent-primary disabled:cursor-not-allowed disabled:opacity-50"><label for="field-2" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Accept terms</label></div>
+<div class="flex items-center gap-2"><input type="checkbox" id="field-3" disabled class="peer size-4 shrink-0 accent-primary disabled:cursor-not-allowed disabled:opacity-50"><label for="field-3" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Subscribe</label></div>
+<div class="flex items-center gap-2"><button type="button" role="switch" id="field-4" aria-checked="true" disabled class="peer inline-flex h-[18.4px] w-[32px] shrink-0 items-center rounded-full border border-transparent shadow-xs disabled:cursor-not-allowed disabled:opacity-50 bg-primary"><span class="pointer-events-none block size-4 rounded-full bg-background translate-x-[calc(100%-2px)]"></span></button><label for="field-4" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Email me updates</label></div>
+<div class="flex items-center gap-2"><button type="button" role="switch" id="field-5" aria-checked="false" class="peer inline-flex h-[18.4px] w-[32px] shrink-0 items-center rounded-full border border-transparent shadow-xs disabled:cursor-not-allowed disabled:opacity-50 bg-input"><span class="pointer-events-none block size-4 rounded-full bg-background translate-x-0"></span></button><label for="field-5" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Dark mode</label></div>
+<div class="grid gap-2">
+<span id="field-6" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Billing</span>
+<div role="radiogroup" aria-labelledby="field-6" class="grid gap-3">
+<div class="flex items-center gap-2"><input type="radio" id="field-6-1" name="field-6" value="Monthly" class="peer size-4 shrink-0 accent-primary disabled:cursor-not-allowed disabled:opacity-50"><label for="field-6-1" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Monthly</label></div>
+<div class="flex items-center gap-2"><input type="radio" id="field-6-2" name="field-6" value="Yearly" checked class="peer size-4 shrink-0 accent-primary disabled:cursor-not-allowed disabled:opacity-50"><label for="field-6-2" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Yearly</label></div>
+<div class="flex items-center gap-2"><input type="radio" id="field-6-3" name="field-6" value="Every 2 years, prepaid" class="peer size-4 shrink-0 accent-primary disabled:cursor-not-allowed disabled:opacity-50"><label for="field-6-3" class="flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50">Every 2 years, prepaid</label></div>
+</div>
+</div>
+</div>
+</section>
+</body>
+</html>

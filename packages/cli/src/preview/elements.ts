@@ -1,6 +1,7 @@
 import type { Node } from "@skizo/core";
 import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
 import { initials, listItems, lorem, tableRows } from "../placeholder";
+import { iconSvg } from "../icons";
 import type { Script } from "./script";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
@@ -16,6 +17,31 @@ export type Emit = (node: Node, ctx: Ctx) => string;
 /** HTML-escapes text and attribute values. */
 export const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+/** ` name="value"` per attribute (escaped); true is a bare boolean attribute; undefined and false are skipped. */
+export const attrs = (pairs: Record<string, unknown>) =>
+  Object.entries(pairs)
+    .map(([name, v]) => (v === undefined || v === false ? "" : v === true ? ` ${name}` : ` ${name}="${esc(String(v))}"`))
+    .join("");
+
+/** DOM id of a form control: from its source line, so unique within the page and stable between runs. */
+export const fieldId = (node: Node) => `field-${node.line}`;
+
+/** A form control under its Label, with error text below. */
+const field = (node: Node, control: string, error?: unknown) =>
+  [
+    `<div class="${CLASSES.Field.root}">`,
+    `<label for="${fieldId(node)}" class="${CLASSES.Field.label}">${esc(node.label!)}</label>`,
+    control,
+    typeof error === "string" && `<p class="${CLASSES.Field.error}">${esc(error)}</p>`,
+    `</div>`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+/** A small control (Checkbox, Switch, Radio option) with its Label beside it. */
+const choice = (id: string, label: string, control: string) =>
+  `<div class="${CLASSES.Field.choice}">${control}<label for="${id}" class="${CLASSES.Field.label}">${esc(label)}</label></div>`;
 
 /**
  * The Preview Backend: one emitter per Element type, returning HTML.
@@ -155,6 +181,79 @@ export const EMITTERS: Record<string, Emit> = {
           .filter(Boolean)
           .join("\n"),
       ),
+      `</div>`,
+    ].join("\n");
+  },
+  Button: (node) => {
+    const c = CLASSES.Button;
+    const { variant, size, icon } = node.props as { variant: keyof typeof c.variant; size: "sm" | "md" | "lg"; icon?: string };
+    const iconOnly = node.props["icon-only"] === true;
+    const loading = node.props.loading === true;
+    const glyph = loading ? iconSvg("loader-circle", cx("size-4", c.spinner)) : icon !== undefined ? iconSvg(icon) : "";
+    const label = iconOnly ? `<span class="${c.hiddenLabel}">${esc(node.label!)}</span>` : esc(node.label!);
+    const disabled = node.props.disabled === true || loading ? " disabled" : "";
+    const classes = cx(c.base, c.variant[variant], (iconOnly ? c.iconSize : c.size)[size]);
+    return `<button type="button" class="${classes}"${disabled}>${glyph}${label}</button>`;
+  },
+  Input: (node) => {
+    const { type, placeholder, value, disabled, error } = node.props;
+    const a = attrs({ id: fieldId(node), type, placeholder, value, disabled, "aria-invalid": error !== undefined && "true" });
+    return field(node, `<input${a} class="${CLASSES.Input.control}">`, error);
+  },
+  Textarea: (node) => {
+    const { placeholder, value = "", rows } = node.props;
+    const a = attrs({ id: fieldId(node), placeholder, rows });
+    return field(node, `<textarea${a} class="${CLASSES.Textarea.control}">${esc(String(value))}</textarea>`);
+  },
+  Select: (node, ctx) => {
+    const c = CLASSES.Select;
+    ctx.script("popup");
+    const { value, placeholder = "", open } = node.props as { value?: string; placeholder?: string; open?: true };
+    const options = (node.props.options ?? []) as string[];
+    const shown = value === undefined ? `<span class="${c.placeholder}">${esc(placeholder)}</span>` : `<span>${esc(value)}</span>`;
+    const trigger = `<button type="button" role="combobox"${attrs({ id: fieldId(node), "aria-expanded": String(open === true) })} aria-haspopup="listbox" data-popup-trigger class="${c.trigger}">${shown}${iconSvg("chevron-down", c.chevron)}</button>`;
+    const check = iconSvg("check", c.check);
+    const items = options.map(
+      (option) => `<div role="option" aria-selected="${option === value}" class="${c.item}">${esc(option)}${check}</div>`,
+    );
+    return field(
+      node,
+      [
+        `<div data-popup class="${c.root}">`,
+        trigger,
+        `<div role="listbox" data-popup-content class="${c.content}"${open === true ? "" : " hidden"}>`,
+        ...items,
+        `</div>`,
+        `</div>`,
+      ].join("\n"),
+    );
+  },
+  Checkbox: (node) => {
+    const { checked, disabled } = node.props;
+    const control = `<input type="checkbox"${attrs({ id: fieldId(node), checked, disabled })} class="${CLASSES.Checkbox.control}">`;
+    return choice(fieldId(node), node.label!, control);
+  },
+  Switch: (node) => {
+    const c = CLASSES.Switch;
+    const on = node.props.checked === true;
+    const a = attrs({ id: fieldId(node), "aria-checked": String(on), disabled: node.props.disabled });
+    const thumb = `<span class="${cx(c.thumb, on ? c.thumbOn : c.thumbOff)}"></span>`;
+    const control = `<button type="button" role="switch"${a} class="${cx(c.track, on ? c.trackOn : c.trackOff)}">${thumb}</button>`;
+    return choice(fieldId(node), node.label!, control);
+  },
+  Radio: (node) => {
+    const group = fieldId(node);
+    const options = (node.props.options ?? []) as string[];
+    const items = options.map((option, i) => {
+      const a = attrs({ id: `${group}-${i + 1}`, name: group, value: option, checked: option === node.props.value });
+      return choice(`${group}-${i + 1}`, option, `<input type="radio"${a} class="${CLASSES.Radio.control}">`);
+    });
+    return [
+      `<div class="${CLASSES.Field.root}">`,
+      `<span id="${group}" class="${CLASSES.Field.label}">${esc(node.label!)}</span>`,
+      `<div role="radiogroup" aria-labelledby="${group}" class="${CLASSES.Radio.group}">`,
+      ...items,
+      `</div>`,
       `</div>`,
     ].join("\n");
   },

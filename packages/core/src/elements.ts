@@ -4,6 +4,8 @@ import type { Node } from "./ast";
 export type PropSpec =
   | { kind: "flag" }
   | { kind: "string" }
+  /** A Lucide icon name, checked against the names the caller passes to `check` (core holds no icon data). */
+  | { kind: "icon" }
   /** values[0] is the default, filled in when the prop is missing. */
   | { kind: "enum"; values: readonly string[] }
   /** `default` is filled in when the prop is missing. */
@@ -27,6 +29,10 @@ export type ElementSpec = {
 };
 
 const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
+/** Button and Menu: icon-only shows nothing but the icon, so it needs one. */
+const iconOnly: ElementSpec["check"] = (node, err) => {
+  if (node.props["icon-only"] === true && node.props.icon === undefined) err("icon-only needs icon=... too");
+};
 /** Stack and Row. */
 const flex = {
   gap: sizes,
@@ -100,4 +106,37 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   },
   Tabs: { label: "none", props: {}, children: ["Tab"], exclusive: { flag: "active", firstByDefault: true } },
   Tab: { label: "required", props: { active: { kind: "flag" } }, children: "any", parents: ["Tabs"] },
+  Button: {
+    label: "required",
+    props: {
+      variant: { kind: "enum", values: ["default", "secondary", "outline", "ghost", "destructive", "link"] },
+      size: sizes,
+      icon: { kind: "icon" },
+      "icon-only": { kind: "flag" },
+      disabled: { kind: "flag" },
+      loading: { kind: "flag" },
+    },
+    check: iconOnly,
+  },
+  Input: {
+    label: "required",
+    props: {
+      type: { kind: "enum", values: ["text", "email", "password", "number", "search"] },
+      placeholder: { kind: "string" },
+      value: { kind: "string" },
+      error: { kind: "string" },
+      disabled: { kind: "flag" },
+    },
+  },
+  Textarea: {
+    label: "required",
+    props: { placeholder: { kind: "string" }, value: { kind: "string" }, rows: { kind: "number", min: 1 } },
+  },
+  Select: {
+    label: "required",
+    props: { options: { kind: "list" }, value: { kind: "string" }, placeholder: { kind: "string" }, open: { kind: "flag" } },
+  },
+  Checkbox: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
+  Switch: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
+  Radio: { label: "required", props: { options: { kind: "list" }, value: { kind: "string" } } },
 };

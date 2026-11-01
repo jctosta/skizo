@@ -1,0 +1,3 @@
+Screen "Feedback"
+  Textarea "Notes" rows=0
+  Textarea "More notes" rows=two

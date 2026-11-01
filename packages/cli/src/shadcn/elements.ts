@@ -1,5 +1,6 @@
 import { slugify, type Node } from "@skizo/core";
 import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
+import { iconComponent } from "../icons";
 import { initials, listItems, lorem, tableRows } from "../placeholder";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (icons, ...). */
@@ -9,6 +10,8 @@ export type Ctx = {
   use(from: string, ...names: string[]): void;
   /** Node path of the Element being emitted, `<screen id>/<child index>/...`: the seed for placeholder content. */
   path: string;
+  /** `base`, or `base-2`, `base-3`... when the Screen's file already uses it: DOM ids for form controls. */
+  id(base: string): string;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -24,6 +27,48 @@ export const lines = (...parts: (string | false | undefined)[]) => parts.filter(
 /** `open`, then `body` indented two spaces, then `close`; one line when `body` is empty. */
 export const wrap = (open: string, body: string, close: string) =>
   body ? `${open}\n${body.replace(/^/gm, "  ")}\n${close}` : `${open}${close}`;
+
+/** JSX attributes from name → value: strings through `attr`, numbers in braces, true bare; undefined and false skipped. */
+export const jsxAttrs = (pairs: Record<string, unknown>) =>
+  Object.entries(pairs)
+    .map(([name, v]) =>
+      v === undefined || v === false ? "" : v === true ? ` ${name}` : typeof v === "number" ? ` ${name}={${v}}` : ` ${name}=${attr(String(v))}`,
+    )
+    .join("");
+
+/** A form control under its Label, with error text below. `id` ties the Label to the control. */
+const field = (node: Node, ctx: Ctx, id: string, control: string, error?: unknown) => {
+  ctx.use("@/components/ui/label", "Label");
+  return wrap(
+    `<div className="${CLASSES.Field.root}">`,
+    lines(
+      `<Label${jsxAttrs({ htmlFor: id })}>${text(node.label!)}</Label>`,
+      control,
+      typeof error === "string" && `<p className="${CLASSES.Field.error}">${text(error)}</p>`,
+    ),
+    "</div>",
+  );
+};
+
+/** A small control (Checkbox, Switch, RadioGroupItem) with its Label beside it. */
+const choice = (ctx: Ctx, id: string, label: string, control: string) => {
+  ctx.use("@/components/ui/label", "Label");
+  return wrap(`<div className="${CLASSES.Field.choice}">`, lines(control, `<Label${jsxAttrs({ htmlFor: id })}>${text(label)}</Label>`), "</div>");
+};
+
+/** A readable DOM id for a form control: its `id=`, else a slug of its Label. */
+const fieldId = (node: Node, ctx: Ctx) => ctx.id(typeof node.props.id === "string" ? node.props.id : slugify(node.label!) || "field");
+
+/** `<HouseIcon />` for `icon=home`, importing it from lucide-react. */
+export const icon = (ctx: Ctx, name: string, className?: string) => {
+  const component = iconComponent(name);
+  ctx.use("lucide-react", component);
+  return `<${component}${className ? ` className="${className}"` : ""} />`;
+};
+
+/** Skizo `size` → shadcn Button `size`, for text Buttons and for icon-only ones. md is shadcn's default. */
+const BUTTON_SIZE = { sm: "sm", md: undefined, lg: "lg" } as const;
+const ICON_BUTTON_SIZE = { sm: "icon-sm", md: "icon", lg: "icon-lg" } as const;
 
 /**
  * The shadcn Export target: one emitter per Element type, returning TSX.
@@ -173,5 +218,72 @@ export const EMITTERS: Record<string, Emit> = {
       ),
       "</Tabs>",
     );
+  },
+  Button: (node, ctx) => {
+    const c = CLASSES.Button;
+    const { variant, size } = node.props as { variant: string; size: "sm" | "md" | "lg" };
+    const iconOnly = node.props["icon-only"] === true;
+    const loading = node.props.loading === true;
+    const shadcnSize = (iconOnly ? ICON_BUTTON_SIZE : BUTTON_SIZE)[size];
+    const disabled = node.props.disabled === true || loading;
+    const open = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled })}>`;
+    ctx.use("@/components/ui/button", "Button");
+    const glyph = loading ? icon(ctx, "loader-circle", c.spinner) : node.props.icon !== undefined && icon(ctx, node.props.icon as string);
+    if (!glyph) return `${open}${text(node.label!)}</Button>`;
+    const label = iconOnly ? `<span className="${c.hiddenLabel}">${text(node.label!)}</span>` : text(node.label!);
+    return wrap(open, lines(glyph, label), "</Button>");
+  },
+  Input: (node, ctx) => {
+    const { type, placeholder, value, disabled, error } = node.props;
+    const id = fieldId(node, ctx);
+    ctx.use("@/components/ui/input", "Input");
+    const a = jsxAttrs({ id, type, placeholder, defaultValue: value, disabled, "aria-invalid": error !== undefined });
+    return field(node, ctx, id, `<Input${a} />`, error);
+  },
+  Textarea: (node, ctx) => {
+    const { placeholder, value, rows } = node.props;
+    const id = fieldId(node, ctx);
+    ctx.use("@/components/ui/textarea", "Textarea");
+    return field(node, ctx, id, `<Textarea${jsxAttrs({ id, placeholder, defaultValue: value, rows })} />`);
+  },
+  Select: (node, ctx) => {
+    const { value, placeholder, open } = node.props;
+    const id = fieldId(node, ctx);
+    ctx.use("@/components/ui/select", "Select", "SelectContent", "SelectItem", "SelectTrigger", "SelectValue");
+    const items = ((node.props.options ?? []) as string[]).map(
+      (option) => `<SelectItem${jsxAttrs({ value: option })}>${text(option)}</SelectItem>`,
+    );
+    const select = wrap(
+      `<Select${jsxAttrs({ defaultValue: value, defaultOpen: open })}>`,
+      lines(
+        wrap(`<SelectTrigger${jsxAttrs({ id })}>`, `<SelectValue${jsxAttrs({ placeholder })} />`, "</SelectTrigger>"),
+        wrap("<SelectContent>", lines(...items), "</SelectContent>"),
+      ),
+      "</Select>",
+    );
+    return field(node, ctx, id, select);
+  },
+  Checkbox: (node, ctx) => {
+    const id = fieldId(node, ctx);
+    ctx.use("@/components/ui/checkbox", "Checkbox");
+    const { checked, disabled } = node.props;
+    return choice(ctx, id, node.label!, `<Checkbox${jsxAttrs({ id, defaultChecked: checked, disabled })} />`);
+  },
+  Switch: (node, ctx) => {
+    const id = fieldId(node, ctx);
+    ctx.use("@/components/ui/switch", "Switch");
+    const { checked, disabled } = node.props;
+    return choice(ctx, id, node.label!, `<Switch${jsxAttrs({ id, defaultChecked: checked, disabled })} />`);
+  },
+  Radio: (node, ctx) => {
+    const group = fieldId(node, ctx);
+    ctx.use("@/components/ui/label", "Label");
+    ctx.use("@/components/ui/radio-group", "RadioGroup", "RadioGroupItem");
+    const items = ((node.props.options ?? []) as string[]).map((option) => {
+      const id = ctx.id(`${group}-${slugify(option) || "option"}`);
+      return choice(ctx, id, option, `<RadioGroupItem${jsxAttrs({ value: option, id })} />`);
+    });
+    const radios = wrap(`<RadioGroup${jsxAttrs({ "aria-labelledby": group, defaultValue: node.props.value })}>`, lines(...items), "</RadioGroup>");
+    return wrap(`<div className="${CLASSES.Field.root}">`, lines(`<Label${jsxAttrs({ id: group })}>${text(node.label!)}</Label>`, radios), "</div>");
   },
 };

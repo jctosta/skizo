@@ -14,6 +14,27 @@ document.addEventListener("click", (event) => {
     panels[i].hidden = t !== tab;
   });
 });`,
+  popup: `// Popups (Select): a [data-popup] holds a [data-popup-trigger] and a [data-popup-content].
+// A click on a trigger toggles its popup; any other click closes every open popup.
+// Picking a [role="option"] in a popup also shows it on the trigger.
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const popup = target && target.closest("[data-popup]");
+  const toggled = popup && target.closest("[data-popup-trigger]") ? popup : null;
+  const option = popup && target.closest('[role="option"]');
+  if (option) {
+    const shown = popup.querySelector("[data-popup-trigger] > span");
+    shown.textContent = option.textContent;
+    shown.removeAttribute("class");
+    for (const o of popup.querySelectorAll('[role="option"]')) o.setAttribute("aria-selected", String(o === option));
+  }
+  for (const p of document.querySelectorAll("[data-popup]")) {
+    const content = p.querySelector("[data-popup-content]");
+    const open = p === toggled && content.hidden;
+    content.hidden = !open;
+    p.querySelector("[data-popup-trigger]").setAttribute("aria-expanded", String(open));
+  }
+});`,
 };
 
 export type Script = keyof typeof SCRIPTS;

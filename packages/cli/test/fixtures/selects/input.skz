@@ -1,0 +1,3 @@
+Screen "Order"
+  Select "Status" options="Open,Paid,Refunded\, partly" value=Open
+  Select "Plan" options="Free,Pro" placeholder="Pick a plan" open

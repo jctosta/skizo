@@ -1,0 +1,9 @@
+Screen "Toolbar"
+  Button "Save"
+  Button "Cancel" variant=outline size=sm
+  Button "New order" icon=plus variant=secondary size=lg
+  Button "Home" icon=home icon-only variant=ghost
+  Button "Settings" icon=settings icon-only size=sm
+  Button "Delete" icon=trash-2 variant=destructive disabled
+  Button "Saving" icon=save loading
+  Button "Learn more" variant=link

@@ -15,7 +15,7 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "assets": "tailwindcss -i src/preview/preview.css -o assets/preview.css --minify",
+    "assets": "tailwindcss -i src/preview/preview.css -o assets/preview.css --minify && node scripts/build-icons.mjs",
     "build": "pnpm assets && tsdown"
   },
   "devDependencies": {
@@ -25,6 +25,7 @@
     "class-variance-authority": "0.7.1",
     "cn": "0.5.1",
     "lucide-react": "1.66.0",
+    "lucide-static": "1.66.0",
     "radix-ui": "1.8.1",
     "react": "19.3.1",
     "tailwindcss": "4.3.3",

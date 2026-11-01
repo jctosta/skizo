@@ -22,7 +22,14 @@ function screenFile(screen: Node, paths: Map<Node, string>): string {
     for (const name of names) set.add(name);
     imports.set(from, set);
   };
-  const ctx = (node: Node): Ctx => ({ path: paths.get(node)!, use, render: (nodes) => nodes.map((n) => emit(n, ctx(n))).join("\n") });
+  const ids = new Map<string, number>();
+  const id: Ctx["id"] = (base) => {
+    const n = (ids.get(base) ?? 0) + 1;
+    ids.set(base, n);
+    // ponytail: a Label that slugs to "name-2" can still collide with a second "Name"; dedupe across both if it bites.
+    return n === 1 ? base : `${base}-${n}`;
+  };
+  const ctx = (node: Node): Ctx => ({ path: paths.get(node)!, use, id, render: (nodes) => nodes.map((n) => emit(n, ctx(n))).join("\n") });
   const jsx = emit(screen, ctx(screen));
   const head = [...imports.keys()].sort().map((from) => `import { ${[...imports.get(from)!].sort().join(", ")} } from "${from}"\n`);
   const body = wrap(`export function ${componentName(screen.props.id as string)}() {`, wrap("return (", jsx, ")"), "}");

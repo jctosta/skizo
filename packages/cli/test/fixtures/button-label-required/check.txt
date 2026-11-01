@@ -1,0 +1,2 @@
+input.skz:2  Button  needs a Label (Button "...")
+input.skz:3  Button  needs a Label (Button "...")

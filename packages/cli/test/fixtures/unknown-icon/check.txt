@@ -1,0 +1,2 @@
+input.skz:2  Button  unknown icon "pluss" — did you mean plus? (expected: a Lucide icon name)
+input.skz:3  Button  unknown icon "zzzzzz" (expected: a Lucide icon name)
