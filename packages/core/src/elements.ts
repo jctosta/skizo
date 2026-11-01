@@ -2,8 +2,7 @@ import type { Node } from "./ast";
 
 /** How `check` reads one prop. Raw values are strings (or true for a bare flag); `check` coerces them. */
 export type PropSpec =
-  /** `needs` names a prop that must be set too (icon-only needs icon). */
-  | { kind: "flag"; needs?: string }
+  | { kind: "flag" }
   | { kind: "string" }
   /** A Lucide icon name, checked against the names the caller passes to `check` (core holds no icon data). */
   | { kind: "icon" }
@@ -30,6 +29,10 @@ export type ElementSpec = {
 };
 
 const sizes = { kind: "enum", values: ["md", "sm", "lg"] } as const;
+/** Button and Menu: icon-only shows nothing but the icon, so it needs one. */
+const iconOnly: ElementSpec["check"] = (node, err) => {
+  if (node.props["icon-only"] === true && node.props.icon === undefined) err("icon-only needs icon=... too");
+};
 /** Stack and Row. */
 const flex = {
   gap: sizes,
@@ -109,10 +112,11 @@ export const ELEMENTS: Record<string, ElementSpec> = {
       variant: { kind: "enum", values: ["default", "secondary", "outline", "ghost", "destructive", "link"] },
       size: sizes,
       icon: { kind: "icon" },
-      "icon-only": { kind: "flag", needs: "icon" },
+      "icon-only": { kind: "flag" },
       disabled: { kind: "flag" },
       loading: { kind: "flag" },
     },
+    check: iconOnly,
   },
   Input: {
     label: "required",

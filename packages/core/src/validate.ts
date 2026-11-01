@@ -86,7 +86,6 @@ function props(node: Node, spec: ElementSpec, options: CheckOptions, err: (node:
       else err(node, `unknown flag "${key}"${enumProp ? ` — did you mean ${enumProp}=${key}?` : didYouMean(key, names)}`);
     } else if (prop.kind === "flag") {
       if (raw !== true) err(node, `${key} is a flag and takes no value (write just ${key})`);
-      else if (prop.needs && node.props[prop.needs] === undefined) err(node, `${key} needs ${prop.needs}=... too`);
     } else if (raw === true) {
       err(node, `${key} needs a value${prop.kind === "enum" ? ` (expected: ${prop.values.join(", ")})` : ""}`);
     } else node.props[key] = coerce(key, String(raw), prop, options, (message) => err(node, message));
