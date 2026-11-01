@@ -1,10 +1,11 @@
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 import { check, didYouMean, type CheckError, type Document } from "@skizo/core";
 import { readAsset } from "./assets";
 import { renderPreview } from "./preview/page";
 import { watchPreview } from "./preview/watch";
+import { exportShadcn } from "./shadcn/export";
 
 export type Io = { stdout(s: string): void; stderr(s: string): void; cwd: string; signal?: AbortSignal };
 
@@ -14,6 +15,9 @@ type Command = {
   options?: ParseArgsOptionsConfig;
   run(file: string, flags: Record<string, unknown>, io: Io): Promise<number> | number;
 };
+
+/** Export targets by `--target` name. Each turns a checked document into files: name → content. */
+const TARGETS = new Map([["shadcn", exportShadcn]]);
 
 /** One entry per CLI command. Each takes one source file (unless noFile) plus its own options. */
 const COMMANDS: Record<string, Command> = {
@@ -50,6 +54,33 @@ const COMMANDS: Record<string, Command> = {
       const html = build();
       if (typeof html === "number") return html;
       return flags.watch ? watchPreview(resolve(io.cwd, file), html, build, io) : 0;
+    },
+  },
+  export: {
+    options: { target: { type: "string" }, out: { type: "string" } },
+    run(file, flags, io) {
+      const target = flags.target as string | undefined;
+      const exportTarget = TARGETS.get(target ?? "");
+      if (!exportTarget) {
+        const problem = target === undefined ? "--target is required" : `unknown target "${target}"${didYouMean(target, TARGETS.keys())}`;
+        io.stderr(`skizo export: ${problem} (expected: ${[...TARGETS.keys()].join(", ")})\n`);
+        return 2;
+      }
+      const document = loadChecked(file, io);
+      if (typeof document === "number") return document;
+      const files = exportTarget(document);
+      const unsafe = Object.keys(files).find((name) => basename(name) !== name);
+      if (unsafe) {
+        io.stderr(`skizo export: "${unsafe}" is not a plain file name (check the Screen id)\n`);
+        return 1;
+      }
+      const out = (flags.out as string | undefined) ?? dirname(file);
+      mkdirSync(resolve(io.cwd, out), { recursive: true });
+      for (const [name, content] of Object.entries(files)) {
+        writeFileSync(resolve(io.cwd, out, name), content);
+        io.stdout(`wrote ${join(out, name)}\n`);
+      }
+      return 0;
     },
   },
 };
