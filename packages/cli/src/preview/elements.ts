@@ -184,6 +184,30 @@ export const EMITTERS: Record<string, Emit> = {
       `</div>`,
     ].join("\n");
   },
+  /** Its trigger is a Button (always size md) and it renders its Items; script.ts's popup handler opens it. */
+  Menu: (node, ctx) => {
+    const b = CLASSES.Button;
+    const c = CLASSES.Menu;
+    ctx.script("popup");
+    const { variant, icon } = node.props as { variant: keyof typeof b.variant; icon?: string };
+    const iconOnly = node.props["icon-only"] === true;
+    const open = node.props.open === true;
+    const label = iconOnly ? `<span class="${b.hiddenLabel}">${esc(node.label!)}</span>` : esc(node.label!);
+    const classes = cx(b.base, b.variant[variant], iconOnly ? b.iconSize.md : b.size.md);
+    const items = node.children.map((item) => {
+      const disabled = item.props.disabled === true;
+      const look = cx(c.item, item.props.destructive === true ? c.destructive : c.default, disabled && c.disabled);
+      return `<div role="menuitem"${attrs({ "aria-disabled": disabled && "true" })} class="${look}">${esc(item.label!)}</div>`;
+    });
+    return [
+      `<div data-popup>`,
+      `<button type="button" aria-haspopup="menu"${attrs({ "aria-expanded": String(open) })} data-popup-trigger class="${classes}">${icon === undefined ? "" : iconSvg(icon)}${label}</button>`,
+      `<div role="menu"${attrs({ "aria-label": node.label })} data-popup-content class="${c.content}"${open ? "" : " hidden"}>`,
+      ...items,
+      `</div>`,
+      `</div>`,
+    ].join("\n");
+  },
   Button: (node) => {
     const c = CLASSES.Button;
     const { variant, size, icon } = node.props as { variant: keyof typeof c.variant; size: "sm" | "md" | "lg"; icon?: string };

@@ -219,6 +219,23 @@ export const EMITTERS: Record<string, Emit> = {
       "</Tabs>",
     );
   },
+  /** Its trigger is the Button emitter's output (size md, no Behavior) under asChild; it renders its Items. */
+  Menu: (node, ctx) => {
+    ctx.use("@/components/ui/dropdown-menu", "DropdownMenu", "DropdownMenuContent", "DropdownMenuItem", "DropdownMenuTrigger");
+    const trigger = EMITTERS.Button!({ ...node, props: { ...node.props, size: "md" } }, ctx);
+    const items = node.children.map((item) => {
+      const a = jsxAttrs({ variant: item.props.destructive === true && "destructive", disabled: item.props.disabled });
+      return `<DropdownMenuItem${a}>${text(item.label!)}</DropdownMenuItem>`;
+    });
+    return wrap(
+      `<DropdownMenu${jsxAttrs({ defaultOpen: node.props.open })}>`,
+      lines(
+        wrap("<DropdownMenuTrigger asChild>", trigger, "</DropdownMenuTrigger>"),
+        wrap("<DropdownMenuContent>", lines(...items), "</DropdownMenuContent>"),
+      ),
+      "</DropdownMenu>",
+    );
+  },
   Button: (node, ctx) => {
     const c = CLASSES.Button;
     const { variant, size } = node.props as { variant: string; size: "sm" | "md" | "lg" };

@@ -121,6 +121,16 @@ export const CLASSES = {
       "inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring aria-selected:bg-background aria-selected:text-foreground aria-selected:shadow-sm",
     panel: "flex flex-col gap-4",
   },
+  /** shadcn DropdownMenu look-alike for the Preview, opened by preview/script.ts (exports use <DropdownMenu>). Its trigger uses Button. */
+  Menu: {
+    // No top/left and no positioned wrapper: the content sits under its trigger (its static position) but is laid out
+    // against the page, so a Card's overflow-hidden cannot clip a Menu in the Card's actions.
+    content: "absolute z-50 mt-1 w-max min-w-32 rounded-md bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-foreground/10",
+    item: "relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm select-none",
+    default: "hover:bg-accent hover:text-accent-foreground",
+    destructive: "text-destructive hover:bg-destructive/10",
+    disabled: "pointer-events-none opacity-50",
+  },
   /** shadcn Button look-alike for the Preview (exports use <Button variant size>). Reuse it for any button-like trigger. */
   Button: {
     base: "inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
