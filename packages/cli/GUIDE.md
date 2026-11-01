@@ -58,7 +58,7 @@ Chart "Name"        type=line|bar|area|pie cols="Month,Sales,Costs" (x, then ser
 Custom "ChatBubble" any props, flags and children    a component of the app; only when no type fits
 ```
 
-Write a `Sidebar` at the top level, before the first Screen, to share it. Every Screen shows it. A Screen with its own Sidebar shows that one. A `plain` Screen shows no Sidebar.
+Write a `Sidebar` at the top level, before the first Screen, to share it with every Screen. A Screen with its own Sidebar shows that one; a `plain` Screen shows none.
 
 ## Behavior (the only kind)
 
@@ -82,25 +82,19 @@ Screen "Orders" id=orders subtitle="Track customer orders"
     Card "Pending"
       actions
         Menu "Pending actions" icon=ellipsis icon-only variant=ghost
-          Item "Send reminders"
           Item "Cancel all" destructive
       Badge "18 orders" variant=secondary
-  Tabs
-    Tab "All"
-      Table cols="Order,Customer,Amount"
-        | #1042 | Ana Souza | $120.00
-        | #1041 | Bruno Lima | $64.50
-    Tab "Open"
-      Table cols="Order,Customer,Amount" rows=5
+  Table cols="Order,Customer,Amount"
+    | #1042 | Ana Souza | $120.00
+    | #1041 | Bruno Lima | $64.50
   Dialog "New order" id=new-order
-    Input "Customer" placeholder="Jane Doe"
+    Input "Customer"
     Select "Status" options="Open,Paid" value=Open
     footer
-      Button "Cancel" variant=outline
       Button "Create order"
 
 Screen "Dashboard" id=dashboard
-  Text lorem=30
+  Chart "Sales" type=bar cols="Month,Sales" rows=6
 ```
 
 Before finishing, run `skizo check <file>` and fix every reported error.

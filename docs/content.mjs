@@ -271,7 +271,8 @@ Screen becomes one file with the name of its id. For example, <code>orders.tsx</
   <li><code>to=</code> becomes a plain <code>&lt;a href="/screen-id"&gt;</code> link. A Button with
   <code>to=</code> wraps the link with <code>asChild</code>.</li>
   <li><code>--router next</code> writes each link as <code>&lt;Link href="/screen-id"&gt;</code> and imports
-  <code>Link</code> from <code>next/link</code>.</li>
+  <code>Link</code> from <code>next/link</code>. A file with <code>useState</code> or a Chart starts with
+  <code>"use client"</code>. Then the App Router runs it in the browser.</li>
   <li><code>--router react-router</code> writes each link as <code>&lt;Link to="/screen-id"&gt;</code> and imports
   <code>{ Link }</code> from <code>react-router</code>.</li>
   <li>A shared Sidebar becomes one file, <code>app-sidebar.tsx</code>. It exports
@@ -338,6 +339,7 @@ Screen "Archive" id=archive
           "A file can have one shared Sidebar.",
           "A Screen with its own Sidebar shows its own Sidebar. Write the Sidebar as the first child of the Screen.",
           "A Screen with the `plain` flag shows no Sidebar.",
+          "With a shared Sidebar, no Screen can have the id `app-sidebar`. The export uses this name for the file of the Sidebar.",
           "A Link can only be in a Sidebar. For a link in the page, write `Button variant=link to=...`.",
         ],
         shadcn: "An `<aside><nav>` with plain `<a>` links, or the `Link` of your router with `--router`. The active link gets `aria-current=\"page\"`. A shared Sidebar becomes `app-sidebar.tsx`, which exports `AppSidebar({ current })`. Each Screen that shows it renders `<AppSidebar current=\"screen-id\" />`.",
@@ -368,7 +370,7 @@ Screen "Archive" id=archive
   Card "Refunds"
     Stat "4"
   Card "Traffic" span=2
-    Image "Chart of daily visits" ratio=21:9
+    Chart "Daily visits" type=area cols="Day,Visits" rows=7
   Card "Notes"
     Text lorem=14`,
         about: { Grid: { props: { cols: "The number of columns." } } },
@@ -539,11 +541,11 @@ List rows=3`,
         notes: [
           "Each `|` row must have one cell for each column. The cells after the first cell are numbers, for example 1200 or 12.5.",
           "A pie has exactly two columns: the slice name and its value.",
-          "A chart with two or more series shows a legend.",
+          "A pie shows a legend with the names of its slices. Other charts show a legend when they have two or more series.",
           "Skizo makes placeholder x values from the column name: Month, Day, Date or Year. Other columns get Item n. The numbers are the same each time.",
-          "The Preview draws the chart as an SVG image. It uses the chart colors of the shadcn theme, `--chart-1` to `--chart-5`.",
+          "The Preview draws the chart as an SVG image in the default shadcn chart colors. The export uses `--chart-1` to `--chart-5` of your theme.",
         ],
-        shadcn: "`ChartContainer > LineChart, BarChart, AreaChart or PieChart` from recharts, with `ChartTooltip`. The data is a const array above the component, with the column slugs as keys, and a `ChartConfig` gives the labels and colors.",
+        shadcn: "`ChartContainer > LineChart, BarChart, AreaChart or PieChart` from recharts, with `ChartTooltip`, and with `ChartLegend` when the Preview shows a legend. The data is a const array above the component, with the column slugs as keys. A `ChartConfig` gives the labels and colors of the series, or of the slices of a pie.",
       },
     ],
   },
@@ -686,10 +688,11 @@ Sheet "Filters" id=filters desc="Show fewer orders." open
 Custom "TypingIndicator"`,
         about: { Custom: { label: "The name of the component, in PascalCase. For example, ChatBubble." } },
         notes: [
+          "The name cannot be the name of an Element type. For a button, write Button.",
           "A Custom takes all props and flags. `skizo check` does not check them.",
           "The Preview shows a box with a dashed border. The box shows the name, the props and the children.",
         ],
-        shadcn: "`import { ChatBubble } from \"@/components/chat-bubble\"` and `<ChatBubble author=\"Ana Souza\" sentAt=\"9:41\" mine>`. A prop key with a hyphen becomes camelCase. A Custom without children becomes a self-closing tag.",
+        shadcn: "`import { ChatBubble } from \"@/components/chat-bubble\"` and `<ChatBubble author=\"Ana Souza\" sentAt=\"9:41\" mine>`. A prop key with a hyphen becomes camelCase. A Custom without children becomes a self-closing tag. If the file imports a different component with the same name, the export renames your component: `Label as CustomLabel`.",
       },
     ],
   },

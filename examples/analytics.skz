@@ -8,13 +8,20 @@ Screen "Analytics" id=analytics subtitle="Traffic and conversion for the last 30
     Stat "1m 52s" title="Avg. session"
   Grid cols=3
     Card "Traffic" desc="Visits per day" span=2
-      Image "Line chart of daily visits" ratio=21:9
+      Chart "Daily visits" type=area cols="Date,Visits" rows=14
     Card "Top channels"
-      List items="Organic search,Direct,Referral,Social"
+      Chart "Visits by channel" type=pie cols="Channel,Visits"
+        | Organic search | 11650
+        | Direct | 6560
+        | Referral | 3640
+        | Social | 2460
   Alert "Tracking paused on 2 pages" text="Add the snippet to /pricing and /blog to resume."
-  Card "Goals"
-    Stack gap=sm
-      Text "Newsletter signups" size=sm
-      Progress value=64
-      Text "Trial starts" size=sm
-      Progress value=38
+  Grid
+    Card "Revenue" desc="Per month, this year and last"
+      Chart "Revenue per month" type=bar cols="Month,This year,Last year" rows=6
+    Card "Goals"
+      Stack gap=sm
+        Text "Newsletter signups" size=sm
+        Progress value=64
+        Text "Trial starts" size=sm
+        Progress value=38

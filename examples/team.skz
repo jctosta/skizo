@@ -1,7 +1,8 @@
+Sidebar
+  Link "Overview" icon=layout-dashboard to=overview
+  Link "Team" icon=users to=team
+
 Screen "Team" id=team subtitle="Invite people and manage their access"
-  Sidebar
-    Link "Overview" icon=layout-dashboard to=overview
-    Link "Team" icon=users to=team
   actions
     Button "Invite member" icon=user-plus opens=invite
   Row gap=sm
@@ -27,9 +28,6 @@ Screen "Team" id=team subtitle="Invite people and manage their access"
       Button "Send invite" icon=send
 
 Screen "Overview" id=overview
-  Sidebar
-    Link "Overview" icon=layout-dashboard to=overview
-    Link "Team" icon=users to=team
   Grid cols=3
     Card "Members"
       Stat "12" hint="+2 this month" trend=up

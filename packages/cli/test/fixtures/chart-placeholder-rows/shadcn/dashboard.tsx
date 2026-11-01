@@ -16,13 +16,16 @@ const visitsConfig = {
 } satisfies ChartConfig
 
 const plansData = [
-  { plan: "Item 1", users: 957, fill: "var(--chart-1)" },
-  { plan: "Item 2", users: 909, fill: "var(--chart-2)" },
-  { plan: "Item 3", users: 907, fill: "var(--chart-3)" },
+  { plan: "item-1", users: 957, fill: "var(--color-item-1)" },
+  { plan: "item-2", users: 909, fill: "var(--color-item-2)" },
+  { plan: "item-3", users: 907, fill: "var(--color-item-3)" },
 ]
 
 const plansConfig = {
   users: { label: "Users" },
+  "item-1": { label: "Item 1", color: "var(--chart-1)" },
+  "item-2": { label: "Item 2", color: "var(--chart-2)" },
+  "item-3": { label: "Item 3", color: "var(--chart-3)" },
 } satisfies ChartConfig
 
 export function DashboardScreen() {
@@ -46,6 +49,7 @@ export function DashboardScreen() {
           <PieChart title="Plans">
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
             <Pie data={plansData} dataKey="users" nameKey="plan" />
+            <ChartLegend content={<ChartLegendContent nameKey="plan" />} />
           </PieChart>
         </ChartContainer>
       </div>

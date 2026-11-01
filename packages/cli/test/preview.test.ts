@@ -71,3 +71,17 @@ test("previewing the same file twice gives byte-identical output", async () => {
   await runCli(["preview", "orders.skz"], cwd);
   expect(readFileSync(join(cwd, "orders.html"), "utf8")).toBe(first);
 });
+
+test("the Preview draws Charts in shadcn's classic chart palette, not the theme's greys", async () => {
+  const cwd = withFiles({ "sales.skz": `Screen "Sales"\n  Chart "Sales" cols="Month,Sales" rows=3\n` });
+  await runCli(["preview", "sales.skz"], cwd);
+  const vars = readFileSync(join(cwd, "sales.html"), "utf8").match(/--chart-\d:[^;}]*/g);
+  // The light values of shadcn's chart-1 to chart-5, as the CSS minifier writes them.
+  expect(vars).toEqual([
+    "--chart-1:oklch(64.6% .222 41.116)",
+    "--chart-2:oklch(60% .118 184.704)",
+    "--chart-3:oklch(39.8% .07 227.392)",
+    "--chart-4:oklch(82.8% .189 84.429)",
+    "--chart-5:oklch(76.9% .188 70.08)",
+  ]);
+});

@@ -1,7 +1,8 @@
+Sidebar
+  Link "Ana Souza" icon=user to=ana
+  Link "Design team" icon=users to=design
+
 Screen "Ana Souza" id=ana subtitle="Active now"
-  Sidebar
-    Link "Ana Souza" icon=user to=ana
-    Link "Design team" icon=users to=design
   actions
     Button "Conversation details" icon=info icon-only variant=ghost opens=details
     Menu "More" icon=ellipsis icon-only variant=ghost
@@ -9,24 +10,12 @@ Screen "Ana Souza" id=ana subtitle="Active now"
       Item "Archive"
       Item "Delete conversation" destructive
   Stack gap=md
-    Row gap=sm
-      Avatar "Ana Souza" size=sm
-      Stack gap=sm
-        Card
-          Text "Hey! Did you get a chance to look at the new pricing page?"
-        Text "9:41" muted size=sm
-    Row gap=sm justify=end
-      Stack gap=sm align=end
-        Card
-          Text "Yes, just now. The comparison table reads much better."
-        Text "9:43" muted size=sm
-    Row gap=sm
-      Avatar "Ana Souza" size=sm
-      Stack gap=sm
-        Card
-          Text "Great. Can we ship it on Friday?"
-        Image "Screenshot of the pricing page" ratio=4:3
-        Text "9:44" muted size=sm
+    Custom "ChatBubble" author="Ana Souza" sent-at="9:41"
+      Text "Hey! Did you get a chance to look at the new pricing page?"
+    Custom "ChatBubble" author="You" sent-at="9:43" mine
+      Text "Yes, just now. The comparison table reads much better."
+    Custom "ChatBubble" author="Ana Souza" sent-at="9:44"
+      Text "Great. Can we ship it on Friday?"
   Separator
   Textarea "Message" placeholder="Write a message..." rows=2
   Row justify=between
@@ -45,22 +34,11 @@ Screen "Ana Souza" id=ana subtitle="Active now"
       Button "Block contact" variant=destructive
 
 Screen "Design team" id=design subtitle="4 members"
-  Sidebar
-    Link "Ana Souza" icon=user to=ana
-    Link "Design team" icon=users to=design
   Stack gap=md
-    Row gap=sm
-      Avatar "Bruno Lima" size=sm
-      Stack gap=sm
-        Text "Bruno Lima" bold size=sm
-        Card
-          Text "New icons are in the shared folder."
-    Row gap=sm
-      Avatar "Grace Kim" size=sm
-      Stack gap=sm
-        Text "Grace Kim" bold size=sm
-        Card
-          Text "Looks good. Badge colors need one more pass."
+    Custom "ChatBubble" author="Bruno Lima" sent-at="10:02"
+      Text "New icons are in the shared folder."
+    Custom "ChatBubble" author="Grace Kim" sent-at="10:05"
+      Text "Looks good. Badge colors need one more pass."
   Separator
   Textarea "Message" placeholder="Message Design team" rows=2
   Row justify=end

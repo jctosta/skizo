@@ -35,13 +35,16 @@ const trafficWeeklyConfig = {
 } satisfies ChartConfig
 
 const plansData = [
-  { plan: "Free", users: 620, fill: "var(--chart-1)" },
-  { plan: "Pro", users: 240, fill: "var(--chart-2)" },
-  { plan: "Team", users: 90, fill: "var(--chart-3)" },
+  { plan: "free", users: 620, fill: "var(--color-free)" },
+  { plan: "pro", users: 240, fill: "var(--color-pro)" },
+  { plan: "team", users: 90, fill: "var(--color-team)" },
 ]
 
 const plansConfig = {
   users: { label: "Users" },
+  free: { label: "Free", color: "var(--chart-1)" },
+  pro: { label: "Pro", color: "var(--chart-2)" },
+  team: { label: "Team", color: "var(--chart-3)" },
 } satisfies ChartConfig
 
 const revenue2Data = [
@@ -120,6 +123,7 @@ export function DashboardScreen() {
                 <PieChart title="Plans">
                   <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                   <Pie data={plansData} dataKey="users" nameKey="plan" />
+                  <ChartLegend content={<ChartLegendContent nameKey="plan" />} />
                 </PieChart>
               </ChartContainer>
             </CardContent>

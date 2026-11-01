@@ -158,6 +158,33 @@ test("--router react-router writes each link to a Screen as Link from react-rout
   });
 });
 
+test("a Custom named like another import of its file, or like its component, is imported under an alias", async () => {
+  const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  Custom "Label" tone=green\n  Input "Customer"\n  Custom "OrdersScreen"\n` });
+  await runCli(["export", "orders.skz", "--target", "shadcn"], cwd);
+  const file = readFileSync(join(cwd, "orders.tsx"), "utf8");
+  expect(file.split("\n").filter((line) => /Label\b|OrdersScreen/.test(line)).map((line) => line.trim())).toEqual([
+    'import { Label as CustomLabel } from "@/components/label"',
+    'import { OrdersScreen as CustomOrdersScreen } from "@/components/orders-screen"',
+    'import { Label } from "@/components/ui/label"',
+    "export function OrdersScreen() {",
+    '<CustomLabel tone="green" />',
+    '<Label htmlFor="customer">Customer</Label>',
+    "<CustomOrdersScreen />",
+  ]);
+});
+
+test('--router next starts the files that keep state or draw a Chart with "use client", as the App Router needs', async () => {
+  const source = `Screen "Orders"\n  Button "New" opens=new\n  Dialog "New" id=new\n\nScreen "Sales"\n  Chart "Sales" cols="Month,Sales" rows=3\n\nScreen "Help"\n  "Ask us"\n`;
+  const cwd = withFiles({ "app.skz": source });
+  await runCli(["export", "app.skz", "--target", "shadcn", "--router", "next"], cwd);
+  const head = (name: string) => readFileSync(join(cwd, name), "utf8").split("\n")[0];
+  expect({ orders: head("orders.tsx"), sales: head("sales.tsx"), help: head("help.tsx") }).toEqual({
+    orders: '"use client"',
+    sales: '"use client"',
+    help: "export function HelpScreen() {",
+  });
+});
+
 test("an unknown --router gets a nearest-match hint and writes nothing", async () => {
   const cwd = withFiles({ "orders.skz": TWO_SCREENS });
   const { code, stderr } = await runCli(["export", "orders.skz", "--target", "shadcn", "--router", "nxt"], cwd);
@@ -172,4 +199,29 @@ test("--router without --target is a usage error", async () => {
   const cwd = withFiles({ "orders.skz": TWO_SCREENS });
   const { code, stderr } = await runCli(["export", "orders.skz", "--router", "next"], cwd);
   expect({ code, stderr }).toEqual({ code: 2, stderr: "skizo export: --target is required (expected: shadcn)\n" });
+});
+
+/** Exports one pie Chart: its data and config declarations and its legend line. */
+async function pieExport(rows: string) {
+  const cwd = withFiles({ "plans.skz": `Screen "Plans"\n  Chart "Plans" type=pie cols="Plan,Users"\n${rows}` });
+  await runCli(["export", "plans.skz", "--target", "shadcn"], cwd);
+  const file = readFileSync(join(cwd, "plans.tsx"), "utf8");
+  return [/const plansData = [\s\S]*?\n\]/, /const plansConfig = [\s\S]*?satisfies ChartConfig/, /<ChartLegend .*\/>/].map(
+    (re) => file.match(re)?.[0],
+  );
+}
+
+test("a pie Chart exports a legend, with one config entry per slice that names and colors it", async () => {
+  expect(await pieExport("    | Free | 620\n    | Pro plan | 240\n")).toEqual([
+    'const plansData = [\n  { plan: "free", users: 620, fill: "var(--color-free)" },\n  { plan: "pro-plan", users: 240, fill: "var(--color-pro-plan)" },\n]',
+    'const plansConfig = {\n  users: { label: "Users" },\n  free: { label: "Free", color: "var(--chart-1)" },\n  "pro-plan": { label: "Pro plan", color: "var(--chart-2)" },\n} satisfies ChartConfig',
+    '<ChartLegend content={<ChartLegendContent nameKey="plan" />} />',
+  ]);
+});
+
+test("a pie slice named like the series still gets a config entry of its own", async () => {
+  const [data] = await pieExport("    | Users | 620\n    | Guests | 240\n");
+  expect(data).toBe(
+    'const plansData = [\n  { plan: "slice-1", users: 620, fill: "var(--color-slice-1)" },\n  { plan: "slice-2", users: 240, fill: "var(--color-slice-2)" },\n]',
+  );
 });

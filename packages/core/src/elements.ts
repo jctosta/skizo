@@ -279,6 +279,8 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     children: "any",
     check(node, err) {
       const name = node.label;
+      // Its export would also clash with the Element's own import (Button from @/components/ui/button).
+      if (name !== undefined && Object.hasOwn(ELEMENTS, name)) return err(`"${name}" is an Element type (use ${name} instead of Custom)`);
       if (name === undefined || /^[A-Z][A-Za-z0-9]*$/.test(name)) return;
       const fixed = pascalCase(name);
       const hint = /^[A-Z]/.test(fixed) ? ` — did you mean ${fixed}?` : " (expected: a capital letter, then letters and digits)";
