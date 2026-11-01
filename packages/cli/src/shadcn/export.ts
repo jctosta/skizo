@@ -15,12 +15,19 @@ const componentName = (id: string) =>
 
 function screenFile(screen: Node): string {
   const imports = new Map<string, Set<string>>();
+  const ids = new Map<string, number>();
   const ctx: Ctx = {
     render: (nodes) => nodes.map((node) => emit(node, ctx)).join("\n"),
     use(from, ...names) {
       const set = imports.get(from) ?? new Set();
       for (const name of names) set.add(name);
       imports.set(from, set);
+    },
+    id(base) {
+      const n = (ids.get(base) ?? 0) + 1;
+      ids.set(base, n);
+      // ponytail: a Label that slugs to "name-2" can still collide with a second "Name"; dedupe across both if it bites.
+      return n === 1 ? base : `${base}-${n}`;
     },
   };
   const jsx = emit(screen, ctx);

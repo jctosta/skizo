@@ -1,0 +1,7 @@
+Screen "New customer"
+  Input "Email" type=email placeholder="jane@example.com" error="Enter a valid email"
+  Input "Name" value="Jane \"JD\" Doe" disabled
+  Input "Name" placeholder="Same Label, its own id"
+  Input "Search" type=search id=customer-search
+  Textarea "Notes" placeholder="Anything we should know?" rows=4
+  Textarea "Bio" value="Likes <b>bold</b> & {braces}"

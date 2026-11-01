@@ -10,6 +10,27 @@ export type Emit = (node: Node, ctx: Ctx) => string;
 export const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
+/** ` name="value"` per attribute (escaped); true is a bare boolean attribute; undefined and false are skipped. */
+export const attrs = (pairs: Record<string, unknown>) =>
+  Object.entries(pairs)
+    .map(([name, v]) => (v === undefined || v === false ? "" : v === true ? ` ${name}` : ` ${name}="${esc(String(v))}"`))
+    .join("");
+
+/** DOM id of a form control: from its source line, so unique within the page and stable between runs. */
+export const fieldId = (node: Node) => `field-${node.line}`;
+
+/** A form control under its Label, with error text below. */
+const field = (node: Node, control: string, error?: unknown) =>
+  [
+    `<div class="${CLASSES.Field.root}">`,
+    `<label for="${fieldId(node)}" class="${CLASSES.Field.label}">${esc(node.label!)}</label>`,
+    control,
+    typeof error === "string" && `<p class="${CLASSES.Field.error}">${esc(error)}</p>`,
+    `</div>`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
 /**
  * The Preview Backend: one emitter per Element type, returning HTML.
  * Props arrive checked, coerced and with enum defaults filled in.
@@ -51,5 +72,15 @@ export const EMITTERS: Record<string, Emit> = {
     const disabled = node.props.disabled === true || loading ? " disabled" : "";
     const classes = cx(c.base, c.variant[variant], (iconOnly ? c.iconSize : c.size)[size]);
     return `<button type="button" class="${classes}"${disabled}>${glyph}${label}</button>`;
+  },
+  Input: (node) => {
+    const { type, placeholder, value, disabled, error } = node.props;
+    const a = attrs({ id: fieldId(node), type, placeholder, value, disabled, "aria-invalid": error !== undefined && "true" });
+    return field(node, `<input${a} class="${CLASSES.Input.control}">`, error);
+  },
+  Textarea: (node) => {
+    const { placeholder, value = "", rows } = node.props;
+    const a = attrs({ id: fieldId(node), placeholder, rows });
+    return field(node, `<textarea${a} class="${CLASSES.Textarea.control}">${esc(String(value))}</textarea>`);
   },
 };

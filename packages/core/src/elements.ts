@@ -44,4 +44,18 @@ export const ELEMENTS: Record<string, ElementSpec> = {
       loading: { kind: "flag" },
     },
   },
+  Input: {
+    label: "required",
+    props: {
+      type: { kind: "enum", values: ["text", "email", "password", "number", "search"] },
+      placeholder: { kind: "string" },
+      value: { kind: "string" },
+      error: { kind: "string" },
+      disabled: { kind: "flag" },
+    },
+  },
+  Textarea: {
+    label: "required",
+    props: { placeholder: { kind: "string" }, value: { kind: "string" }, rows: { kind: "number", min: 1 } },
+  },
 };

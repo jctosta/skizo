@@ -1,0 +1,2 @@
+input.skz:2  Textarea  rows=0 is out of range (expected: 1..)
+input.skz:3  Textarea  rows=two is not a whole number

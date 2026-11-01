@@ -42,6 +42,20 @@ export const CLASSES = {
     /** An icon-only Label: hidden, still the accessible name. */
     hiddenLabel: "sr-only",
   },
+  /** Shared by the form-control Element types: a Label above its control, error text below. */
+  Field: {
+    root: "grid gap-2",
+    /** shadcn Label look-alike for the Preview (exports use <Label>). */
+    label: "flex items-center gap-2 text-sm leading-none font-medium select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+    error: "text-sm text-destructive",
+  },
+  Input: {
+    control: "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-2.5 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm",
+  },
+  Textarea: {
+    /** shadcn's minus field-sizing-content, so the Preview honors rows=. */
+    control: "flex min-h-16 w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-base shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+  },
 } as const;
 
 /** Joins the truthy class strings. */

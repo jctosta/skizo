@@ -1,4 +1,4 @@
-import type { Node } from "@skizo/core";
+import { slugify, type Node } from "@skizo/core";
 import { CLASSES, cx } from "../classes";
 import { iconComponent } from "../icons";
 
@@ -7,6 +7,8 @@ export type Ctx = {
   render(nodes: Node[]): string;
   /** Adds named imports to the Screen's file, e.g. `ctx.use("@/components/ui/card", "Card", "CardHeader")`. */
   use(from: string, ...names: string[]): void;
+  /** `base`, or `base-2`, `base-3`... when the Screen's file already uses it: DOM ids for form controls. */
+  id(base: string): string;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -19,6 +21,42 @@ export const lines = (...parts: (string | false | undefined)[]) => parts.filter(
 /** `open`, then `body` indented two spaces, then `close`; one line when `body` is empty. */
 export const wrap = (open: string, body: string, close: string) =>
   body ? `${open}\n${body.replace(/^/gm, "  ")}\n${close}` : `${open}${close}`;
+
+/**
+ * JSX attributes from name → value: strings quoted (as an expression when they hold `"` or `&`, which JSX
+ * strings can't carry verbatim), numbers in braces, true bare; undefined and false are skipped.
+ */
+export const jsxAttrs = (pairs: Record<string, unknown>) =>
+  Object.entries(pairs)
+    .map(([name, v]) =>
+      v === undefined || v === false
+        ? ""
+        : v === true
+          ? ` ${name}`
+          : typeof v === "number"
+            ? ` ${name}={${v}}`
+            : /["&]/.test(String(v))
+              ? ` ${name}={${JSON.stringify(v)}}`
+              : ` ${name}="${v}"`,
+    )
+    .join("");
+
+/** A form control under its Label, with error text below. `id` ties the Label to the control. */
+const field = (node: Node, ctx: Ctx, id: string, control: string, error?: unknown) => {
+  ctx.use("@/components/ui/label", "Label");
+  return wrap(
+    `<div className="${CLASSES.Field.root}">`,
+    lines(
+      `<Label${jsxAttrs({ htmlFor: id })}>${text(node.label!)}</Label>`,
+      control,
+      typeof error === "string" && `<p className="${CLASSES.Field.error}">${text(error)}</p>`,
+    ),
+    "</div>",
+  );
+};
+
+/** A readable DOM id for a form control: its `id=`, else a slug of its Label. */
+const fieldId = (node: Node, ctx: Ctx) => ctx.id(typeof node.props.id === "string" ? node.props.id : slugify(node.label!) || "field");
 
 /** `<HouseIcon />` for `icon=home`, importing it from lucide-react. */
 export const icon = (ctx: Ctx, name: string, className?: string) => {
@@ -67,16 +105,25 @@ export const EMITTERS: Record<string, Emit> = {
     const iconOnly = node.props["icon-only"] === true;
     const loading = node.props.loading === true;
     const shadcnSize = (iconOnly ? ICON_BUTTON_SIZE : BUTTON_SIZE)[size];
-    const attrs = [
-      variant !== "default" && ` variant="${variant}"`,
-      shadcnSize && ` size="${shadcnSize}"`,
-      (node.props.disabled === true || loading) && " disabled",
-    ];
-    const open = `<Button${attrs.filter(Boolean).join("")}>`;
+    const disabled = node.props.disabled === true || loading;
+    const open = `<Button${jsxAttrs({ variant: variant !== "default" && variant, size: shadcnSize, disabled })}>`;
     ctx.use("@/components/ui/button", "Button");
     const glyph = loading ? icon(ctx, "loader-circle", c.spinner) : node.props.icon !== undefined && icon(ctx, node.props.icon as string);
     if (!glyph) return `${open}${text(node.label!)}</Button>`;
     const label = iconOnly ? `<span className="${c.hiddenLabel}">${text(node.label!)}</span>` : text(node.label!);
     return wrap(open, lines(glyph, label), "</Button>");
+  },
+  Input: (node, ctx) => {
+    const { type, placeholder, value, disabled, error } = node.props;
+    const id = fieldId(node, ctx);
+    ctx.use("@/components/ui/input", "Input");
+    const a = jsxAttrs({ id, type, placeholder, defaultValue: value, disabled, "aria-invalid": error !== undefined });
+    return field(node, ctx, id, `<Input${a} />`, error);
+  },
+  Textarea: (node, ctx) => {
+    const { placeholder, value, rows } = node.props;
+    const id = fieldId(node, ctx);
+    ctx.use("@/components/ui/textarea", "Textarea");
+    return field(node, ctx, id, `<Textarea${jsxAttrs({ id, placeholder, defaultValue: value, rows })} />`);
   },
 };
