@@ -3,6 +3,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 import { check, didYouMean, type CheckError, type Document } from "@skizo/core";
 import { readAsset } from "./assets";
+import { iconNames } from "./icons";
 import { renderPreview } from "./preview/page";
 import { watchPreview } from "./preview/watch";
 import { exportShadcn } from "./shadcn/export";
@@ -134,7 +135,7 @@ function load(file: string, io: Io) {
     io.stderr(`skizo: cannot read ${file}\n`);
     return undefined;
   }
-  return check(source);
+  return check(source, { iconNames: iconNames() });
 }
 
 /**

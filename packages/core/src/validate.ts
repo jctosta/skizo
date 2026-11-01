@@ -4,11 +4,16 @@ import { didYouMean } from "./nearest";
 
 const ID: PropSpec = { kind: "string" };
 
+export type CheckOptions = {
+  /** Every name `icon=` accepts. Injected by the caller so core ships no icon data; when omitted, any icon name passes. */
+  iconNames?: ReadonlySet<string>;
+};
+
 /**
  * Checks a parsed document against the ELEMENTS schemas. Generic: per-Element-type rules belong in ELEMENTS.
  * Mutates the AST into what Backends read: coerced prop values, enum defaults, Screen ids.
  */
-export function validate(document: Document): CheckError[] {
+export function validate(document: Document, options: CheckOptions = {}): CheckError[] {
   const errors: CheckError[] = [];
   const ids = new Map<string, number>();
   const err = (node: Node, message: string) => errors.push({ line: node.line, type: node.type, message });
@@ -30,7 +35,7 @@ export function validate(document: Document): CheckError[] {
       if (spec.label === "none" && node.label !== undefined) err(node, "takes no Label");
       for (const name of Object.keys(node.slots ?? {}) as (keyof NonNullable<Node["slots"]>)[])
         if (!spec.slots?.includes(name)) err(node, `takes no "${name}" slot`);
-      props(node, spec, err);
+      props(node, spec, options, err);
       if (node.type === "Screen" && node.props.id === undefined && node.label !== undefined) {
         const slug = slugify(node.label);
         if (slug) node.props.id = slug;
@@ -52,7 +57,7 @@ export function validate(document: Document): CheckError[] {
   return errors;
 }
 
-function props(node: Node, spec: ElementSpec, err: (node: Node, message: string) => void) {
+function props(node: Node, spec: ElementSpec, options: CheckOptions, err: (node: Node, message: string) => void) {
   const names = ["id", ...Object.keys(spec.props)];
   for (const [key, raw] of Object.entries(node.props)) {
     const prop = key === "id" ? ID : spec.props[key];
@@ -62,16 +67,27 @@ function props(node: Node, spec: ElementSpec, err: (node: Node, message: string)
       else err(node, `unknown flag "${key}"${enumProp ? ` — did you mean ${enumProp}=${key}?` : didYouMean(key, names)}`);
     } else if (prop.kind === "flag") {
       if (raw !== true) err(node, `${key} is a flag and takes no value (write just ${key})`);
+      else if (prop.needs && node.props[prop.needs] === undefined) err(node, `${key} needs ${prop.needs}=... too`);
     } else if (raw === true) {
       err(node, `${key} needs a value${prop.kind === "enum" ? ` (expected: ${prop.values.join(", ")})` : ""}`);
-    } else node.props[key] = coerce(key, String(raw), prop, (message) => err(node, message));
+    } else node.props[key] = coerce(key, String(raw), prop, options, (message) => err(node, message));
   }
   for (const [key, prop] of Object.entries(spec.props))
     if (prop.kind === "enum" && node.props[key] === undefined) node.props[key] = prop.values[0]!;
 }
 
-function coerce(key: string, value: string, prop: PropSpec, err: (message: string) => void): string | number | string[] {
+function coerce(
+  key: string,
+  value: string,
+  prop: PropSpec,
+  { iconNames }: CheckOptions,
+  err: (message: string) => void,
+): string | number | string[] {
   switch (prop.kind) {
+    case "icon":
+      if (iconNames && !iconNames.has(value))
+        err(`unknown icon "${value}"${didYouMean(value, iconNames)} (expected: a Lucide icon name)`);
+      return value;
     case "enum":
       if (!prop.values.includes(value))
         err(`unknown ${key} "${value}"${didYouMean(value, prop.values)} (expected: ${prop.values.join(", ")})`);
@@ -91,7 +107,7 @@ function coerce(key: string, value: string, prop: PropSpec, err: (message: strin
 }
 
 /** "Order list" → "order-list". */
-const slugify = (label: string) =>
+export const slugify = (label: string) =>
   label
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")

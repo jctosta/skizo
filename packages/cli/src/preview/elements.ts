@@ -1,5 +1,6 @@
 import type { Node } from "@skizo/core";
 import { CLASSES, cx } from "../classes";
+import { iconSvg } from "../icons";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
 export type Ctx = { render(nodes: Node[]): string };
@@ -39,5 +40,16 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Text;
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p class="${classes}">${esc(node.label!)}</p>`;
+  },
+  Button: (node) => {
+    const c = CLASSES.Button;
+    const { variant, size, icon } = node.props as { variant: keyof typeof c.variant; size: "sm" | "md" | "lg"; icon?: string };
+    const iconOnly = node.props["icon-only"] === true;
+    const loading = node.props.loading === true;
+    const glyph = loading ? iconSvg("loader-circle", cx("size-4", c.spinner)) : icon !== undefined ? iconSvg(icon) : "";
+    const label = iconOnly ? `<span class="${c.hiddenLabel}">${esc(node.label!)}</span>` : esc(node.label!);
+    const disabled = node.props.disabled === true || loading ? " disabled" : "";
+    const classes = cx(c.base, c.variant[variant], (iconOnly ? c.iconSize : c.size)[size]);
+    return `<button type="button" class="${classes}"${disabled}>${glyph}${label}</button>`;
   },
 };

@@ -37,6 +37,17 @@ test("the Preview inlines the precompiled CSS and references nothing outside the
   expect(html).not.toMatch(/\b(src|href)=|url\(|@import/);
 });
 
+test("the Preview inlines SVG for the Lucide icons the file uses, and only those", async () => {
+  const cwd = withFiles({ "orders.skz": `Screen "Orders"\n  Button "New order" icon=plus\n  Button "Add more" icon=plus\n` });
+  await runCli(["preview", "orders.skz"], cwd);
+  const svgs = readFileSync(join(cwd, "orders.html"), "utf8").match(/<svg[\s\S]*?<\/svg>/g);
+  // Lucide's plus: two strokes.
+  expect(svgs?.map((svg) => svg.replace(/^<svg[^>]*>/, ""))).toEqual([
+    '<path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+    '<path d="M5 12h14"/><path d="M12 5v14"/></svg>',
+  ]);
+});
+
 test("previewing the same file twice gives byte-identical output", async () => {
   const cwd = withFiles({ "orders.skz": VALID });
   await runCli(["preview", "orders.skz"], cwd);

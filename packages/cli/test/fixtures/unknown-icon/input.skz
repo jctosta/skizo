@@ -1,0 +1,3 @@
+Screen "Orders"
+  Button "New order" icon=pluss
+  Button "Settings" icon=zzzzzz

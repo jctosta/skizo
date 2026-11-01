@@ -23,6 +23,25 @@ export const CLASSES = {
     muted: "text-muted-foreground",
     bold: "font-semibold",
   },
+  /** shadcn Button look-alike for the Preview (exports use <Button variant size>). Reuse it for any button-like trigger. */
+  Button: {
+    base: "inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50",
+    variant: {
+      default: "bg-primary text-primary-foreground hover:bg-primary/80",
+      secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+      outline: "border-border bg-background shadow-xs hover:bg-muted hover:text-foreground",
+      ghost: "hover:bg-muted hover:text-foreground",
+      destructive: "bg-destructive/10 text-destructive hover:bg-destructive/20",
+      link: "text-primary underline-offset-4 hover:underline",
+    },
+    size: { sm: "h-8 gap-1 px-2.5", md: "h-9 gap-1.5 px-2.5", lg: "h-10 gap-1.5 px-2.5" },
+    /** Square sizes for icon-only. */
+    iconSize: { sm: "size-8", md: "size-9", lg: "size-10" },
+    /** The loading spinner icon. */
+    spinner: "animate-spin",
+    /** An icon-only Label: hidden, still the accessible name. */
+    hiddenLabel: "sr-only",
+  },
 } as const;
 
 /** Joins the truthy class strings. */
