@@ -80,10 +80,10 @@ const flex = {
  * Screens go only at the top level; that rule lives in validate.ts.
  */
 export const ELEMENTS: Record<string, ElementSpec> = {
-  /** Every Screen gets an id: the slug of its Label when it has no id=. */
+  /** Every Screen gets an id: the slug of its Label when it has no id=. `plain` hides the shared Sidebar. */
   Screen: {
     label: "required",
-    props: { id: { kind: "string" }, subtitle: { kind: "string" } },
+    props: { id: { kind: "string" }, subtitle: { kind: "string" }, plain: { kind: "flag" } },
     children: "any",
     slots: ["actions"],
     infer(node) {
@@ -92,9 +92,13 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     },
     check(node, err) {
       if (node.props.id === undefined && node.label !== undefined) err("cannot derive an id from the Label (add id=name)");
+      if (node.props.plain === true && node.children.some((child) => child.type === "Sidebar")) err("has both its own Sidebar and plain (keep one)");
     },
   },
-  /** A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default). */
+  /**
+   * A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default).
+   * At the top level it is shared (Document.sidebar): validate.ts places it, and its Links get no inferred active.
+   */
   Sidebar: {
     label: "none",
     props: {},

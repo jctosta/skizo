@@ -1,0 +1,1 @@
+input.skz:5  Sidebar  must come before the first Screen to be shared (or go first inside a Screen)

@@ -13,10 +13,15 @@ export function emitterFor<E>(emitters: Record<string, E>, type: string, backend
   return emit;
 }
 
-/** A Screen's Sidebar, when it is the first child (the page shell's column), and the rest: the Screen's body. */
-export function screenParts(screen: Node) {
-  const sidebar = screen.children[0]?.type === "Sidebar" ? screen.children[0] : undefined;
-  return { sidebar, body: sidebar ? screen.children.slice(1) : screen.children };
+/**
+ * The Sidebar a Screen shows (the page shell's column) and the rest, the Screen's body. The Sidebar is its first
+ * child, else `shared` (Document.sidebar) unless the Screen is plain. With `isShared`, the Backend marks the active
+ * Link for this Screen itself: the shared node has none.
+ */
+export function screenParts(screen: Node, shared?: Node) {
+  const own = screen.children[0]?.type === "Sidebar" ? screen.children[0] : undefined;
+  const sidebar = own ?? (screen.props.plain === true ? undefined : shared);
+  return { sidebar, isShared: !own && sidebar !== undefined, body: own ? screen.children.slice(1) : screen.children };
 }
 
 const ARROWS = { none: "", up: "↑", down: "↓" };

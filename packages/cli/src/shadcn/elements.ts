@@ -20,6 +20,8 @@ export type Ctx = {
   id(base: string): string;
   /** Adds a line to the top of the Screen's component, before `return`: state hooks. */
   hook(line: string): void;
+  /** The Sidebar shared by every Screen without its own (Document.sidebar), exported once as AppSidebar. */
+  sidebar?: Node;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -34,12 +36,19 @@ export const attr = (s: string) => (/["&]/.test(s) ? `{${JSON.stringify(s)}}` : 
 export const wrap = (start: string, body: string, end: string) =>
   body ? `${start}\n${body.replace(/^/gm, "  ")}\n${end}` : `${start}${end}`;
 
-/** JSX attributes from name → value: strings through `attr`, numbers in braces, true bare; undefined and false skipped. */
+/**
+ * JSX attributes from name → value: strings through `attr`, numbers and `{ expr: "code" }` in braces, true bare;
+ * undefined and false skipped. Only emitters build an `expr`, so source text never becomes code.
+ */
 export const jsxAttrs = (pairs: Record<string, unknown>) =>
   Object.entries(pairs)
-    .map(([name, v]) =>
-      v === undefined || v === false ? "" : v === true ? ` ${name}` : typeof v === "number" ? ` ${name}={${v}}` : ` ${name}=${attr(String(v))}`,
-    )
+    .map(([name, v]) => {
+      if (v === undefined || v === false) return "";
+      if (v === true) return ` ${name}`;
+      if (typeof v === "number") return ` ${name}={${v}}`;
+      if (typeof v === "object" && v !== null && "expr" in v) return ` ${name}={${v.expr}}`;
+      return ` ${name}=${attr(String(v))}`;
+    })
     .join("");
 
 /** A form control under its Label, with error text below. `id` ties the Label to the control. */
@@ -152,12 +161,12 @@ const ICON_BUTTON_SIZE = { sm: "icon-sm", md: "icon", lg: "icon-lg" } as const;
  * Props arrive checked, coerced and with enum defaults filled in.
  */
 export const EMITTERS: Record<string, Emit> = {
-  /** With a Sidebar first: a page shell, the sidebar column beside <main>. */
+  /** With a Sidebar: a page shell, the sidebar column beside <main>. The shared Sidebar is <AppSidebar> (app-sidebar.tsx). */
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
-    const { sidebar, body } = screenParts(node);
+    const { sidebar, isShared, body } = screenParts(node, ctx.sidebar);
     const header = lines(
       `<h1 className="${c.title}">${text(node.label!)}</h1>`,
       subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
@@ -171,16 +180,22 @@ export const EMITTERS: Record<string, Emit> = {
       ),
       "</main>",
     );
-    return sidebar ? wrap(`<div className="${c.shell}">`, lines(ctx.render([sidebar]), main), "</div>") : main;
+    if (!sidebar) return main;
+    if (isShared) ctx.use("./app-sidebar", "AppSidebar");
+    const column = isShared ? `<AppSidebar${jsxAttrs({ current: node.props.id })} />` : ctx.render([sidebar]);
+    return wrap(`<div className="${c.shell}">`, lines(column, main), "</div>");
   },
   Sidebar: (node, ctx) => {
     const c = CLASSES.Sidebar;
     return wrap(`<aside className="${c.root}">`, wrap(`<nav className="${c.nav}">`, ctx.render(node.children), "</nav>"), "</aside>");
   },
+  /** In the shared Sidebar (AppSidebar) the active Link is the one whose to= is the `current` prop. */
   Link: (node, ctx) => {
     const { to, active } = node.props as { to?: string; active?: true };
+    const shared = to !== undefined && ctx.sidebar?.children.includes(node);
+    const current = shared ? { expr: `current === ${JSON.stringify(to)} ? "page" : undefined` } : active && "page";
     const glyph = node.props.icon !== undefined && icon(ctx, node.props.icon as string, CLASSES.Link.icon);
-    return screenLink(ctx, to, { "aria-current": active && "page", className: CLASSES.Link.root }, lines(glyph, text(node.label!)));
+    return screenLink(ctx, to, { "aria-current": current, className: CLASSES.Link.root }, lines(glyph, text(node.label!)));
   },
   Heading: (node) => {
     const level = node.props.level as keyof typeof CLASSES.Heading;

@@ -12,6 +12,8 @@ export type Ctx = {
   path: string;
   /** Adds one of the SCRIPTS handlers to the page. */
   script(name: Script): void;
+  /** The Sidebar shared by every Screen without its own (Document.sidebar). */
+  sidebar?: Node;
 };
 export type Emit = (node: Node, ctx: Ctx) => string;
 
@@ -31,8 +33,14 @@ export const fieldId = (node: Node) => `field-${node.line}`;
 /** Where `to=` goes in the Preview: the hash names the Screen to show (SCRIPTS.to). */
 const screenHref = (id: string) => `#${encodeURIComponent(id)}`;
 
+/** The shared Sidebar as one Screen shows it: a copy whose Link to that Screen is active, so the shared node stays as written. */
+const activeFor = (sidebar: Node, id: string): Node => ({
+  ...sidebar,
+  children: sidebar.children.map((link) => (link.props.to === id ? { ...link, props: { ...link.props, active: true } } : link)),
+});
+
 /** A form control under its Label, with error text below. */
-const field = (node: Node, control: string, error?: unknown) =>
+const field =(node: Node, control: string, error?: unknown) =>
   [
     `<div class="${CLASSES.Field.root}">`,
     `<label for="${fieldId(node)}" class="${CLASSES.Field.label}">${esc(node.label!)}</label>`,
@@ -56,7 +64,7 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
-    const { sidebar, body } = screenParts(node);
+    const { sidebar, isShared, body } = screenParts(node, ctx.sidebar);
     const main = lines(
       `<header class="${cx(c.header, actions && c.headerWithActions)}">`,
       `<h1 class="${c.title}">${esc(node.label!)}</h1>`,
@@ -67,7 +75,7 @@ export const EMITTERS: Record<string, Emit> = {
     );
     return lines(
       `<section data-screen="${esc(node.props.id as string)}" class="${sidebar ? c.shell : c.root}">`,
-      sidebar ? lines(ctx.render([sidebar]), div(c.main, main)) : main,
+      sidebar ? lines(ctx.render([isShared ? activeFor(sidebar, node.props.id as string) : sidebar]), div(c.main, main)) : main,
       `</section>`,
     );
   },

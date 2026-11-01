@@ -1,0 +1,7 @@
+Sidebar
+  Link "Orders" to=orders
+
+Screen "Orders" plain
+  Sidebar
+    Link "Orders" to=orders
+  "Recent orders"

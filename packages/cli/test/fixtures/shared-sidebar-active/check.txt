@@ -1,0 +1,1 @@
+input.skz:3  Link  takes no active in a shared Sidebar (each Screen marks the Link whose to= is that Screen)
