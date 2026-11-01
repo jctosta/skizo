@@ -1,5 +1,5 @@
 import type { Node } from "@skizo/core";
-import { chartColor, customProps, hasBehavior, lines, screenParts, statHint } from "../backend";
+import { chartColor, chartHasLegend, customProps, hasBehavior, lines, screenParts, statHint, type ChartType } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { chartRows, initials, listItems, lorem, tableRows } from "../placeholder";
 import { iconSvg } from "../icons";
@@ -198,17 +198,20 @@ export const EMITTERS: Record<string, Emit> = {
    */
   Chart: (node, ctx) => {
     const c = CLASSES.Chart;
+    const type = node.props.type as ChartType;
     const cols = node.props.cols as string[];
     const rows = chartRows(node, ctx.path);
-    const legend = (names: string[]) =>
+    const names = type === "pie" ? rows.map(([name]) => name!) : cols.slice(1);
+    const legend =
+      chartHasLegend(node) &&
       div(
         c.legend,
         lines(...names.map((name, i) => `<div class="${c.legendItem}"><div class="${c.swatch}" style="background-color: ${chartColor(i)}"></div>${esc(name)}</div>`)),
       );
     const figure = (body: string) => lines(`<div role="img" aria-label="${esc(node.label!)}" class="${c.root}">`, body, "</div>");
-    if (node.props.type === "pie") return figure(lines(pie(rows), legend(rows.map(([name]) => name!))));
+    if (type === "pie") return figure(lines(pie(rows), legend));
     const labels = `<div class="${c.labels}" style="grid-template-columns: repeat(${rows.length}, minmax(0, 1fr))">${rows.map(([x]) => `<div class="${c.label}">${esc(x!)}</div>`).join("")}</div>`;
-    return figure(lines(cartesian(node.props.type as "line" | "bar" | "area", rows, cols.length - 1), labels, cols.length > 2 && legend(cols.slice(1))));
+    return figure(lines(cartesian(type, rows, cols.length - 1), labels, legend));
   },
   Dialog: (node, ctx) => dialog(node, ctx, CLASSES.Dialog, CLASSES.Dialog.content),
   Sheet: (node, ctx) => dialog(node, ctx, CLASSES.Sheet, cx(CLASSES.Sheet.content, CLASSES.Sheet[node.props.side as keyof typeof CLASSES.Sheet])),
@@ -381,7 +384,7 @@ const coord = (v: number) => String(+v.toFixed(2));
  * A bar, line or area plot in a 100 x 100 box: one x band per row, each point at its band's center; y spans the
  * values and 0, with 5% headroom. Grid lines like recharts' CartesianGrid without vertical lines.
  */
-function cartesian(type: "line" | "bar" | "area", rows: string[][], series: number) {
+function cartesian(type: Exclude<ChartType, "pie">, rows: string[][], series: number) {
   const values = rows.map((row) => row.slice(1).map(Number));
   const low = Math.min(0, ...values.flat());
   const span = Math.max(0, ...values.flat()) - low || 1;

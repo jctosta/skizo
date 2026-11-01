@@ -31,6 +31,12 @@ export const statHint = (node: Node) => [ARROWS[node.props.trend as keyof typeof
 /** Whether a Button declares a Behavior (opens= or to=). In a footer, a Button without one closes its Dialog or Sheet. */
 export const hasBehavior = (node: Node) => node.props.opens !== undefined || node.props.to !== undefined;
 
+/** A Chart's `type` prop. */
+export type ChartType = "line" | "bar" | "area" | "pie";
+
+/** Whether a Chart has a legend: a pie's names its slices; any other Chart has one for two or more series. */
+export const chartHasLegend = (node: Node) => node.props.type === "pie" || (node.props.cols as string[]).length > 2;
+
 /** The color of a Chart's series (a pie's slice) `i`: shadcn's --chart-1 to --chart-5, then from the start again. */
 export const chartColor = (i: number) => `var(--chart-${(i % 5) + 1})`;
 

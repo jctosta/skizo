@@ -1,5 +1,5 @@
 import { slugify, type Node } from "@skizo/core";
-import { chartColor, customProps, hasBehavior, lines, pascalCase, screenParts, statHint } from "../backend";
+import { chartColor, chartHasLegend, customProps, hasBehavior, lines, pascalCase, screenParts, statHint, type ChartType } from "../backend";
 import { CLASSES, cx, flexClasses, gridClasses, spanClasses } from "../classes";
 import { iconComponent } from "../icons";
 import { chartRows, initials, listItems, lorem, tableRows } from "../placeholder";
@@ -333,7 +333,7 @@ export const EMITTERS: Record<string, Emit> = {
    * key (the slug of its name) that labels and colors it, so its legend and tooltip read the config.
    */
   Chart: (node, ctx) => {
-    const type = node.props.type as "line" | "bar" | "area" | "pie";
+    const type = node.props.type as ChartType;
     const cols = node.props.cols as string[];
     // A pie's data rows also hold fill; config keys are the series and the slices, so a slice key differs from the series key.
     const [x, ...series] = slugs(cols, "col", type === "pie" ? ["fill"] : []);
@@ -351,8 +351,7 @@ export const EMITTERS: Record<string, Emit> = {
     ];
     ctx.declare(wrap(`const ${name}Data = [`, lines(...rows), "]"));
     ctx.declare(wrap(`const ${name}Config = {`, lines(...config), "} satisfies ChartConfig"));
-    // As in the Preview: a pie's legend names its slices; any other Chart has one for two or more series.
-    const legend = series.length > 1 || type === "pie";
+    const legend = chartHasLegend(node);
     ctx.use("@/components/ui/chart", "ChartContainer", "ChartTooltip", "ChartTooltipContent", "type ChartConfig");
     if (legend) ctx.use("@/components/ui/chart", "ChartLegend", "ChartLegendContent");
     const title = ` title=${attr(node.label!)}`;
