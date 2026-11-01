@@ -6,13 +6,15 @@ import { dirname, join } from "node:path";
 
 const root = dirname(createRequire(import.meta.url).resolve("lucide-static/package.json"));
 const svgs = join(root, "icons");
-const inner = (name) =>
-  readFileSync(join(svgs, `${name}.svg`), "utf8")
-    .match(/<svg[^>]*>([\s\S]*)<\/svg>/)[1]
+const inner = (name) => {
+  const svg = readFileSync(join(svgs, `${name}.svg`), "utf8").match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+  if (!svg) throw new Error(`lucide-static: icons/${name}.svg holds no <svg>...</svg> element`);
+  return svg[1]
     .replace(/\s+/g, " ")
     .replaceAll(" />", "/>")
     .replace(/>\s+</g, "><")
     .trim();
+};
 
 // icon-nodes.json is keyed by the canonical names; every other file in icons/ is an alias with identical markup.
 const names = Object.keys(JSON.parse(readFileSync(join(root, "icon-nodes.json"), "utf8")));

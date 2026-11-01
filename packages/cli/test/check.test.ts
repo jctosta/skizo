@@ -27,9 +27,9 @@ test("--json on a valid file emits no errors and exits 0", async () => {
   expect({ code, json: JSON.parse(stdout) }).toEqual({ code: 0, json: { errors: [] } });
 });
 
-test("a missing file is reported on stderr with exit code 2", async () => {
+test("a missing file is reported on stderr, with why, and exit code 2", async () => {
   const { code, stderr } = await runCli(["check", "missing.skz"]);
-  expect({ code, stderr }).toEqual({ code: 2, stderr: "skizo: cannot read missing.skz\n" });
+  expect({ code, stderr }).toEqual({ code: 2, stderr: "skizo: cannot read missing.skz (ENOENT)\n" });
 });
 
 test("an unknown command gets a nearest-match hint and exit code 2", async () => {
