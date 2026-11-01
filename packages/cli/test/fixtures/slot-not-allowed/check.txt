@@ -1,1 +1,2 @@
-input.skz:2  Heading  takes no "footer" slot
+input.skz:2  Heading  takes no "actions" slot (allowed in: Screen, Card)
+input.skz:5  Stack  takes no "actions" slot (allowed in: Screen, Card)

@@ -1,5 +1,5 @@
 import { slugify, type Node } from "@skizo/core";
-import { CLASSES, cx } from "../classes";
+import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
 import { listItems, tableRows } from "../placeholder";
 
 /** What an emitter gets besides its node. Grows with the needs of Element types (node path, icons, ...). */
@@ -30,14 +30,16 @@ export const EMITTERS: Record<string, Emit> = {
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
+    const actions = node.slots?.actions;
     const header = lines(
       `<h1 className="${c.title}">${text(node.label!)}</h1>`,
       subtitle !== undefined && `<p className="${c.subtitle}">${text(subtitle)}</p>`,
+      actions && wrap(`<div className="${c.actions}">`, ctx.render(actions), "</div>"),
     );
     return wrap(
       `<main className="${c.root}">`,
       lines(
-        wrap(`<header className="${c.header}">`, header, "</header>"),
+        wrap(`<header className="${cx(c.header, actions && c.headerWithActions)}">`, header, "</header>"),
         wrap(`<div className="${c.body}">`, ctx.render(node.children), "</div>"),
       ),
       "</main>",
@@ -51,6 +53,35 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Text;
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p className="${classes}">${text(node.label!)}</p>`;
+  },
+  Stack: (node, ctx) => wrap(`<div className="${flexClasses(node)}">`, ctx.render(node.children), "</div>"),
+  Row: (node, ctx) => wrap(`<div className="${flexClasses(node)}">`, ctx.render(node.children), "</div>"),
+  Grid: (node, ctx) => wrap(`<div className="${gridClasses(node)}">`, ctx.render(node.children), "</div>"),
+  Separator: (_node, ctx) => {
+    ctx.use("@/components/ui/separator", "Separator");
+    return "<Separator />";
+  },
+  Card: (node, ctx) => {
+    const c = CLASSES.Card;
+    /** Imports a Card part and returns its name, so each part is imported only when emitted. */
+    const ui = (name: string) => (ctx.use("@/components/ui/card", name), name);
+    const desc = node.props.desc as string | undefined;
+    const { actions, footer } = node.slots ?? {};
+    const span = c.span[node.props.span as keyof typeof c.span];
+    const header = lines(
+      node.label !== undefined && `<${ui("CardTitle")}>${text(node.label)}</CardTitle>`,
+      desc !== undefined && `<${ui("CardDescription")}>${text(desc)}</CardDescription>`,
+      actions && wrap(`<${ui("CardAction")} className="${c.actions}">`, ctx.render(actions), "</CardAction>"),
+    );
+    return wrap(
+      `<${ui("Card")}${span ? ` className="${span}"` : ""}>`,
+      lines(
+        header && wrap(`<${ui("CardHeader")}>`, header, "</CardHeader>"),
+        node.children.length > 0 && wrap(`<${ui("CardContent")}>`, ctx.render(node.children), "</CardContent>"),
+        footer && wrap(`<${ui("CardFooter")} className="${c.footerItems}">`, ctx.render(footer), "</CardFooter>"),
+      ),
+      "</Card>",
+    );
   },
   Table: (node, ctx) => {
     ctx.use("@/components/ui/table", "Table", "TableBody", "TableCell", "TableHead", "TableHeader", "TableRow");

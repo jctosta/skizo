@@ -1,0 +1,7 @@
+Screen "Dashboard"
+  Grid cols=7
+    Text "Revenue"
+  Grid cols=1
+    Text "Orders"
+  Grid cols=two
+    Text "Customers"

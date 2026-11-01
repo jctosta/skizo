@@ -1,0 +1,2 @@
+input.skz:2  Separator  takes no Label
+input.skz:3  Stack  takes no Label

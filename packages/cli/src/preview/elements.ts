@@ -1,5 +1,5 @@
 import type { Node } from "@skizo/core";
-import { CLASSES, cx } from "../classes";
+import { CLASSES, cx, flexClasses, gridClasses } from "../classes";
 import { listItems, tableRows } from "../placeholder";
 import type { Script } from "./script";
 
@@ -25,11 +25,13 @@ export const EMITTERS: Record<string, Emit> = {
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
     const subtitle = node.props.subtitle as string | undefined;
+    const actions = node.slots?.actions;
     return [
       `<section data-screen="${esc(node.props.id as string)}" class="${c.root}">`,
-      `<header class="${c.header}">`,
+      `<header class="${cx(c.header, actions && c.headerWithActions)}">`,
       `<h1 class="${c.title}">${esc(node.label!)}</h1>`,
       subtitle !== undefined && `<p class="${c.subtitle}">${esc(subtitle)}</p>`,
+      actions && div(c.actions, ctx.render(actions)),
       `</header>`,
       `<div class="${c.body}">`,
       ctx.render(node.children),
@@ -47,6 +49,28 @@ export const EMITTERS: Record<string, Emit> = {
     const c = CLASSES.Text;
     const classes = cx(c[node.props.size as "sm" | "md" | "lg"], node.props.muted === true && c.muted, node.props.bold === true && c.bold);
     return `<p class="${classes}">${esc(node.label!)}</p>`;
+  },
+  Stack: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
+  Row: (node, ctx) => div(flexClasses(node), ctx.render(node.children)),
+  Grid: (node, ctx) => div(gridClasses(node), ctx.render(node.children)),
+  Separator: () => `<div role="none" class="${CLASSES.Separator.root}"></div>`,
+  Card: (node, ctx) => {
+    const c = CLASSES.Card;
+    const desc = node.props.desc as string | undefined;
+    const { actions, footer } = node.slots ?? {};
+    const header = lines(
+      node.label !== undefined && `<div class="${c.title}">${esc(node.label)}</div>`,
+      desc !== undefined && `<div class="${c.desc}">${esc(desc)}</div>`,
+      actions && div(cx(c.action, c.actions), ctx.render(actions)),
+    );
+    return div(
+      cx(c.root, c.span[node.props.span as keyof typeof c.span]),
+      lines(
+        header && div(cx(c.header, actions && c.headerWithActions), header),
+        node.children.length > 0 && div(c.content, ctx.render(node.children)),
+        footer && div(cx(c.footer, c.footerItems), ctx.render(footer)),
+      ),
+    );
   },
   Table: (node, ctx) => {
     const c = CLASSES.Table;
@@ -87,3 +111,9 @@ export const EMITTERS: Record<string, Emit> = {
     ].join("\n");
   },
 };
+
+/** Joins the present lines. */
+const lines = (...parts: (string | false | undefined)[]) => parts.filter(Boolean).join("\n");
+
+/** A `<div>` holding `body`, which may be empty. */
+const div = (classes: string, body: string) => lines(`<div class="${classes}">`, body, "</div>");

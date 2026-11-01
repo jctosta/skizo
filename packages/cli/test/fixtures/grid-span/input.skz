@@ -1,0 +1,14 @@
+// Cards in a Grid span columns with span=N, up to the Grid's cols.
+Screen "Dashboard"
+  Grid cols=3
+    Card "Revenue" span=2
+      Text "$12,450"
+    Card "Orders"
+      Text "18"
+    Card "Customers" span=3
+      Text "1,204"
+  Grid cols=6
+    Card "Wide" span=6
+    Card "Narrow" span=1
+    Card "Medium" span=4
+    Card "Half" span=5
