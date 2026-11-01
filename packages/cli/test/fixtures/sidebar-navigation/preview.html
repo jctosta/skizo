@@ -8,7 +8,7 @@
 </head>
 <body>
 <section data-screen="orders" class="flex min-h-screen">
-<aside class="w-64 shrink-0 border-r bg-muted/50 p-2">
+<aside class="hidden w-64 shrink-0 flex-col border-r bg-muted/50 p-2 md:flex">
 <nav class="flex flex-col gap-1">
 <a href="#dashboard" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Dashboard</a>
 <a href="#orders" aria-current="page" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>Orders</a>
@@ -17,7 +17,10 @@
 </aside>
 <div class="min-w-0 flex-1 p-4 md:p-6">
 <header class="mb-6 grid gap-1 grid-cols-[1fr_auto] gap-x-4">
+<div class="flex items-center gap-2">
+<button type="button" data-opens="orders" aria-haspopup="dialog" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-9 md:hidden"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg><span class="sr-only">Menu</span></button>
 <h1 class="text-2xl font-semibold tracking-tight">Orders</h1>
+</div>
 <p class="text-sm text-muted-foreground">Manage orders</p>
 <div class="col-start-2 row-span-2 row-start-1 flex items-center gap-2 self-start justify-self-end">
 <a href="#dashboard" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 border-border bg-background shadow-xs hover:bg-muted hover:text-foreground h-9 gap-1.5 px-2.5">View dashboard</a>
@@ -27,9 +30,25 @@
 <a href="#dashboard" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/80 h-9 gap-1.5 px-2.5"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>Open dashboard</a>
 </div>
 </div>
+<div data-dialog="orders" hidden>
+<div data-dialog-close class="fixed inset-0 z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs"></div>
+<div role="dialog" aria-modal="true" aria-labelledby="dialog-2" class="fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm">
+<div class="flex flex-col gap-1.5 p-4">
+<h2 id="dialog-2" class="font-medium text-foreground">Menu</h2>
+</div>
+<div class="grid flex-1 auto-rows-min gap-4 px-4">
+<nav class="flex flex-col gap-1">
+<a href="#dashboard" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Dashboard</a>
+<a href="#orders" aria-current="page" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>Orders</a>
+<a class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground">Help</a>
+</nav>
+</div>
+<button type="button" data-dialog-close class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-8 absolute top-4 right-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg><span class="sr-only">Close</span></button>
+</div>
+</div>
 </section>
 <section hidden data-screen="dashboard" class="flex min-h-screen">
-<aside class="w-64 shrink-0 border-r bg-muted/50 p-2">
+<aside class="hidden w-64 shrink-0 flex-col border-r bg-muted/50 p-2 md:flex">
 <nav class="flex flex-col gap-1">
 <a href="#dashboard" aria-current="page" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Dashboard</a>
 <a href="#orders" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>Orders</a>
@@ -38,15 +57,34 @@
 </aside>
 <div class="min-w-0 flex-1 p-4 md:p-6">
 <header class="mb-6 grid gap-1">
+<div class="flex items-center gap-2">
+<button type="button" data-opens="dashboard" aria-haspopup="dialog" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-9 md:hidden"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg><span class="sr-only">Menu</span></button>
 <h1 class="text-2xl font-semibold tracking-tight">Dashboard</h1>
+</div>
 </header>
 <div class="flex flex-col gap-4">
 <p class="text-sm">Welcome back</p>
 </div>
 </div>
+<div data-dialog="dashboard" hidden>
+<div data-dialog-close class="fixed inset-0 z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs"></div>
+<div role="dialog" aria-modal="true" aria-labelledby="dialog-11" class="fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm">
+<div class="flex flex-col gap-1.5 p-4">
+<h2 id="dialog-11" class="font-medium text-foreground">Menu</h2>
+</div>
+<div class="grid flex-1 auto-rows-min gap-4 px-4">
+<nav class="flex flex-col gap-1">
+<a href="#dashboard" aria-current="page" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Dashboard</a>
+<a href="#orders" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0" aria-hidden="true"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></svg>Orders</a>
+<a class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground">Help</a>
+</nav>
+</div>
+<button type="button" data-dialog-close class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-8 absolute top-4 right-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg><span class="sr-only">Close</span></button>
+</div>
+</div>
 </section>
 <section hidden data-screen="settings" class="flex min-h-screen">
-<aside class="w-64 shrink-0 border-r bg-muted/50 p-2">
+<aside class="hidden w-64 shrink-0 flex-col border-r bg-muted/50 p-2 md:flex">
 <nav class="flex flex-col gap-1">
 <a href="#dashboard" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground">Dashboard</a>
 <a href="#orders" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground">Orders</a>
@@ -54,13 +92,49 @@
 </aside>
 <div class="min-w-0 flex-1 p-4 md:p-6">
 <header class="mb-6 grid gap-1">
+<div class="flex items-center gap-2">
+<button type="button" data-opens="settings" aria-haspopup="dialog" class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-9 md:hidden"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></svg><span class="sr-only">Menu</span></button>
 <h1 class="text-2xl font-semibold tracking-tight">Settings</h1>
+</div>
 </header>
 <div class="flex flex-col gap-4">
 </div>
 </div>
+<div data-dialog="settings" hidden>
+<div data-dialog-close class="fixed inset-0 z-50 bg-black/10 supports-backdrop-filter:backdrop-blur-xs"></div>
+<div role="dialog" aria-modal="true" aria-labelledby="dialog-19" class="fixed z-50 flex flex-col gap-4 bg-popover bg-clip-padding text-sm text-popover-foreground shadow-lg inset-y-0 left-0 h-full w-3/4 border-r sm:max-w-sm">
+<div class="flex flex-col gap-1.5 p-4">
+<h2 id="dialog-19" class="font-medium text-foreground">Menu</h2>
+</div>
+<div class="grid flex-1 auto-rows-min gap-4 px-4">
+<nav class="flex flex-col gap-1">
+<a href="#dashboard" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground">Dashboard</a>
+<a href="#orders" class="flex h-8 items-center gap-2 rounded-md px-2 text-sm hover:bg-accent hover:text-accent-foreground aria-[current=page]:bg-accent aria-[current=page]:font-medium aria-[current=page]:text-accent-foreground">Orders</a>
+</nav>
+</div>
+<button type="button" data-dialog-close class="inline-flex shrink-0 items-center justify-center rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted hover:text-foreground size-8 absolute top-4 right-4"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg><span class="sr-only">Close</span></button>
+</div>
+</div>
 </section>
 <script>
+// Dialogs and Sheets: a [data-opens] Button shows the [data-dialog] with that id;
+// a click on a [data-dialog-close] (close button, backdrop, footer Button without Behavior) hides its Dialog or Sheet.
+document.addEventListener("click", (event) => {
+  const target = event.target instanceof Element ? event.target : null;
+  const opener = target && target.closest("[data-opens]");
+  if (opener) {
+    for (const o of document.querySelectorAll("[data-dialog]")) if (o.dataset.dialog === opener.dataset.opens) o.hidden = false;
+    return;
+  }
+  const closer = target && target.closest("[data-dialog-close]");
+  if (closer) closer.closest("[data-dialog]").hidden = true;
+});
+// Escape closes the topmost shown Dialog or Sheet (the last in the page).
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const top = [...document.querySelectorAll("[data-dialog]")].filter((o) => o.checkVisibility()).pop();
+  if (top) top.hidden = true;
+});
 // Screens (to=): one shows at a time. A to= is a link to #<screen id>; the hash picks the Screen,
 // so the back button works and a preview --watch reload stays on it. No hash: the first Screen.
 const showScreen = () => {

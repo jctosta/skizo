@@ -60,29 +60,41 @@ const choice = (id: string, label: string, control: string) =>
  * Props arrive checked, coerced and with enum defaults filled in.
  */
 export const EMITTERS: Record<string, Emit> = {
+  /**
+   * With a Sidebar: a page shell, the sidebar column beside the main area. On phones the column hides and a menu
+   * button before the title opens the Sidebar in a left Sheet, through the Dialog and Sheet machinery (SCRIPTS.dialog).
+   */
   Screen: (node, ctx) => {
     const c = CLASSES.Screen;
+    const id = node.props.id as string;
     const subtitle = node.props.subtitle as string | undefined;
     const actions = node.slots?.actions;
     const { sidebar, isShared, body } = screenParts(node, ctx.sidebar);
+    const title = `<h1 class="${c.title}">${esc(node.label!)}</h1>`;
+    const b = CLASSES.Button;
+    // The Sheet takes the Screen's id: ids are unique in the file, so no Dialog or Sheet can have it.
+    const menu = `<button type="button" data-opens="${esc(id)}" aria-haspopup="dialog" class="${cx(b.base, b.variant.ghost, b.iconSize.md, c.menu)}">${iconSvg("menu")}<span class="${b.hiddenLabel}">Menu</span></button>`;
     const main = lines(
       `<header class="${cx(c.header, actions && c.headerWithActions)}">`,
-      `<h1 class="${c.title}">${esc(node.label!)}</h1>`,
+      sidebar ? div(c.titleRow, lines(menu, title)) : title,
       subtitle !== undefined && `<p class="${c.subtitle}">${esc(subtitle)}</p>`,
       actions && div(c.actions, ctx.render(actions)),
       `</header>`,
       div(c.body, ctx.render(body)),
     );
+    if (!sidebar) return lines(`<section data-screen="${esc(id)}" class="${c.root}">`, main, `</section>`);
+    const shown = isShared ? activeFor(sidebar, id) : sidebar;
+    const sheet: Node = { type: "Sheet", label: "Menu", props: { id, side: "left" }, children: [shown], line: node.line };
     return lines(
-      `<section data-screen="${esc(node.props.id as string)}" class="${sidebar ? c.shell : c.root}">`,
-      sidebar ? lines(ctx.render([isShared ? activeFor(sidebar, node.props.id as string) : sidebar]), div(c.main, main)) : main,
+      `<section data-screen="${esc(id)}" class="${c.shell}">`,
+      lines(`<aside class="${CLASSES.Sidebar.root}">`, ctx.render([shown]), "</aside>"),
+      div(c.main, main),
+      ctx.render([sheet]),
       `</section>`,
     );
   },
-  Sidebar: (node, ctx) => {
-    const c = CLASSES.Sidebar;
-    return lines(`<aside class="${c.root}">`, `<nav class="${c.nav}">`, ctx.render(node.children), "</nav>", "</aside>");
-  },
+  /** The Sidebar's nav: the Screen puts it in its column and in the Sheet of its menu button. */
+  Sidebar: (node, ctx) => lines(`<nav class="${CLASSES.Sidebar.nav}">`, ctx.render(node.children), "</nav>"),
   /** A Link without to= goes nowhere yet: no href. */
   Link: (node, ctx) => {
     const { icon, to, active } = node.props as { icon?: string; to?: string; active?: true };

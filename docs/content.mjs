@@ -223,8 +223,9 @@ the browser works. If the file has no <code>to=</code>, the Preview shows all Sc
 <p>Each sketch fits phones, tablets and desktops. Write one layout, and Skizo changes it for each width. On a
 phone (narrower than 768 px), a Grid shows one column. On a tablet (768 px to 1023 px), a Grid shows a maximum
 of two columns. A Row puts the children that do not fit on a new line. A Table scrolls horizontally. A Screen
-has less padding on a phone. The Preview and the export use the same Tailwind classes: <code>md:</code> for
-tablets and <code>lg:</code> for desktops.</p>`,
+has less padding on a phone. On a phone, the Sidebar is hidden, and a button with the <code>menu</code> icon opens
+it from the left. The Preview and the export use the same Tailwind classes: <code>md:</code> for tablets and
+<code>lg:</code> for desktops.</p>`,
   },
   {
     id: "cli",
@@ -351,8 +352,9 @@ Screen "Archive" id=archive
           "A Screen with the `plain` flag shows no Sidebar.",
           "No Screen can have the id `app-sidebar`. The export uses this name for the file of the shared Sidebar.",
           "A Link can only be in a Sidebar. For a link in the page, write `Button variant=link to=...`.",
+          "On a phone (narrower than 768 px), the Sidebar is hidden. A button with the `menu` icon comes before the Screen title. The button opens the Sidebar as a Sheet from the left. A Link in the Sheet shows its Screen and closes the Sheet.",
         ],
-        shadcn: "An `<aside><nav>` with plain `<a>` links, or the `Link` of your router with `--router`. The active link gets `aria-current=\"page\"`. A shared Sidebar becomes `app-sidebar.tsx`, which exports `AppSidebar({ current })`. Each Screen that shows it renders `<AppSidebar current=\"screen-id\" />`.",
+        shadcn: "A `<nav>` with plain `<a>` links, or the `Link` of your router with `--router`. The active link gets `aria-current=\"page\"`. The Screen puts the `<nav>` in an `<aside>` column with `hidden md:flex`. It also puts the `<nav>` in a `Sheet side=\"left\"`, which a `md:hidden` `SheetTrigger` Button opens. A shared Sidebar becomes `app-sidebar.tsx`, which exports `AppSidebar({ current })`, the `<nav>`. Each Screen that shows it renders `<AppSidebar current=\"screen-id\" />` in the column and in the Sheet.",
       },
     ],
   },

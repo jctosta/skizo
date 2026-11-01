@@ -61,3 +61,43 @@ test("a 3-column Grid shows 1 column on a phone, 2 on a tablet and 3 on desktop,
   });
   await page.close();
 });
+
+const SHARED_SIDEBAR = `Sidebar
+  Link "Orders" to=orders
+  Link "Dashboard" to=dashboard
+
+Screen "Orders"
+  "Recent orders"
+
+Screen "Dashboard"
+  "Welcome back"
+`;
+
+test("on a phone the Sidebar hides behind a menu Button that opens it in a left Sheet, where a Link shows its Screen", async () => {
+  const cwd = withFiles({ "app.skz": SHARED_SIDEBAR });
+  await runCli(["preview", "app.skz"], cwd);
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await page.goto(pathToFileURL(join(cwd, "app.html")).href);
+  const shown = (role: "navigation" | "dialog" | "heading") => page.getByRole(role).filter({ visible: true });
+  const menu = page.getByRole("button", { name: "Menu" }).filter({ visible: true });
+
+  const column = await shown("navigation").count();
+  await menu.click();
+  const sheet = page.getByRole("dialog", { name: "Menu" }).filter({ visible: true });
+  const left = (await sheet.boundingBox())?.x;
+  await sheet.getByRole("link", { name: "Dashboard" }).click();
+  // hashchange fires after the click resolves.
+  await expect.poll(() => shown("heading").first().textContent()).toBe("Dashboard");
+  const after = { dialogs: await shown("dialog").count(), menu: await menu.count() };
+  // From md: up the column shows and the menu Button does not.
+  await page.setViewportSize({ width: 768, height: 1024 });
+  const tablet = { navigation: await shown("navigation").count(), menu: await menu.count() };
+
+  expect({ column, left, after, tablet }).toEqual({
+    column: 0,
+    left: 0,
+    after: { dialogs: 0, menu: 1 },
+    tablet: { navigation: 1, menu: 0 },
+  });
+  await page.close();
+});
