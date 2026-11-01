@@ -1,5 +1,6 @@
 // Golden fixtures: one directory per rule or sketch under fixtures/, holding input.skz and its goldens.
-// check.txt is the stdout of `skizo check input.skz`. Inputs that pass check also get preview.html and shadcn/<screen id>.tsx.
+// check.txt is the stdout of `skizo check input.skz`. Inputs that pass check also get preview.html and shadcn/<screen id>.tsx,
+// plus shadcn-<router>/<screen id>.tsx for each such folder in the fixture (make the empty folder, then run -u).
 // Add a fixture by adding a directory; `vitest run -u` writes goldens for a new one (review them before committing).
 import { copyFileSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -26,9 +27,14 @@ for (const name of readdirSync(FIXTURES)) {
     expect(previewed.code).toBe(0);
     await expect(withoutCss(readFileSync(join(cwd, "input.html"), "utf8"))).toMatchFileSnapshot(join(dir, "preview.html"));
 
-    const exported = await runCli(["export", "input.skz", "--target", "shadcn", "--out", "shadcn"], cwd);
-    expect(exported.code).toBe(0);
-    for (const file of readdirSync(join(cwd, "shadcn")))
-      await expect(readFileSync(join(cwd, "shadcn", file), "utf8")).toMatchFileSnapshot(join(dir, "shadcn", file));
+    // A shadcn-<router>/ folder in the fixture holds the export with --router <router>.
+    const routers = readdirSync(dir).filter((name) => name.startsWith("shadcn-"));
+    for (const out of ["shadcn", ...routers]) {
+      const router = out === "shadcn" ? [] : ["--router", out.slice("shadcn-".length)];
+      const exported = await runCli(["export", "input.skz", "--target", "shadcn", ...router, "--out", out], cwd);
+      expect(exported.code).toBe(0);
+      for (const file of readdirSync(join(cwd, out)))
+        await expect(readFileSync(join(cwd, out, file), "utf8")).toMatchFileSnapshot(join(dir, out, file));
+    }
   });
 }

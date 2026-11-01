@@ -9,7 +9,12 @@ import { SCRIPTS, type Script } from "./script";
 export function renderPreview(document: Document): string {
   const scripts = new Set<Script>();
   const paths = nodePaths(document);
-  const ctx = (node: Node): Ctx => ({ path: paths.get(node)!, render: (nodes) => render(nodes, ctx), script: (name) => scripts.add(name) });
+  const ctx = (node: Node): Ctx => ({
+    path: paths.get(node)!,
+    render: (nodes) => render(nodes, ctx),
+    script: (name) => scripts.add(name),
+    sidebar: document.sidebar,
+  });
   const screens = document.screens.map((screen) => render([screen], ctx));
   // With to= links, only the first Screen shows on load and a link shows another (SCRIPTS.to).
   // Without, nothing could reach a hidden Screen, so they all show.

@@ -1,4 +1,4 @@
-import type { Node } from "@skizo/core";
+import { ELEMENTS, type Node } from "@skizo/core";
 
 // Helpers every Backend shares, besides CLASSES (classes.ts) and placeholder content (placeholder.ts),
 // so the Preview and the exports read the AST the same way.
@@ -13,10 +13,15 @@ export function emitterFor<E>(emitters: Record<string, E>, type: string, backend
   return emit;
 }
 
-/** A Screen's Sidebar, when it is the first child (the page shell's column), and the rest: the Screen's body. */
-export function screenParts(screen: Node) {
-  const sidebar = screen.children[0]?.type === "Sidebar" ? screen.children[0] : undefined;
-  return { sidebar, body: sidebar ? screen.children.slice(1) : screen.children };
+/**
+ * The Sidebar a Screen shows (the page shell's column) and the rest, the Screen's body. The Sidebar is its first
+ * child, else `shared` (Document.sidebar) unless the Screen is plain. With `isShared`, the Backend marks the active
+ * Link for this Screen itself: the shared node has none.
+ */
+export function screenParts(screen: Node, shared?: Node) {
+  const own = screen.children[0]?.type === "Sidebar" ? screen.children[0] : undefined;
+  const sidebar = own ?? (screen.props.plain === true ? undefined : shared);
+  return { sidebar, isShared: !own && sidebar !== undefined, body: own ? screen.children.slice(1) : screen.children };
 }
 
 const ARROWS = { none: "", up: "↑", down: "↓" };
@@ -29,14 +34,10 @@ export const hasBehavior = (node: Node) => node.props.opens !== undefined || nod
 /** The color of a Chart's series (a pie's slice) `i`: shadcn's --chart-1 to --chart-5, then from the start again. */
 export const chartColor = (i: number) => `var(--chart-${(i % 5) + 1})`;
 
-/**
- * A JS identifier in PascalCase from an id or icon name: `order-details` → `OrderDetails`. One that would start
- * with a digit (or be empty) gets `prefix` first: `2026-report` → `Screen2026Report` with prefix `Screen`.
- */
-export const pascalCase = (id: string, prefix = "") => {
-  const name = id
-    .split(/[^A-Za-z0-9]+/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("");
-  return /^[A-Za-z]/.test(name) ? name : `${prefix}${name}`;
-};
+/** Props a parent grants (a Grid's span): the parent lays its child out with them. */
+const GRANTED = new Set(Object.values(ELEMENTS).flatMap((spec) => Object.keys(spec.childProps ?? {})));
+/** A Custom's props as written (strings, true for a flag), except those a parent grants: they are not the component's. */
+export const customProps = (node: Node) => Object.entries(node.props).filter(([key]) => !GRANTED.has(key));
+
+/** `order-details` → `OrderDetails`; lives in core, which uses it for a Custom name's hint. */
+export { pascalCase } from "@skizo/core";

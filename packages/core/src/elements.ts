@@ -25,6 +25,8 @@ export type ElementSpec = {
   label: "required" | "optional" | "none";
   /** `id` is allowed on every Element and need not be listed. */
   props: Record<string, PropSpec>;
+  /** Any other prop or flag passes unchecked, as written: a string, or true for a flag (Custom). */
+  anyProps?: true;
   /** Element types allowed as children; "any" for all; omitted for none. */
   children?: readonly string[] | "any";
   /** Element types this one may sit directly under (not in their slots); omitted for anywhere. */
@@ -93,10 +95,10 @@ const flex = {
  * Screens go only at the top level; that rule lives in validate.ts.
  */
 export const ELEMENTS: Record<string, ElementSpec> = {
-  /** Every Screen gets an id: the slug of its Label when it has no id=. */
+  /** Every Screen gets an id: the slug of its Label when it has no id=. `plain` hides the shared Sidebar. */
   Screen: {
     label: "required",
-    props: { id: { kind: "string" }, subtitle: { kind: "string" } },
+    props: { id: { kind: "string" }, subtitle: { kind: "string" }, plain: { kind: "flag" } },
     children: "any",
     slots: ["actions"],
     infer(node) {
@@ -105,9 +107,13 @@ export const ELEMENTS: Record<string, ElementSpec> = {
     },
     check(node, err) {
       if (node.props.id === undefined && node.label !== undefined) err("cannot derive an id from the Label (add id=name)");
+      if (node.props.plain === true && node.children.some((child) => child.type === "Sidebar")) err("has both its own Sidebar and plain (keep one)");
     },
   },
-  /** A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default). */
+  /**
+   * A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default).
+   * At the top level it is shared (Document.sidebar): validate.ts places it, and its Links get no inferred active.
+   */
   Sidebar: {
     label: "none",
     props: {},
@@ -265,6 +271,20 @@ export const ELEMENTS: Record<string, ElementSpec> = {
   Checkbox: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
   Switch: { label: "required", props: { checked: { kind: "flag" }, disabled: { kind: "flag" } } },
   Radio: { label: "required", props: { options: { kind: "list" }, value: { kind: "string" } }, check: valueInOptions },
+  /** A component of the project that the vocabulary lacks. The Label is its name, so the export can import it. */
+  Custom: {
+    label: "required",
+    props: {},
+    anyProps: true,
+    children: "any",
+    check(node, err) {
+      const name = node.label;
+      if (name === undefined || /^[A-Z][A-Za-z0-9]*$/.test(name)) return;
+      const fixed = pascalCase(name);
+      const hint = /^[A-Z]/.test(fixed) ? ` — did you mean ${fixed}?` : " (expected: a capital letter, then letters and digits)";
+      err(`"${name}" is not a PascalCase name${hint}`);
+    },
+  },
 };
 
 /** "Order list" → "order-list". */
@@ -275,3 +295,15 @@ export const slugify = (label: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+
+/**
+ * A JS identifier in PascalCase from an id or icon name: `order-details` → `OrderDetails`. One that would start
+ * with a digit (or be empty) gets `prefix` first: `2026-report` → `Screen2026Report` with prefix `Screen`.
+ */
+export const pascalCase = (id: string, prefix = "") => {
+  const name = id
+    .split(/[^A-Za-z0-9]+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+  return /^[A-Za-z]/.test(name) ? name : `${prefix}${name}`;
+};

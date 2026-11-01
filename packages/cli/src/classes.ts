@@ -234,6 +234,12 @@ export const CLASSES = {
     thumbOff: "translate-x-0",
   },
   Radio: { group: "grid gap-3", control: "peer size-4 shrink-0 accent-primary disabled:cursor-not-allowed disabled:opacity-50" },
+  /** The Preview's stand-in for a project component: a dashed box, its `<Name>` tag and props on top. The export renders the component. */
+  Custom: {
+    root: "flex flex-col gap-3 rounded-lg border border-dashed p-3",
+    tag: "font-mono text-xs break-words text-muted-foreground",
+    name: "font-medium text-foreground",
+  },
 } as const;
 
 /** Joins the truthy class strings. */

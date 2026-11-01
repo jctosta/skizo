@@ -1,0 +1,12 @@
+// Custom passes any props, flags and children through to a component of the project.
+Screen "Support"
+  Grid cols=3
+    Custom "Conversation" span=2 channel=email unread
+      Custom "ChatBubble" author="Ana Souza" sent-at="9:41" mine
+        Text "Where is my order?"
+      Custom "ChatBubble" author="Bruno Lima" sent-at="9:42"
+        Text "It ships today."
+        Button "Track order" variant=outline
+    Card "Customer"
+      Text "Ana Souza"
+  Custom "TypingIndicator"
