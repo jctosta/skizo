@@ -3,129 +3,6 @@ import { mkdirSync, readFileSync, watch, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { createServer } from "node:http";
-// ../core/src/parse.ts
-const SLOTS = ["actions", "footer"];
-const STRING = /"((?:[^"\\]|\\.)*)"/y;
-const WORD = /([^\s="]+)(=?)/y;
-const BARE = /[^\s"]*/y;
-const FLAG = /^[a-z][a-z0-9-]*$/;
-/**
-* Line-based parser for the Skizo line grammar (the Syntax section of packages/cli/GUIDE.md). Builds the AST and reports syntax errors.
-* Prop values stay raw strings (`\,` kept for list splitting); the validator coerces them.
-* `\,` is a literal comma everywhere: in Labels here, in string and list props in the validator.
-*/
-function parse(source) {
-	const errors = [];
-	/** Lines whose tokens could not all be read; validating them would only repeat the same mistake. */
-	const garbled = /* @__PURE__ */ new Set();
-	const screens = [];
-	/** stack[n] is the frame that receives lines at indent level n. */
-	const stack = [{ into: screens }];
-	source.split("\n").forEach((raw, i) => {
-		const line = i + 1;
-		const content = raw.trim();
-		if (!content || content.startsWith("//")) return;
-		const paragraph = content.startsWith("\"");
-		const kind = paragraph ? "Text" : content.startsWith("|") ? "Table" : content.match(/^[^\s"]*/)[0];
-		const err = (message) => errors.push({
-			line,
-			type: kind,
-			message
-		});
-		const ws = raw.slice(0, raw.length - raw.trimStart().length);
-		let indent = ws.length;
-		if (ws.includes("	")) {
-			err("tab in indentation (indent with 2 spaces)");
-			indent = ws.replaceAll("	", "  ").length;
-		} else if (indent % 2) err(`indent of ${indent} spaces is not a multiple of 2`);
-		let level = Math.floor(indent / 2);
-		if (level >= stack.length) {
-			err("more than one level deeper than its parent (indent 2 spaces per level)");
-			level = stack.length - 1;
-		}
-		stack.length = level + 1;
-		const parent = stack[level];
-		if (content.startsWith("|")) {
-			if (parent.node?.type === "Table") {
-				(parent.node.rows ??= []).push(cells(content));
-				(parent.node.rowLines ??= []).push(line);
-			} else err("row line outside a Table");
-			stack.push({ into: null });
-		} else if (SLOTS.includes(content)) {
-			const name = content;
-			if (parent.node) stack.push({ into: (parent.node.slots ??= {})[name] ??= [] });
-			else {
-				err(`slot word "${name}" goes directly under an Element`);
-				stack.push({ into: [] });
-			}
-		} else {
-			const node = {
-				type: kind,
-				props: {},
-				children: [],
-				line
-			};
-			tokenize(paragraph ? content : content.slice(kind.length), node, (message) => {
-				err(message);
-				garbled.add(line);
-			});
-			if (paragraph && Object.keys(node.props).length) err("a bare string line takes no flags or props (write Text \"...\" with them instead)");
-			if (parent.into) parent.into.push(node);
-			else err("row lines take no children");
-			stack.push({
-				node,
-				into: node.children
-			});
-		}
-	});
-	return {
-		document: { screens },
-		errors,
-		garbled
-	};
-}
-/** Reads the Label, flags and props of one line into `node`. Stops at the first unreadable string. */
-function tokenize(rest, node, err) {
-	let i = 0;
-	const read = (re) => {
-		re.lastIndex = i;
-		const m = re.exec(rest);
-		if (m) i = re.lastIndex;
-		return m;
-	};
-	const string = () => {
-		const m = read(STRING);
-		if (!m) err("unterminated string (missing closing \")");
-		return m?.[1].replace(/\\(["\\])/g, "$1");
-	};
-	while (i < rest.length) if (rest[i] === " ") i++;
-	else if (rest[i] === "\"") {
-		const s = string();
-		if (s === void 0) return;
-		if (node.label === void 0) node.label = s.replaceAll("\\,", ",");
-		else err(`second bare string "${s}" (an Element has one Label)`);
-	} else {
-		const m = read(WORD);
-		const key = m?.[1] ?? rest.slice(i).split(" ")[0];
-		if (!m) i += key.length;
-		if (key.startsWith("//")) {
-			err("unexpected \"//\" (comments go on their own line)");
-			return;
-		}
-		let value = true;
-		if (m?.[2]) {
-			const s = rest[i] === "\"" ? string() : read(BARE)[0];
-			if (s === void 0) return;
-			if (s === "") err(`${key}= has no value`);
-			value = s;
-		}
-		if (!FLAG.test(key)) err(`unexpected "${key}" (Labels are quoted, flags are lowercase words, props are key=value)`);
-		else if (key in node.props) err(`duplicate "${key}"`);
-		else node.props[key] = value;
-	}
-}
-/** `| a | b |` → ["a", "b"]; the trailing pipe is optional. */
-const cells = (row) => row.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim());
 // ../core/src/nearest.ts
 /**
 * The one nearest-match helper behind every "did you mean" hint (Element type, prop, flag, enum value, id).
@@ -183,7 +60,7 @@ const variants = {
 const iconOnly = (node, err) => {
 	if (node.props["icon-only"] === true && node.props.icon === void 0) err("icon-only needs icon=... too");
 };
-/** Select and Radio: value= picks one of options=, or it would show nothing once exported. */
+/** Select and Radio: value= is one of options=. */
 const valueInOptions = (node, err) => {
 	const value = node.props.value;
 	const options = node.props.options ?? [];
@@ -191,6 +68,21 @@ const valueInOptions = (node, err) => {
 	if (!options.length) err(`value=${value} needs options= that include it`);
 	else err(`unknown value "${value}"${didYouMean(value, options)} (expected: ${options.join(", ")})`);
 };
+/**
+* Table and Chart: `|` rows or rows=N, not both; cols= is required; one cell per column. Returns the columns, or
+* undefined without cols=. `example` shows how to write cols= in the error.
+*/
+const tabular = (node, err, example) => {
+	if (node.rows && node.props.rows !== void 0) err("has both | rows and rows= (keep one)");
+	const cols = node.props.cols;
+	if (!cols) return void err(`needs cols (${example})`);
+	node.rows?.forEach((cells, i) => {
+		if (cells.length !== cols.length) err(`row has ${cells.length} cells, expected ${cols.length} (cols: ${cols.join(", ")})`, node.rowLines[i]);
+	});
+	return cols;
+};
+/** A Chart value: digits, with an optional minus sign and decimal part (1200, -3, 12.5). */
+const NUMBER = /^-?\d+(\.\d+)?$/;
 /** Dialog and Sheet. */
 const dialog$2 = {
 	desc: { kind: "string" },
@@ -222,12 +114,13 @@ const flex$1 = {
 * Screens go only at the top level; that rule lives in validate.ts.
 */
 const ELEMENTS = {
-	/** Every Screen gets an id: the slug of its Label when it has no id=. */
+	/** Every Screen gets an id: the slug of its Label when it has no id=. `plain` hides the shared Sidebar. */
 	Screen: {
 		label: "required",
 		props: {
 			id: { kind: "string" },
-			subtitle: { kind: "string" }
+			subtitle: { kind: "string" },
+			plain: { kind: "flag" }
 		},
 		children: "any",
 		slots: ["actions"],
@@ -237,9 +130,13 @@ const ELEMENTS = {
 		},
 		check(node, err) {
 			if (node.props.id === void 0 && node.label !== void 0) err("cannot derive an id from the Label (add id=name)");
+			if (node.props.plain === true && node.children.some((child) => child.type === "Sidebar")) err("has both its own Sidebar and plain (keep one)");
 		}
 	},
-	/** A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default). */
+	/**
+	* A Screen's navigation column. Its Link going to its own Screen is the active one (no first-child default).
+	* At the top level it is shared (Document.sidebar): validate.ts places it, and its Links get no inferred active.
+	*/
 	Sidebar: {
 		label: "none",
 		props: {},
@@ -404,13 +301,9 @@ const ELEMENTS = {
 				min: 1
 			}
 		},
+		rows: true,
 		check(node, err) {
-			if (node.rows && node.props.rows !== void 0) err("has both | rows and rows= (keep one)");
-			const cols = node.props.cols;
-			if (!cols) return err("needs cols (Table cols=\"A,B,C\")");
-			node.rows?.forEach((cells, i) => {
-				if (cells.length !== cols.length) err(`row has ${cells.length} cells, expected ${cols.length} (cols: ${cols.join(", ")})`, node.rowLines[i]);
-			});
+			tabular(node, err, "Table cols=\"A,B,C\"");
 		}
 	},
 	List: {
@@ -424,6 +317,38 @@ const ELEMENTS = {
 		},
 		check(node, err) {
 			if (node.props.items !== void 0 && node.props.rows !== void 0) err("has both items= and rows= (keep one)");
+		}
+	},
+	/** Data as a Table's: the first column is the x axis (pie: the slice names), each further column a series of numbers. The Label is the accessible name. */
+	Chart: {
+		label: "required",
+		props: {
+			type: {
+				kind: "enum",
+				values: [
+					"line",
+					"bar",
+					"area",
+					"pie"
+				]
+			},
+			cols: { kind: "list" },
+			rows: {
+				kind: "number",
+				min: 1
+			}
+		},
+		rows: true,
+		check(node, err) {
+			const cols = tabular(node, err, "Chart \"Label\" cols=\"X,Series\"");
+			if (!node.rows && node.props.rows === void 0) err("needs | rows or rows=N (a Chart without data draws nothing)");
+			if (!cols) return;
+			if (cols.length < 2) err("needs at least two columns in cols (the x column, then one per series)");
+			else if (node.props.type === "pie" && cols.length !== 2) err("type=pie needs exactly two columns in cols (the slice name, then its value)");
+			node.rows?.forEach((cells, i) => {
+				if (cells.length !== cols.length) return;
+				for (const [j, cell] of cells.entries()) if (j > 0 && !NUMBER.test(cell)) err(`"${cell}" in column ${cols[j]} is not a number (write digits, e.g. 1200 or 12.5)`, node.rowLines[i]);
+			});
 		}
 	},
 	/** The Label is the title. Shown by a Button's opens=, or on load with `open`. */
@@ -566,17 +491,166 @@ const ELEMENTS = {
 			value: { kind: "string" }
 		},
 		check: valueInOptions
+	},
+	/** A component of the project that the vocabulary lacks. The Label is its name, so the export can import it. */
+	Custom: {
+		label: "required",
+		props: {},
+		anyProps: true,
+		children: "any",
+		check(node, err) {
+			const name = node.label;
+			if (name === "Custom") return err("\"Custom\" is not the name of a component (write the name of your component, e.g. Custom \"ChatBubble\")");
+			if (name !== void 0 && Object.hasOwn(ELEMENTS, name)) return err(`"${name}" is an Element type (use ${name} instead of Custom)`);
+			if (name === void 0 || /^[A-Z][A-Za-z0-9]*$/.test(name)) return;
+			const fixed = pascalCase(name);
+			err(`"${name}" is not a PascalCase name${/^[A-Z]/.test(fixed) ? ` — did you mean ${fixed}?` : " (expected: a capital letter, then letters and digits)"}`);
+		}
 	}
 };
 /** "Order list" → "order-list". */
 const slugify = (label) => label.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+/**
+* A JS identifier in PascalCase from an id or icon name: `order-details` → `OrderDetails`. One that would start
+* with a digit (or be empty) gets `prefix` first: `2026-report` → `Screen2026Report` with prefix `Screen`.
+*/
+const pascalCase = (id, prefix = "") => {
+	const name = id.split(/[^A-Za-z0-9]+/).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join("");
+	return /^[A-Za-z]/.test(name) ? name : `${prefix}${name}`;
+};
+// ../core/src/parse.ts
+const SLOTS = ["actions", "footer"];
+const STRING = /"((?:[^"\\]|\\.)*)"/y;
+const WORD = /([^\s="]+)(=?)/y;
+const BARE = /[^\s"]*/y;
+const FLAG = /^[a-z][a-z0-9-]*$/;
+/** Element types that take `| a | b` row lines as their data (ElementSpec.rows). */
+const ROWS = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type].rows);
+/**
+* Line-based parser for the Skizo line grammar (the Syntax section of packages/cli/GUIDE.md). Builds the AST and reports syntax errors.
+* Prop values stay raw strings (`\,` kept for list splitting); the validator coerces them.
+* `\,` is a literal comma everywhere: in Labels here, in string and list props in the validator.
+*/
+function parse(source) {
+	const errors = [];
+	/** Lines whose tokens could not all be read; validating them would only repeat the same mistake. */
+	const garbled = /* @__PURE__ */ new Set();
+	const screens = [];
+	/** stack[n] is the frame that receives lines at indent level n. */
+	const stack = [{ into: screens }];
+	source.split("\n").forEach((raw, i) => {
+		const line = i + 1;
+		const content = raw.trim();
+		if (!content || content.startsWith("//")) return;
+		const paragraph = content.startsWith("\"");
+		const kind = paragraph ? "Text" : content.startsWith("|") ? "Table" : content.match(/^[^\s"]*/)[0];
+		const err = (message) => errors.push({
+			line,
+			type: kind,
+			message
+		});
+		const ws = raw.slice(0, raw.length - raw.trimStart().length);
+		let indent = ws.length;
+		if (ws.includes("	")) {
+			err("tab in indentation (indent with 2 spaces)");
+			indent = ws.replaceAll("	", "  ").length;
+		} else if (indent % 2) err(`indent of ${indent} spaces is not a multiple of 2`);
+		let level = Math.floor(indent / 2);
+		if (level >= stack.length) {
+			err("more than one level deeper than its parent (indent 2 spaces per level)");
+			level = stack.length - 1;
+		}
+		stack.length = level + 1;
+		const parent = stack[level];
+		if (content.startsWith("|")) {
+			if (parent.node && ROWS.includes(parent.node.type)) {
+				(parent.node.rows ??= []).push(cells(content));
+				(parent.node.rowLines ??= []).push(line);
+			} else err(`row line outside a ${ROWS.join(" or ")}`);
+			stack.push({ into: null });
+		} else if (SLOTS.includes(content)) {
+			const name = content;
+			if (parent.node) stack.push({ into: (parent.node.slots ??= {})[name] ??= [] });
+			else {
+				err(`slot word "${name}" goes directly under an Element`);
+				stack.push({ into: [] });
+			}
+		} else {
+			const node = {
+				type: kind,
+				props: {},
+				children: [],
+				line
+			};
+			tokenize(paragraph ? content : content.slice(kind.length), node, (message) => {
+				err(message);
+				garbled.add(line);
+			});
+			if (paragraph && Object.keys(node.props).length) err("a bare string line takes no flags or props (write Text \"...\" with them instead)");
+			if (parent.into) parent.into.push(node);
+			else err("row lines take no children");
+			stack.push({
+				node,
+				into: node.children
+			});
+		}
+	});
+	return {
+		document: { screens },
+		errors,
+		garbled
+	};
+}
+/** Reads the Label, flags and props of one line into `node`. Stops at the first unreadable string. */
+function tokenize(rest, node, err) {
+	let i = 0;
+	const read = (re) => {
+		re.lastIndex = i;
+		const m = re.exec(rest);
+		if (m) i = re.lastIndex;
+		return m;
+	};
+	const string = () => {
+		const m = read(STRING);
+		if (!m) err("unterminated string (missing closing \")");
+		return m?.[1].replace(/\\(["\\])/g, "$1");
+	};
+	while (i < rest.length) if (rest[i] === " ") i++;
+	else if (rest[i] === "\"") {
+		const s = string();
+		if (s === void 0) return;
+		if (node.label === void 0) node.label = s.replaceAll("\\,", ",");
+		else err(`second bare string "${s}" (an Element has one Label)`);
+	} else {
+		const m = read(WORD);
+		const key = m?.[1] ?? rest.slice(i).split(" ")[0];
+		if (!m) i += key.length;
+		if (key.startsWith("//")) {
+			err("unexpected \"//\" (comments go on their own line)");
+			return;
+		}
+		let value = true;
+		if (m?.[2]) {
+			const s = rest[i] === "\"" ? string() : read(BARE)[0];
+			if (s === void 0) return;
+			if (s === "") err(`${key}= has no value`);
+			value = s;
+		}
+		if (!FLAG.test(key)) err(`unexpected "${key}" (Labels are quoted, flags are lowercase words, props are key=value)`);
+		else if (key in node.props) err(`duplicate "${key}"`);
+		else node.props[key] = value;
+	}
+}
+/** `| a | b |` → ["a", "b"]; the trailing pipe is optional. */
+const cells = (row) => row.replace(/^\|/, "").replace(/\|\s*$/, "").split("|").map((c) => c.trim());
 // ../core/src/validate.ts
 /** `id=`, which every Element takes without listing it. */
 const ID_PROP = { kind: "string" };
 /**
 * Checks a parsed document against the ELEMENTS schemas. Generic: per-Element-type rules belong in ELEMENTS; the
-* only type named here is Screen, the top level of every file.
-* Mutates the AST into what Backends read: coerced prop values, defaults, inferred props (ELEMENTS `infer`).
+* only types named here are those of the top level: Screens, and the shared Sidebar before them.
+* Mutates the AST into what Backends read: coerced prop values, defaults, inferred props (ELEMENTS `infer`), and
+* the shared Sidebar moved from `screens` to `sidebar`.
 */
 function validate(document, options = {}) {
 	const errors = [];
@@ -591,6 +665,9 @@ function validate(document, options = {}) {
 		type: node.type,
 		message
 	});
+	const top = document.screens.findIndex((node) => node.type === "Sidebar" || node.type === "Screen");
+	if (document.screens[top]?.type === "Sidebar") [document.sidebar] = document.screens.splice(top, 1);
+	for (const link of document.sidebar?.children ?? []) if (link.props.active === true) err(link, "takes no active in a shared Sidebar (each Screen marks the Link whose to= is that Screen)");
 	if (!document.screens.length) errors.push({
 		line: 1,
 		type: "Screen",
@@ -600,12 +677,15 @@ function validate(document, options = {}) {
 		const spec = ELEMENTS[node.type];
 		if (!spec) err(node, `unknown Element type "${node.type}"${didYouMean(node.type, Object.keys(ELEMENTS))}`);
 		else {
-			if (!parent && node.type !== "Screen") err(node, "must be inside a Screen (only Screens go at the top level)");
+			if (!parent && node.type === "Sidebar" && node !== document.sidebar) {
+				if (document.sidebar) err(node, `only one Sidebar per file can be shared (line ${document.sidebar.line} is shared too)`);
+				else err(node, "must come before the first Screen to be shared (or go first inside a Screen)");
+			} else if (!parent && node.type !== "Screen" && node !== document.sidebar) err(node, "must be inside a Screen (only Screens go at the top level)");
 			if (parent && node.type === "Screen") err(node, "must be at the top level, not inside another Element");
 			const allowed = parent && !inSlot ? ELEMENTS[parent.type]?.children : "any";
 			if (!allowed) err(node, `cannot go inside ${parent.type} (${parent.type} takes no children)`);
 			else if (allowed !== "any" && !allowed.includes(node.type)) err(node, `cannot go inside ${parent.type} (allowed: ${allowed.join(", ")})`);
-			if (spec.parents && (inSlot || !spec.parents.includes(parent?.type ?? ""))) err(node, `only goes directly inside ${spec.parents.join(" or ")}`);
+			if (spec.parents && parent && (inSlot || !spec.parents.includes(parent.type))) err(node, `only goes directly inside ${spec.parents.join(" or ")}`);
 			if (spec.label === "required" && node.label === void 0) err(node, `needs a Label (${node.type} "...")`);
 			if (spec.label === "none" && node.label !== void 0) err(node, "takes no Label");
 			for (const name of Object.keys(node.slots ?? {})) if (!spec.slots?.includes(name)) {
@@ -646,9 +726,13 @@ function validate(document, options = {}) {
 			if (!first && firstByDefault && node.children[0]) node.children[0].props[flag] = true;
 		}
 	};
-	for (const s of document.screens) {
+	for (const s of document.sidebar ? [document.sidebar, ...document.screens] : document.screens) {
 		current = s;
 		walk(s);
+	}
+	for (const screen of document.screens) {
+		const reason = options.reservedScreenIds?.get(screen.props.id);
+		if (reason !== void 0) err(screen, `id "${screen.props.id}" is reserved ${reason} (set another id=)`);
 	}
 	const screenIds = document.screens.map((screen) => screen.props.id).filter((id) => typeof id === "string");
 	const screens = `(expected: ${screenIds.join(", ")})`;
@@ -679,6 +763,7 @@ function props(node, spec, granted, options, err) {
 			const enumProp = Object.entries(spec.props).find(([, p]) => p.kind === "enum" && p.values.includes(key))?.[0];
 			const grantors = Object.keys(ELEMENTS).filter((type) => ELEMENTS[type].childProps?.[key]);
 			if (grantors.length) err(node, `${key} only works directly inside a ${grantors.join(" or ")}`);
+			else if (spec.anyProps) continue;
 			else if (raw !== true) err(node, `unknown prop "${key}"${didYouMean(key, names)}`);
 			else err(node, `unknown flag "${key}"${enumProp ? ` — did you mean ${enumProp}=${key}?` : didYouMean(key, names)}`);
 		} else if (prop.kind === "flag") {
@@ -735,40 +820,6 @@ function check(source, options) {
 * Must stay directly in src/: the bundle is flat (dist/cli.mjs), so "../" is packages/cli/ from both.
 */
 const readAsset = (path) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-// src/backend.ts
-/** Joins the present lines. */
-const lines = (...parts) => parts.filter(Boolean).join("\n");
-/** The emitter for an Element type. Each Backend has one for every type in ELEMENTS, so a missing one is a bug. */
-function emitterFor(emitters, type, backend) {
-	const emit = emitters[type];
-	if (!emit) throw new Error(`${backend} has no emitter for Element type ${type}`);
-	return emit;
-}
-/** A Screen's Sidebar, when it is the first child (the page shell's column), and the rest: the Screen's body. */
-function screenParts(screen) {
-	const sidebar = screen.children[0]?.type === "Sidebar" ? screen.children[0] : void 0;
-	return {
-		sidebar,
-		body: sidebar ? screen.children.slice(1) : screen.children
-	};
-}
-const ARROWS = {
-	none: "",
-	up: "↑",
-	down: "↓"
-};
-/** A Stat's hint line: its trend arrow, then hint=; "" when it has neither. */
-const statHint = (node) => [ARROWS[node.props.trend], node.props.hint].filter(Boolean).join(" ");
-/** Whether a Button declares a Behavior (opens= or to=). In a footer, a Button without one closes its Dialog or Sheet. */
-const hasBehavior = (node) => node.props.opens !== void 0 || node.props.to !== void 0;
-/**
-* A JS identifier in PascalCase from an id or icon name: `order-details` → `OrderDetails`. One that would start
-* with a digit (or be empty) gets `prefix` first: `2026-report` → `Screen2026Report` with prefix `Screen`.
-*/
-const pascalCase = (id, prefix = "") => {
-	const name = id.split(/[^A-Za-z0-9]+/).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join("");
-	return /^[A-Za-z]/.test(name) ? name : `${prefix}${name}`;
-};
 // src/icons.ts
 let lucide;
 let names;
@@ -780,6 +831,46 @@ const iconNames = () => names ??= /* @__PURE__ */ new Set([...Object.keys(load$1
 const iconSvg = (name, className = "size-4") => `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${className}" aria-hidden="true">${load$1().icons[canonical(name)]}</svg>`;
 /** The lucide-react component for an icon: `home` → `HouseIcon`. Canonical names are the stable exports. */
 const iconComponent = (name) => `${pascalCase(canonical(name))}Icon`;
+// src/backend.ts
+/** Joins the present lines. */
+const lines = (...parts) => parts.filter(Boolean).join("\n");
+/** The emitter for an Element type. Each Backend has one for every type in ELEMENTS, so a missing one is a bug. */
+function emitterFor(emitters, type, backend) {
+	const emit = emitters[type];
+	if (!emit) throw new Error(`${backend} has no emitter for Element type ${type}`);
+	return emit;
+}
+/**
+* The Sidebar a Screen shows (the page shell's column) and the rest, the Screen's body. The Sidebar is its first
+* child, else `shared` (Document.sidebar) unless the Screen is plain. With `isShared`, the Backend marks the active
+* Link for this Screen itself: the shared node has none.
+*/
+function screenParts(screen, shared) {
+	const own = screen.children[0]?.type === "Sidebar" ? screen.children[0] : void 0;
+	const sidebar = own ?? (screen.props.plain === true ? void 0 : shared);
+	return {
+		sidebar,
+		isShared: !own && sidebar !== void 0,
+		body: own ? screen.children.slice(1) : screen.children
+	};
+}
+const ARROWS = {
+	none: "",
+	up: "↑",
+	down: "↓"
+};
+/** A Stat's hint line: its trend arrow, then hint=; "" when it has neither. */
+const statHint = (node) => [ARROWS[node.props.trend], node.props.hint].filter(Boolean).join(" ");
+/** Whether a Button declares a Behavior (opens= or to=). In a footer, a Button without one closes its Dialog or Sheet. */
+const hasBehavior = (node) => node.props.opens !== void 0 || node.props.to !== void 0;
+/** Whether a Chart has a legend: a pie's names its slices; any other Chart has one for two or more series. */
+const chartHasLegend = (node) => node.props.type === "pie" || node.props.cols.length > 2;
+/** The color of a Chart's series (a pie's slice) `i`: shadcn's --chart-1 to --chart-5, then from the start again. */
+const chartColor = (i) => `var(--chart-${i % 5 + 1})`;
+/** Props a parent grants (a Grid's span): the parent lays its child out with them. */
+const GRANTED = new Set(Object.values(ELEMENTS).flatMap((spec) => Object.keys(spec.childProps ?? {})));
+/** A Custom's props as written (strings, true for a flag), except those a parent grants: they are not the component's. */
+const customProps = (node) => Object.entries(node.props).filter(([key]) => !GRANTED.has(key));
 // src/placeholder.ts
 /**
 * The node path of every Element, the seed for its placeholder content: `<screen id>/<child index>/...`,
@@ -842,6 +933,41 @@ function tableRows(node, path) {
 			if (name.includes("amount")) return `$${(5 + random() * 995).toFixed(2)}`;
 			return `Item ${i + 1}`;
 		});
+	});
+}
+const DAYS = [
+	"Mon",
+	"Tue",
+	"Wed",
+	"Thu",
+	"Fri",
+	"Sat",
+	"Sun"
+];
+/**
+* A Chart's rows: its `|` rows, or `rows=N` placeholder rows. The x value is guessed from the x column's name
+* (Month, Date, Day, Year, else "Item n"); each series is a seeded random walk of whole numbers, so lines look like data.
+*/
+function chartRows(node, path) {
+	if (node.rows) return node.rows;
+	const random = seeded(path);
+	const [x, ...series] = node.props.cols;
+	const name = x.toLowerCase();
+	const count = node.props.rows ?? 0;
+	const guess = (i) => {
+		if (name.includes("month")) return MONTHS[i % 12];
+		if (name.includes("date")) {
+			const date = new Date(Date.UTC(2026, 0, 1 + i));
+			return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}`;
+		}
+		if (name.includes("day")) return DAYS[i % 7];
+		if (name.includes("year")) return String(2026 - count + 1 + i);
+		return `Item ${i + 1}`;
+	};
+	const values = series.map(() => 200 + random() * 800);
+	return Array.from({ length: count }, (_, i) => {
+		for (const [j, v] of values.entries()) values[j] = Math.max(10, v * (.8 + random() * .4));
+		return [guess(i), ...values.map((v) => String(Math.round(v)))];
 	});
 }
 /** A List's items: `items`, or `rows=N` placeholders "Item 1" to "Item N". */
@@ -1028,6 +1154,20 @@ const CLASSES = {
 		cell: "p-2 align-middle whitespace-nowrap"
 	},
 	List: { root: "ml-6 list-disc text-sm [&>li]:mt-1" },
+	Chart: {
+		/** The Preview: the plot (an inline SVG), the x labels in a row of equal columns, then the legend. */
+		root: "grid gap-2",
+		plot: "h-48 w-full overflow-visible",
+		pie: "mx-auto aspect-square h-48",
+		labels: "grid text-center text-xs text-muted-foreground",
+		label: "truncate",
+		legend: "flex flex-wrap items-center justify-center gap-4 pt-3 text-xs",
+		legendItem: "flex items-center gap-1.5",
+		swatch: "h-2 w-2 shrink-0 rounded-[2px]",
+		/** The export: the size of the ChartContainer. */
+		container: "aspect-auto h-60 w-full",
+		pieContainer: "mx-auto aspect-square h-60"
+	},
 	/** shadcn's TabsList and TabsTrigger looks; the Preview marks the active Tab with aria-selected. */
 	Tabs: {
 		root: "flex flex-col gap-2",
@@ -1128,6 +1268,12 @@ control: "flex min-h-16 w-full rounded-md border border-input bg-transparent px-
 	Radio: {
 		group: "grid gap-3",
 		control: "peer size-4 shrink-0 accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+	},
+	/** The Preview's stand-in for a project component: a dashed box, its `<Name>` tag and props on top. The export renders the component. */
+	Custom: {
+		root: "flex flex-col gap-3 rounded-lg border border-dashed p-3",
+		tag: "font-mono text-xs break-words text-muted-foreground",
+		name: "font-medium text-foreground"
 	}
 };
 /** Joins the truthy class strings. */
@@ -1163,7 +1309,18 @@ const attrs = (pairs) => Object.entries(pairs).map(([name, v]) => v === void 0 |
 /** DOM id of a form control: from its source line, so unique within the page and stable between runs. */
 const fieldId$1 = (node) => `field-${node.line}`;
 /** Where `to=` goes in the Preview: the hash names the Screen to show (SCRIPTS.to). */
-const screenHref$1 = (id) => `#${encodeURIComponent(id)}`;
+const screenHref = (id) => `#${encodeURIComponent(id)}`;
+/** The shared Sidebar as one Screen shows it: a copy whose Link to that Screen is active, so the shared node stays as written. */
+const activeFor = (sidebar, id) => ({
+	...sidebar,
+	children: sidebar.children.map((link) => link.props.to === id ? {
+		...link,
+		props: {
+			...link.props,
+			active: true
+		}
+	} : link)
+});
 /** A form control under its Label, with error text below. */
 const field$1 = (node, control, error) => [
 	`<div class="${CLASSES.Field.root}">`,
@@ -1183,9 +1340,9 @@ const EMITTERS$1 = {
 		const c = CLASSES.Screen;
 		const subtitle = node.props.subtitle;
 		const actions = node.slots?.actions;
-		const { sidebar, body } = screenParts(node);
+		const { sidebar, isShared, body } = screenParts(node, ctx.sidebar);
 		const main = lines(`<header class="${cx(c.header, actions && c.headerWithActions)}">`, `<h1 class="${c.title}">${esc(node.label)}</h1>`, subtitle !== void 0 && `<p class="${c.subtitle}">${esc(subtitle)}</p>`, actions && div(c.actions, ctx.render(actions)), `</header>`, div(c.body, ctx.render(body)));
-		return lines(`<section data-screen="${esc(node.props.id)}" class="${sidebar ? c.shell : c.root}">`, sidebar ? lines(ctx.render([sidebar]), div(c.main, main)) : main, `</section>`);
+		return lines(`<section data-screen="${esc(node.props.id)}" class="${sidebar ? c.shell : c.root}">`, sidebar ? lines(ctx.render([isShared ? activeFor(sidebar, node.props.id) : sidebar]), div(c.main, main)) : main, `</section>`);
 	},
 	Sidebar: (node, ctx) => {
 		const c = CLASSES.Sidebar;
@@ -1196,7 +1353,7 @@ const EMITTERS$1 = {
 		const { icon, to, active } = node.props;
 		if (to !== void 0) ctx.script("to");
 		return `<a${attrs({
-			href: to === void 0 ? void 0 : screenHref$1(to),
+			href: to === void 0 ? void 0 : screenHref(to),
 			"aria-current": active && "page"
 		})} class="${CLASSES.Link.root}">${icon === void 0 ? "" : iconSvg(icon, CLASSES.Link.icon)}${esc(node.label)}</a>`;
 	},
@@ -1284,6 +1441,22 @@ const EMITTERS$1 = {
 		...listItems(node).map((item) => `<li>${esc(item)}</li>`),
 		"</ul>"
 	].join("\n"),
+	/**
+	* A static SVG computed here, no script. Bar, line and area plots stretch to the width (preserveAspectRatio none,
+	* strokes kept at 2px), so the x labels go below in HTML, one equal column per point. A pie's legend names its slices.
+	*/
+	Chart: (node, ctx) => {
+		const c = CLASSES.Chart;
+		const type = node.props.type;
+		const cols = node.props.cols;
+		const rows = chartRows(node, ctx.path);
+		const names = type === "pie" ? rows.map(([name]) => name) : cols.slice(1);
+		const legend = chartHasLegend(node) && div(c.legend, lines(...names.map((name, i) => `<div class="${c.legendItem}"><div class="${c.swatch}" style="background-color: ${chartColor(i)}"></div>${esc(name)}</div>`)));
+		const figure = (body) => lines(`<div role="img" aria-label="${esc(node.label)}" class="${c.root}">`, body, "</div>");
+		if (type === "pie") return figure(lines(pie(rows), legend));
+		const labels = `<div class="${c.labels}" style="grid-template-columns: repeat(${rows.length}, minmax(0, 1fr))">${rows.map(([x]) => `<div class="${c.label}">${esc(x)}</div>`).join("")}</div>`;
+		return figure(lines(cartesian(type, rows, cols.length - 1), labels, legend));
+	},
 	Dialog: (node, ctx) => dialog$1(node, ctx, CLASSES.Dialog, CLASSES.Dialog.content),
 	Sheet: (node, ctx) => dialog$1(node, ctx, CLASSES.Sheet, cx(CLASSES.Sheet.content, CLASSES.Sheet[node.props.side])),
 	/** Renders its Tabs too: triggers and panels pair up by position. */
@@ -1418,6 +1591,13 @@ const EMITTERS$1 = {
 			`</div>`,
 			`</div>`
 		].join("\n");
+	},
+	/** A dashed box: the `<Name>` tag and the props as written (a flag as its bare key), then the children. */
+	Custom: (node, ctx) => {
+		const c = CLASSES.Custom;
+		const props = customProps(node).map(([key, v]) => ` ${esc(v === true ? key : `${key}="${v}"`)}`);
+		const tag = `<div class="${c.tag}"><span class="${c.name}">${esc(`<${node.label}>`)}</span>${props.join("")}</div>`;
+		return div(c.root, lines(tag, ctx.render(node.children)));
 	}
 };
 /**
@@ -1450,13 +1630,65 @@ function button(node, ctx, trigger = "") {
 	const to = disabled ? void 0 : node.props.to;
 	if (to !== void 0) {
 		ctx.script("to");
-		return `<a href="${esc(screenHref$1(to))}" class="${classes}">${glyph}${label}</a>`;
+		return `<a href="${esc(screenHref(to))}" class="${classes}">${glyph}${label}</a>`;
 	}
 	const opens = attrs({
 		"data-opens": node.props.opens,
 		"aria-haspopup": node.props.opens && "dialog"
 	});
 	return `<button type="button"${trigger} class="${classes}"${attrs({ disabled })}${opens}>${glyph}${label}</button>`;
+}
+/** An SVG coordinate, with at most 2 decimals. */
+const coord = (v) => String(+v.toFixed(2));
+/**
+* A bar, line or area plot in a 100 x 100 box: one x band per row, each point at its band's center; y spans the
+* values and 0, with 5% headroom. Grid lines like recharts' CartesianGrid without vertical lines.
+*/
+function cartesian(type, rows, series) {
+	const values = rows.map((row) => row.slice(1).map(Number));
+	const low = Math.min(0, ...values.flat());
+	const span = Math.max(0, ...values.flat()) - low || 1;
+	const y = (v) => 100 - (v - low) / span * 95;
+	const band = 100 / rows.length;
+	const x = (i) => band * (i + .5);
+	const thin = `vector-effect="non-scaling-stroke"`;
+	const grid = [
+		0,
+		1,
+		2,
+		3,
+		4
+	].map((k) => `<line x1="0" x2="100" y1="${coord(5 + k * 23.75)}" y2="${coord(5 + k * 23.75)}" stroke="var(--border)" ${thin}/>`);
+	const points = (s) => values.map((row, i) => `${coord(x(i))},${coord(y(row[s]))}`).join(" ");
+	const line = (s) => `<polyline points="${points(s)}" fill="none" stroke="${chartColor(s)}" stroke-width="2" ${thin}/>`;
+	const marks = Array.from({ length: series }, (_, s) => {
+		if (type === "line") return line(s);
+		if (type === "area") {
+			const base = (i) => `${coord(x(i))},${coord(y(0))}`;
+			return lines(`<polygon points="${base(0)} ${points(s)} ${base(rows.length - 1)}" fill="${chartColor(s)}" fill-opacity="0.4"/>`, line(s));
+		}
+		const width = band * .8 / series;
+		return lines(...values.map((row, i) => {
+			const [top, bottom] = [y(Math.max(row[s], 0)), y(Math.min(row[s], 0))];
+			return `<rect x="${coord(band * (i + .1) + s * width)}" y="${coord(top)}" width="${coord(width)}" height="${coord(bottom - top)}" fill="${chartColor(s)}"/>`;
+		}));
+	});
+	return lines(`<svg viewBox="0 0 100 100" preserveAspectRatio="none" class="${CLASSES.Chart.plot}">`, ...grid, ...marks, "</svg>");
+}
+/** A pie of radius 100 around 0,0: one slice per row, clockwise from 12 o'clock, colored in row order. A negative value counts as 0. */
+function pie(rows) {
+	const values = rows.map(([, v]) => Math.max(0, Number(v)));
+	const total = values.reduce((sum, v) => sum + v, 0);
+	const point = (angle) => `${coord(100 * Math.sin(angle))},${coord(-100 * Math.cos(angle))}`;
+	let angle = 0;
+	const slices = values.map((v, i) => {
+		const share = total ? v / total : 0;
+		const start = angle;
+		angle += share * 2 * Math.PI;
+		if (share === 1) return `<circle r="100" fill="${chartColor(i)}"/>`;
+		return share > 0 && `<path d="M0,0 L${point(start)} A100,100 0 ${share > .5 ? 1 : 0},1 ${point(angle)} Z" fill="${chartColor(i)}"/>`;
+	});
+	return lines(`<svg viewBox="-100 -100 200 200" class="${CLASSES.Chart.pie}">`, ...slices, "</svg>");
 }
 /** A `<div>` holding `body`, which may be empty. */
 const div = (classes, body) => lines(`<div class="${classes}">`, body, "</div>");
@@ -1559,7 +1791,8 @@ function renderPreview(document) {
 	const ctx = (node) => ({
 		path: paths.get(node),
 		render: (nodes) => render(nodes, ctx),
-		script: (name) => scripts.add(name)
+		script: (name) => scripts.add(name),
+		sidebar: document.sidebar
 	});
 	const body = document.screens.map((screen) => render([screen], ctx)).map((html, i) => i > 0 && scripts.has("to") ? html.replace(/^<section/, "<section hidden") : html).join("\n");
 	const handlers = Object.keys(SCRIPTS).filter((name) => scripts.has(name)).map((name) => SCRIPTS[name]);
@@ -1667,8 +1900,33 @@ const text = (s) => /[{}<>&]/.test(s) ? `{${JSON.stringify(s)}}` : s;
 const attr = (s) => /["&]/.test(s) ? `{${JSON.stringify(s)}}` : `"${s}"`;
 /** `start`, then `body` indented two spaces, then `end`; one line when `body` is empty. */
 const wrap = (start, body, end) => body ? `${start}\n${body.replace(/^/gm, "  ")}\n${end}` : `${start}${end}`;
-/** JSX attributes from name → value: strings through `attr`, numbers in braces, true bare; undefined and false skipped. */
-const jsxAttrs = (pairs) => Object.entries(pairs).map(([name, v]) => v === void 0 || v === false ? "" : v === true ? ` ${name}` : typeof v === "number" ? ` ${name}={${v}}` : ` ${name}=${attr(String(v))}`).join("");
+/**
+* JSX attributes from name → value: strings through `attr`, numbers and `{ expr: "code" }` in braces, true bare;
+* undefined and false skipped. Only emitters build an `expr`, so source text never becomes code.
+*/
+const jsxAttrs = (pairs) => Object.entries(pairs).map(([name, v]) => {
+	if (v === void 0 || v === false) return "";
+	if (v === true) return ` ${name}`;
+	if (typeof v === "number") return ` ${name}={${v}}`;
+	if (typeof v === "object" && v !== null && "expr" in v) return ` ${name}={${v.expr}}`;
+	return ` ${name}=${attr(String(v))}`;
+}).join("");
+/**
+* Slugs of `labels`, which read as hand-written; `<fallback>-1`, `<fallback>-2`... for all when one is empty, two
+* collide or one is `taken` (a key the export writes beside them).
+*/
+const slugs = (labels, fallback, taken = []) => {
+	const s = labels.map(slugify);
+	return s.every((k) => k && !taken.includes(k)) && new Set(s).size === s.length ? s : s.map((_, i) => `${fallback}-${i + 1}`);
+};
+/** An object literal key: bare when it is an identifier, else quoted. */
+const key = (s) => /^[A-Za-z_$][\w$]*$/.test(s) ? s : JSON.stringify(s);
+/** The recharts chart and series components of each cartesian Chart type. */
+const CHARTS = {
+	line: ["LineChart", "Line"],
+	bar: ["BarChart", "Bar"],
+	area: ["AreaChart", "Area"]
+};
 /** A form control under its Label, with error text below. `id` ties the Label to the control. */
 const field = (node, ctx, id, control, error) => {
 	ctx.use("@/components/ui/label", "Label");
@@ -1687,8 +1945,36 @@ const icon = (ctx, name, className) => {
 	ctx.use("lucide-react", component);
 	return `<${component}${className ? ` className="${className}"` : ""} />`;
 };
-/** Where `to=` goes: the Screen's route. A plain path, so swapping in a router's link component is left to the user. */
-const screenHref = (id) => `/${id}`;
+/** `--router`: each router's Link component, as `ctx.use` imports it, and the prop that takes the path. */
+const ROUTERS = {
+	next: {
+		from: "next/link",
+		link: {
+			name: "default",
+			as: "Link"
+		},
+		prop: "href"
+	},
+	"react-router": {
+		from: "react-router",
+		link: "Link",
+		prop: "to"
+	}
+};
+/**
+* A link to the Screen `to`, at its route `/<id>`. Every emitter that writes a link calls this, so `--router` reaches
+* them all: the router's Link, else a plain `<a href>`. Without `to` it goes nowhere yet: a plain `<a>` with no href.
+*/
+function screenLink(ctx, to, attrs, body) {
+	const router = to === void 0 || ctx.router === void 0 ? void 0 : ROUTERS[ctx.router];
+	if (router) ctx.use(router.from, router.link);
+	const tag = router ? "Link" : "a";
+	const open = `<${tag}${jsxAttrs({
+		[router?.prop ?? "href"]: to === void 0 ? void 0 : `/${to}`,
+		...attrs
+	})}>`;
+	return body.includes("\n") ? wrap(open, body, `</${tag}>`) : `${open}${body}</${tag}>`;
+}
 /**
 * The useState pair behind opens=, named after the id of the Dialog or Sheet: `new-order` → ["newOrderOpen", "setNewOrderOpen"].
 * ponytail: ids that differ only in punctuation (new-order, new_order) collide; dedupe per Screen if it bites.
@@ -1730,30 +2016,32 @@ const ICON_BUTTON_SIZE = {
 * Props arrive checked, coerced and with enum defaults filled in.
 */
 const EMITTERS = {
-	/** With a Sidebar first: a page shell, the sidebar column beside <main>. */
+	/** With a Sidebar: a page shell, the sidebar column beside <main>. The shared Sidebar is <AppSidebar> (app-sidebar.tsx). */
 	Screen: (node, ctx) => {
 		const c = CLASSES.Screen;
 		const subtitle = node.props.subtitle;
 		const actions = node.slots?.actions;
-		const { sidebar, body } = screenParts(node);
+		const { sidebar, isShared, body } = screenParts(node, ctx.sidebar);
 		const header = lines(`<h1 className="${c.title}">${text(node.label)}</h1>`, subtitle !== void 0 && `<p className="${c.subtitle}">${text(subtitle)}</p>`, actions && wrap(`<div className="${c.actions}">`, ctx.render(actions), "</div>"));
 		const main = wrap(`<main className="${sidebar ? c.main : c.root}">`, lines(wrap(`<header className="${cx(c.header, actions && c.headerWithActions)}">`, header, "</header>"), wrap(`<div className="${c.body}">`, ctx.render(body), "</div>")), "</main>");
-		return sidebar ? wrap(`<div className="${c.shell}">`, lines(ctx.render([sidebar]), main), "</div>") : main;
+		if (!sidebar) return main;
+		if (isShared) ctx.use("./app-sidebar", "AppSidebar");
+		const column = isShared ? `<AppSidebar${jsxAttrs({ current: node.props.id })} />` : ctx.render([sidebar]);
+		return wrap(`<div className="${c.shell}">`, lines(column, main), "</div>");
 	},
 	Sidebar: (node, ctx) => {
 		const c = CLASSES.Sidebar;
 		return wrap(`<aside className="${c.root}">`, wrap(`<nav className="${c.nav}">`, ctx.render(node.children), "</nav>"), "</aside>");
 	},
-	/** A plain anchor, like every to=; a Link without to= goes nowhere yet: no href. */
+	/** In the shared Sidebar (AppSidebar) the active Link is the one whose to= is the `current` prop. */
 	Link: (node, ctx) => {
 		const { to, active } = node.props;
-		const href = to === void 0 ? void 0 : screenHref(to);
-		const tag = `<a${jsxAttrs({
-			href,
-			"aria-current": active && "page"
-		})} className="${CLASSES.Link.root}">`;
-		if (node.props.icon === void 0) return `${tag}${text(node.label)}</a>`;
-		return wrap(tag, lines(icon(ctx, node.props.icon, CLASSES.Link.icon), text(node.label)), "</a>");
+		const current = to !== void 0 && ctx.sidebar?.children.includes(node) ? { expr: `current === ${JSON.stringify(to)} ? "page" : undefined` } : active && "page";
+		const glyph = node.props.icon !== void 0 && icon(ctx, node.props.icon, CLASSES.Link.icon);
+		return screenLink(ctx, to, {
+			"aria-current": current,
+			className: CLASSES.Link.root
+		}, lines(glyph, text(node.label)));
 	},
 	Heading: (node) => {
 		const level = node.props.level;
@@ -1822,14 +2110,53 @@ const EMITTERS = {
 		return wrap("<Table>", lines(wrap("<TableHeader>", row("TableHead", node.props.cols), "</TableHeader>"), wrap("<TableBody>", lines(...tableRows(node, ctx.path).map((cells) => row("TableCell", cells))), "</TableBody>")), "</Table>");
 	},
 	List: (node) => wrap(`<ul className="${CLASSES.List.root}">`, lines(...listItems(node).map((item) => `<li>${text(item)}</li>`)), "</ul>"),
+	/**
+	* The project's shadcn chart around a recharts chart. The data and the ChartConfig go above the component, named
+	* after the Label; data keys are the column slugs. A pie, as in shadcn's examples, names each slice by a config
+	* key (the slug of its name) that labels and colors it, so its legend and tooltip read the config.
+	*/
+	Chart: (node, ctx) => {
+		const type = node.props.type;
+		const cols = node.props.cols;
+		const [x, ...series] = slugs(cols, "col", type === "pie" ? ["fill"] : []);
+		const pascal = pascalCase(ctx.id(slugify(node.label) || "chart"), "Chart");
+		const name = `${pascal[0].toLowerCase()}${pascal.slice(1)}`;
+		const data = chartRows(node, ctx.path);
+		const slices = type === "pie" ? slugs(data.map(([slice]) => slice), "slice", series) : [];
+		const rows = data.map(([first, ...values], r) => {
+			return `{ ${[...[`${key(x)}: ${JSON.stringify(slices[r] ?? first)}`, ...values.map((v, i) => `${key(series[i])}: ${Number(v)}`)], slices[r] && `fill: "var(--color-${slices[r]})"`].filter(Boolean).join(", ")} },`;
+		});
+		const config = [...series.map((s, i) => `${key(s)}: { label: ${JSON.stringify(cols[i + 1])}${type === "pie" ? "" : `, color: "${chartColor(i)}"`} },`), ...slices.map((s, r) => `${key(s)}: { label: ${JSON.stringify(data[r][0])}, color: "${chartColor(r)}" },`)];
+		ctx.declare(wrap(`const ${name}Data = [`, lines(...rows), "]"));
+		ctx.declare(wrap(`const ${name}Config = {`, lines(...config), "} satisfies ChartConfig"));
+		const legend = chartHasLegend(node);
+		ctx.use("@/components/ui/chart", "ChartContainer", "ChartTooltip", "ChartTooltipContent", {
+			name: "ChartConfig",
+			type: true
+		});
+		if (legend) ctx.use("@/components/ui/chart", "ChartLegend", "ChartLegendContent");
+		const title = ` title=${attr(node.label)}`;
+		if (type === "pie") {
+			ctx.use("recharts", "Pie", "PieChart");
+			return wrap(`<ChartContainer config={${name}Config} className="${CLASSES.Chart.pieContainer}">`, wrap(`<PieChart${title}>`, lines("<ChartTooltip content={<ChartTooltipContent hideLabel />} />", `<Pie data={${name}Data} dataKey="${series[0]}" nameKey="${x}" />`, `<ChartLegend content={<ChartLegendContent nameKey="${x}" />} />`), "</PieChart>"), "</ChartContainer>");
+		}
+		const [chart, part] = CHARTS[type];
+		ctx.use("recharts", "CartesianGrid", chart, part, "XAxis");
+		const look = {
+			line: (s) => `stroke="var(--color-${s})" strokeWidth={2} dot={false}`,
+			bar: (s) => `fill="var(--color-${s})" radius={4}`,
+			area: (s) => `fill="var(--color-${s})" fillOpacity={0.4} stroke="var(--color-${s})"`
+		}[type];
+		const margin = type === "bar" ? "" : " margin={{ left: 12, right: 12 }}";
+		return wrap(`<ChartContainer config={${name}Config} className="${CLASSES.Chart.container}">`, wrap(`<${chart} data={${name}Data}${margin}${title}>`, lines("<CartesianGrid vertical={false} />", `<XAxis dataKey="${x}" tickLine={false} axisLine={false} tickMargin={8} />`, "<ChartTooltip content={<ChartTooltipContent />} />", legend && "<ChartLegend content={<ChartLegendContent />} />", ...series.map((s) => `<${part} dataKey="${s}" ${look(s)} />`)), `</${chart}>`), "</ChartContainer>");
+	},
 	Dialog: (node, ctx) => dialog(node, ctx, "Dialog", ""),
 	Sheet: (node, ctx) => dialog(node, ctx, "Sheet", node.props.side === "right" ? "" : ` side="${node.props.side}"`),
 	/** Renders its Tabs too: each value pairs a TabsTrigger with its TabsContent. */
 	Tabs: (node, ctx) => {
 		ctx.use("@/components/ui/tabs", "Tabs", "TabsContent", "TabsList", "TabsTrigger");
 		const tabs = node.children;
-		const slugs = tabs.map((tab) => slugify(tab.label));
-		const values = slugs.every(Boolean) && new Set(slugs).size === slugs.length ? slugs : slugs.map((_, i) => `tab-${i + 1}`);
+		const values = slugs(tabs.map((tab) => tab.label), "tab");
 		const active = values[tabs.findIndex((tab) => tab.props.active === true)];
 		const triggers = tabs.map((tab, i) => `<TabsTrigger value="${values[i]}">${text(tab.label)}</TabsTrigger>`);
 		return wrap(`<Tabs${active === void 0 ? "" : ` defaultValue="${active}"`}>`, lines(wrap("<TabsList>", lines(...triggers), "</TabsList>"), ...tabs.map((tab, i) => wrap(`<TabsContent value="${values[i]}" className="${CLASSES.Tabs.panel}">`, ctx.render(tab.children), "</TabsContent>"))), "</Tabs>");
@@ -1871,10 +2198,7 @@ const EMITTERS = {
 		const glyph = loading ? icon(ctx, "loader-circle", c.spinner) : node.props.icon !== void 0 && icon(ctx, node.props.icon);
 		const label = iconOnly ? `<span className="${c.hiddenLabel}">${text(node.label)}</span>` : text(node.label);
 		const content = glyph ? lines(glyph, label) : label;
-		if (to !== void 0) {
-			const anchor = `<a href=${attr(screenHref(to))}>`;
-			return wrap(tag, glyph ? wrap(anchor, content, "</a>") : `${anchor}${content}</a>`, "</Button>");
-		}
+		if (to !== void 0) return wrap(tag, screenLink(ctx, to, {}, content), "</Button>");
 		return glyph ? wrap(tag, content, "</Button>") : `${tag}${content}</Button>`;
 	},
 	Input: (node, ctx) => {
@@ -1949,22 +2273,79 @@ const EMITTERS = {
 			defaultValue: node.props.value
 		})}>`, lines(...items), "</RadioGroup>");
 		return wrap(`<div className="${CLASSES.Field.root}">`, lines(`<Label${jsxAttrs({ id: group })}>${text(node.label)}</Label>`, radios), "</div>");
+	},
+	/**
+	* The project's own component from `@/components/<kebab-name>`, with the props (keys in camelCase) and children.
+	* Named like another import of the file (Label) or its component, it imports as Custom<Name>.
+	*/
+	Custom: (node, ctx) => {
+		const name = node.label;
+		const tag = ctx.clashes.has(name) ? `Custom${name}` : name;
+		const file = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").replace(/([A-Z])([A-Z][a-z])/g, "$1-$2").toLowerCase();
+		ctx.use(`@/components/${file}`, tag === name ? name : {
+			name,
+			as: tag
+		});
+		const camel = (key) => key.replace(/-(\w)/g, (_, c) => c.toUpperCase());
+		const props = jsxAttrs(Object.fromEntries(customProps(node).map(([key, v]) => [camel(key), v])));
+		return node.children.length ? wrap(`<${tag}${props}>`, ctx.render(node.children), `</${tag}>`) : `<${tag}${props} />`;
 	}
 };
 // src/shadcn/export.ts
-/** The shadcn Export target: file name → TSX, one file per Screen, named after its id. */
-function exportShadcn(document) {
-	const paths = nodePaths(document);
-	return Object.fromEntries(document.screens.map((screen) => [`${screen.props.id}.tsx`, screenFile(screen, paths)]));
+/** The names `--router` takes. */
+const ROUTER_NAMES = Object.keys(ROUTERS);
+/** Screen ids the export needs for its own files, with what for: `check` refuses them (CheckOptions). */
+const RESERVED_SCREEN_IDS = /* @__PURE__ */ new Map([["app-sidebar", "for the shared Sidebar"]]);
+/**
+* The shadcn Export target: file name → TSX, one file per Screen, named after its id, plus `app-sidebar.tsx` for
+* the shared Sidebar (RESERVED_SCREEN_IDS keeps that name free).
+*/
+function exportShadcn(document, { router } = {}) {
+	const { sidebar } = document;
+	const options = {
+		paths: nodePaths(document),
+		router,
+		sidebar,
+		clashes: /* @__PURE__ */ new Set()
+	};
+	const file = (signature, node) => componentFile(signature, node, options);
+	const screens = document.screens.map((screen) => [`${screen.props.id}.tsx`, file(`${componentName(screen.props.id)}()`, screen)]);
+	if (!sidebar) return Object.fromEntries(screens);
+	return Object.fromEntries([["app-sidebar.tsx", file("AppSidebar({ current }: { current: string })", sidebar)], ...screens]);
 }
 /** `order-details` → `OrderDetailsScreen`; `2026-report` → `Screen2026ReportScreen` (no identifier starts with a digit). */
 const componentName = (id) => `${pascalCase(id, "Screen")}Screen`;
-function screenFile(screen, paths) {
+/** What an import statement names: `{ A, type B, C as D }`; the default export comes first and bare: `X, { A }`. */
+const importClause = (names) => {
+	const entries = names.map((name) => typeof name === "string" ? { name } : name);
+	const bare = entries.find((entry) => entry.name === "default");
+	const named = entries.filter((entry) => entry !== bare).map(({ name, as, type }) => `${type ? "type " : ""}${name}${as ? ` as ${as}` : ""}`);
+	return [bare?.as, named.length > 0 && `{ ${named.sort().join(", ")} }`].filter(Boolean).join(", ");
+};
+/** The name an import declares in the file: its alias, if any. */
+const localName = (name) => typeof name === "string" ? name : name.as ?? name.name;
+/** A file exporting one component, `signature` (name and parameters), that renders `node`. */
+function componentFile(signature, node, options) {
+	const first = renderFile(node, options);
+	const declared = [signature.slice(0, signature.indexOf("(")), ...[...first.imports.values()].flatMap((names) => [...names.keys()])];
+	const clashes = new Set(declared.filter((name, i) => declared.indexOf(name) !== i));
+	const { imports, hooks, declarations, jsx } = clashes.size ? renderFile(node, {
+		...options,
+		clashes
+	}) : first;
+	const client = options.router === "next" && (hooks.length > 0 || imports.has("recharts")) ? `"use client"\n\n` : "";
+	const head = [...imports.keys()].sort().map((from) => `import ${importClause([...imports.get(from).values()])} from "${from}"\n`);
+	const body = wrap(`export function ${signature} {`, lines(...hooks, wrap("return (", jsx, ")")), "}");
+	return `${client}${head.join("")}${head.length ? "\n" : ""}${declarations.map((code) => `${code}\n\n`).join("")}${body}\n`;
+}
+/** Renders `node` with fresh per-file state: its JSX and what goes above it (imports, hooks, declarations). */
+function renderFile(node, { paths, ...shared }) {
+	/** Module → the names imported from it, by the name each declares in the file. */
 	const imports = /* @__PURE__ */ new Map();
 	const use = (from, ...names) => {
-		const set = imports.get(from) ?? /* @__PURE__ */ new Set();
-		for (const name of names) set.add(name);
-		imports.set(from, set);
+		const declared = imports.get(from) ?? /* @__PURE__ */ new Map();
+		for (const name of names) declared.set(localName(name), name);
+		imports.set(from, declared);
 	};
 	const ids = /* @__PURE__ */ new Map();
 	const id = (base) => {
@@ -1974,17 +2355,23 @@ function screenFile(screen, paths) {
 	};
 	const hooks = [];
 	const hook = (line) => hooks.push(line);
-	const ctx = (node) => ({
-		path: paths.get(node),
+	const declarations = [];
+	const declare = (code) => declarations.push(code);
+	const ctx = (n) => ({
+		...shared,
+		path: paths.get(n),
 		use,
 		id,
 		hook,
-		render: (nodes) => nodes.map((n) => emitterFor(EMITTERS, n.type, "shadcn export")(n, ctx(n))).join("\n")
+		declare,
+		render: (nodes) => nodes.map((child) => emitterFor(EMITTERS, child.type, "shadcn export")(child, ctx(child))).join("\n")
 	});
-	const jsx = ctx(screen).render([screen]);
-	const head = [...imports.keys()].sort().map((from) => `import { ${[...imports.get(from)].sort().join(", ")} } from "${from}"\n`);
-	const body = wrap(`export function ${componentName(screen.props.id)}() {`, lines(...hooks, wrap("return (", jsx, ")")), "}");
-	return `${head.join("")}${head.length ? "\n" : ""}${body}\n`;
+	return {
+		imports,
+		hooks,
+		declarations,
+		jsx: ctx(node).render([node])
+	};
 }
 // src/run.ts
 /** Export targets by `--target` name. Each turns a checked document into files: name → content. */
@@ -2032,19 +2419,29 @@ const COMMANDS = {
 	export: {
 		options: {
 			target: { type: "string" },
-			out: { type: "string" }
+			out: { type: "string" },
+			router: { type: "string" }
 		},
 		run(file, flags, io) {
 			const target = flags.target;
+			const router = flags.router;
+			if (target === void 0 && router !== void 0) {
+				io.stderr("skizo export: --router needs --target shadcn\n");
+				return 2;
+			}
 			const exportTarget = TARGETS.get(target ?? "");
 			if (!exportTarget) {
 				const problem = target === void 0 ? "--target is required" : `unknown target "${target}"${didYouMean(target, TARGETS.keys())}`;
 				io.stderr(`skizo export: ${problem} (expected: ${[...TARGETS.keys()].join(", ")})\n`);
 				return 2;
 			}
+			if (router !== void 0 && !ROUTER_NAMES.includes(router)) {
+				io.stderr(`skizo export: unknown router "${router}"${didYouMean(router, ROUTER_NAMES)} (expected: ${ROUTER_NAMES.join(", ")})\n`);
+				return 2;
+			}
 			const document = loadChecked(file, io);
 			if (typeof document === "number") return document;
-			const files = exportTarget(document);
+			const files = exportTarget(document, { router });
 			const unsafe = Object.keys(files).find((name) => basename(name) !== name);
 			if (unsafe) {
 				io.stderr(`skizo export: "${unsafe}" is not a plain file name (check the Screen id)\n`);
@@ -2066,6 +2463,7 @@ const USAGE = `Usage: skizo <command>   (alias: skz)
   skizo check   <file.skz> [--json]                    report every error in a file
   skizo preview <file.skz> [--watch]                   write <file>.html; --watch serves it with live reload
   skizo export  <file.skz> --target shadcn [--out dir] write one React file per Screen
+                [--router next|react-router]           write links with the Link of the router
 
 Agents: run \`skizo guide\` before writing Skizo.
 `;
@@ -2111,7 +2509,10 @@ function load(file, io) {
 		io.stderr(`skizo: cannot read ${file} (${e.code ?? e.message})\n`);
 		return;
 	}
-	return check(source, { iconNames: iconNames() });
+	return check(source, {
+		iconNames: iconNames(),
+		reservedScreenIds: RESERVED_SCREEN_IDS
+	});
 }
 /**
 * For Backends: the checked document, or the exit code after printing why there is none.
