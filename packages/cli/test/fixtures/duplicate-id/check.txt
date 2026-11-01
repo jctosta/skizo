@@ -1,0 +1,2 @@
+input.skz:3  Text  duplicate id "recent" (also on line 2)
+input.skz:4  Screen  duplicate id "orders" (also on line 1)

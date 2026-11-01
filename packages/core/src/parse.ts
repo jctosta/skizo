@@ -13,8 +13,10 @@ const FLAG = /^[a-z][a-z0-9-]*$/;
  * Line-based parser for the Spec v0.2 line grammar. Builds the AST and reports syntax errors.
  * Prop values stay raw strings (`\,` kept for list splitting); the validator coerces them.
  */
-export function parse(source: string): { document: Document; errors: CheckError[] } {
+export function parse(source: string): { document: Document; errors: CheckError[]; garbled: Set<number> } {
   const errors: CheckError[] = [];
+  /** Lines whose tokens could not all be read; validating them would only repeat the same mistake. */
+  const garbled = new Set<number>();
   const screens: Node[] = [];
   /** stack[n] is the frame that receives lines at indent level n. */
   const stack: Frame[] = [{ into: screens }];
@@ -23,7 +25,8 @@ export function parse(source: string): { document: Document; errors: CheckError[
     const line = i + 1;
     const content = raw.trim();
     if (!content || content.startsWith("//")) return;
-    const kind = content.startsWith('"') ? "Text" : content.startsWith("|") ? "Table" : content.match(/^[^\s"]*/)![0];
+    const paragraph = content.startsWith('"');
+    const kind = paragraph ? "Text" : content.startsWith("|") ? "Table" : content.match(/^[^\s"]*/)![0];
     const err = (message: string) => errors.push({ line, type: kind, message });
 
     const ws = raw.slice(0, raw.length - raw.trimStart().length);
@@ -39,12 +42,8 @@ export function parse(source: string): { document: Document; errors: CheckError[
     }
     stack.length = level + 1;
     const parent = stack[level]!;
-    const place = (node: Node) => {
-      if (parent.into) parent.into.push(node);
-      else err("row lines take no children");
-    };
 
-    if (kind === "Table") {
+    if (content.startsWith("|")) {
       if (parent.node?.type === "Table") (parent.node.rows ??= []).push(cells(content));
       else err("row line outside a Table");
       stack.push({ into: null });
@@ -57,15 +56,19 @@ export function parse(source: string): { document: Document; errors: CheckError[
       }
     } else {
       const node: Node = { type: kind, props: {}, children: [], line };
-      tokenize(kind === "Text" ? content : content.slice(kind.length), node, err);
-      if (kind === "Text" && Object.keys(node.props).length)
+      tokenize(paragraph ? content : content.slice(kind.length), node, (message) => {
+        err(message);
+        garbled.add(line);
+      });
+      if (paragraph && Object.keys(node.props).length)
         err('a bare string line takes no flags or props (write Text "..." with them instead)');
-      place(node);
+      if (parent.into) parent.into.push(node);
+      else err("row lines take no children");
       stack.push({ node, into: node.children });
     }
   });
 
-  return { document: { screens }, errors };
+  return { document: { screens }, errors, garbled };
 }
 
 /** Reads the Label, flags and props of one line into `node`. Stops at the first unreadable string. */

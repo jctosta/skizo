@@ -1,0 +1,4 @@
+Screen "Orders"
+  Heading "Recent orders" id=recent
+  Text "Updated hourly" id=recent
+Screen "Order list" id=orders
