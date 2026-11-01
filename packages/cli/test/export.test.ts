@@ -158,6 +158,18 @@ test("--router react-router writes each link to a Screen as Link from react-rout
   });
 });
 
+test('--router next starts the files that keep state or draw a Chart with "use client", as the App Router needs', async () => {
+  const source = `Screen "Orders"\n  Button "New" opens=new\n  Dialog "New" id=new\n\nScreen "Sales"\n  Chart "Sales" cols="Month,Sales" rows=3\n\nScreen "Help"\n  "Ask us"\n`;
+  const cwd = withFiles({ "app.skz": source });
+  await runCli(["export", "app.skz", "--target", "shadcn", "--router", "next"], cwd);
+  const head = (name: string) => readFileSync(join(cwd, name), "utf8").split("\n")[0];
+  expect({ orders: head("orders.tsx"), sales: head("sales.tsx"), help: head("help.tsx") }).toEqual({
+    orders: '"use client"',
+    sales: '"use client"',
+    help: "export function HelpScreen() {",
+  });
+});
+
 test("an unknown --router gets a nearest-match hint and writes nothing", async () => {
   const cwd = withFiles({ "orders.skz": TWO_SCREENS });
   const { code, stderr } = await runCli(["export", "orders.skz", "--target", "shadcn", "--router", "nxt"], cwd);

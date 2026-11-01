@@ -57,7 +57,9 @@ function componentFile(signature: string, node: Node, paths: Map<Node, string>, 
     render: (nodes) => nodes.map((child) => emitterFor(EMITTERS, child.type, "shadcn export")(child, ctx(child))).join("\n"),
   });
   const jsx = ctx(node).render([node]);
+  // The Next.js App Router renders a file on the server unless it says otherwise; hooks and recharts need the client.
+  const client = router === "next" && (hooks.length > 0 || imports.has("recharts")) ? `"use client"\n\n` : "";
   const head = [...imports.keys()].sort().map((from) => `import ${importClause([...imports.get(from)!].sort())} from "${from}"\n`);
   const body = wrap(`export function ${signature} {`, lines(...hooks, wrap("return (", jsx, ")")), "}");
-  return `${head.join("")}${head.length ? "\n" : ""}${declarations.map((code) => `${code}\n\n`).join("")}${body}\n`;
+  return `${client}${head.join("")}${head.length ? "\n" : ""}${declarations.map((code) => `${code}\n\n`).join("")}${body}\n`;
 }
